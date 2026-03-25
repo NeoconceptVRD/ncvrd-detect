@@ -705,6 +705,26 @@ body{
       </div>
     </div>
 
+    <!-- § Signature -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span>✍️ 6. Signature</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Signez dans le cadre ci-dessous. La signature sera intégrée au rapport PDF.</div>
+        <canvas id="sig-canvas" style="border:1.5px solid var(--border);border-radius:10px;background:#fff;width:100%;display:block;height:140px;touch-action:none"></canvas>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="clearSignature()" style="flex:1;background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">🗑️ Effacer</button>
+          <button onclick="saveSignature()" style="flex:1;background:var(--blue);border:none;color:#fff;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700">✅ Enregistrer</button>
+        </div>
+        <div id="sig-preview" style="display:none;margin-top:12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Signature enregistrée :</div>
+          <img id="sig-img" style="max-width:100%;border:1px solid var(--border);border-radius:8px;background:#fff">
+          <button onclick="clearSignature()" style="margin-top:6px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">🗑️ Supprimer la signature</button>
+        </div>
+      </div>
+    </div>
+
     <!-- § Export -->
     <div class="sec-hdr">Export du rapport</div>
     <div class="btn-row">
@@ -719,7 +739,7 @@ body{
   <!-- ══════════════════ SCREEN DOSSIER CHANTIER ══════════════════ -->
   <div class="screen" id="s-dossier" style="display:none;padding-bottom:16px">
     <div class="sec-hdr">📄 Documents</div>
-    <div class="info-box">📂 Stockez vos documents terrain : AIPR, habilitations, certificats, PPSPS et autres. Les fichiers sont enregistrés localement sur l\'appareil.</div>
+    <div class="info-box" style="font-size:11px">📂 Stockez vos documents terrain : AIPR, habilitations, certificats, PPSPS et autres. Les fichiers sont enregistrés localement sur l\'appareil.</div>
 
     <!-- AIPR -->
     <div class="acc-section">
@@ -797,6 +817,13 @@ body{
     <input type="file" id="doc-input-FORM"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'FORM')">
     <input type="file" id="doc-input-PPSPS" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'PPSPS')">
     <input type="file" id="doc-input-AUTRE" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AUTRE')">
+
+    <!-- Export Documents -->
+    <div class="sec-hdr" style="margin-top:8px">Exporter le registre</div>
+    <div class="btn-row" style="margin:0 14px 16px">
+      <button class="btn-big btn-green" style="flex:1" onclick="exportDocsPDF()">📄 PDF</button>
+      <button class="btn-big btn-card" style="flex:1" onclick="exportDocsWord()">📝 Word</button>
+    </div>
   </div>
 
   <!-- ══════════════════ SCREEN CAMERA ══════════════════ -->
@@ -1476,7 +1503,7 @@ function showScreen(id){
   if(id==='screen-rapport'){renderRapportScreen();document.getElementById('nav-rapport').style.display='flex'}
   if(id==='s-photos'){renderAllPhotos()}
   if(id==='s-consignes'){renderConsignes()}
-  if(id==='s-dossier'){renderDossier()}
+  if(id==='s-dossier'){loadDossier().then(()=>renderDossier())}
   if(id==='s-profil'){updateProfile()}
   if(id==='s-camera'){initCamera()}
   if(id==='screen-home'){stopCamera()}
@@ -1584,9 +1611,18 @@ function renderChantiers(list){
       ? `<button onclick="event.stopPropagation();rouvrir('${c.id}')" style="background:rgba(29,78,216,.1);border:1px solid rgba(29,78,216,.25);color:var(--blue);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">↩ Rouvrir</button>`
       : `<button onclick="event.stopPropagation();terminerChantier('${c.id}')" style="background:rgba(21,128,61,.1);border:1px solid rgba(21,128,61,.25);color:#15803d;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">✅ Terminer</button>`;
     return `
-    <div class="card" onclick="openChantier('${c.id}')">
+    <div class="card" draggable="true"
+         ondragstart="chantierDragStart(event,'${c.id}')"
+         ondragover="chantierDragOver(event)"
+         ondrop="chantierDrop(event,'${c.id}')"
+         ondragend="chantierDragEnd()"
+         onclick="openChantier('${c.id}')">
       <div class="card-body">
-        <div class="card-title">🏗️ ${c.name}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+          <div class="card-title" style="margin-bottom:0">🏗️ ${c.name}</div>
+          <button onclick="event.stopPropagation();deleteChantier('${c.id}')"
+            style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;flex-shrink:0">🗑️</button>
+        </div>
         <div class="card-meta">
           ${c.adresse?`<span>📍 ${c.adresse}</span>`:''}
           <span>👤 ${c.client||'—'}</span>
@@ -1596,7 +1632,7 @@ function renderChantiers(list){
           ${badge}
           <div style="display:flex;align-items:center;gap:8px">
             ${actionBtn}
-            <span style="color:var(--blue);font-size:16px;font-weight:700">→</span>
+            <span style="color:var(--blue);font-size:16px;font-weight:700;cursor:grab" title="Glisser pour réorganiser">⠿</span>
           </div>
         </div>
       </div>
@@ -1622,6 +1658,44 @@ async function rouvrir(id){
   await db.put('chantiers', c);
   toast('🟢 Chantier réouvert');
   renderChantiers(S.chantiers);
+}
+
+// ════════════════════════════════════════════
+//  CHANTIER DRAG-AND-DROP + DELETE
+// ════════════════════════════════════════════
+let _dragChantierSrc = null;
+
+function chantierDragStart(e, id){
+  _dragChantierSrc = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.5';
+}
+function chantierDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+function chantierDrop(e, targetId){
+  e.preventDefault();
+  if(!_dragChantierSrc || _dragChantierSrc === targetId) return;
+  const srcIdx = S.chantiers.findIndex(c => c.id === _dragChantierSrc);
+  const tgtIdx = S.chantiers.findIndex(c => c.id === targetId);
+  if(srcIdx < 0 || tgtIdx < 0) return;
+  const moved = S.chantiers.splice(srcIdx, 1)[0];
+  S.chantiers.splice(tgtIdx, 0, moved);
+  renderChantiers(S.chantiers);
+}
+function chantierDragEnd(){
+  _dragChantierSrc = null;
+  renderChantiers(S.chantiers);
+}
+
+async function deleteChantier(id){
+  if(!confirm('Supprimer ce chantier et son rapport ? Cette action est irréversible.')) return;
+  await db.del('chantiers', id);
+  await db.del('rapports', id);
+  S.chantiers = S.chantiers.filter(c => c.id !== id);
+  renderChantiers(S.chantiers);
+  toast('🗑️ Chantier supprimé');
 }
 
 function filterChantiers(q){
@@ -1726,6 +1800,8 @@ function renderRapportScreen(){
   renderNetworks();
   renderRapportPhotos();
   renderGPS();
+  // Init signature pad (delayed to let DOM settle)
+  setTimeout(()=>initSignaturePad(), 100);
 }
 
 let saveTimer;
@@ -1874,21 +1950,20 @@ function renderNetworks(){
         </label>
         <button class="del-btn" onclick="removeNetwork('${n.id}')">✕</button>
       </div>
-      <!-- Photo réseau -->
+      <!-- Photos réseau (multiple) -->
       <div style="margin-bottom:8px">
-        <span class="mini-lbl">Photo</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${n.photo
-            ? `<div style="position:relative;width:72px;height:72px;flex-shrink:0">
-                <img src="${n.photo}" style="width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--border)">
-                <button onclick="removeNetPhoto('${n.id}')" style="position:absolute;top:-6px;right:-6px;background:var(--red);border:none;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-              </div>`
-            : ''}
-          <button onclick="showPhotoSource('net:${n.id}')"
-            style="flex:1;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:8px;padding:10px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
-            📷 ${n.photo ? 'Changer la photo' : 'Ajouter une photo'}
-          </button>
+        <span class="mini-lbl">Photos (${(n.photos||[n.photo].filter(Boolean)).length})</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px">
+          ${(n.photos||[n.photo].filter(Boolean)).map((src,idx)=>`
+            <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+              <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--border);cursor:pointer" onclick="viewNetPhoto('${n.id}',${idx})">
+              <button onclick="removeNetPhoto('${n.id}',${idx})" style="position:absolute;top:-6px;right:-6px;background:var(--red);border:none;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+            </div>`).join('')}
         </div>
+        <button onclick="showPhotoSource('net:${n.id}')"
+          style="width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:8px;padding:10px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+          📷 Ajouter une photo
+        </button>
       </div>
       <!-- Méthode -->
       <div style="margin-bottom:6px">
@@ -1993,7 +2068,12 @@ async function handlePhotoSrcInput(input){
   } else if(ctx && ctx.startsWith('net:')){
     const netId = ctx.substring(4);
     const n = S.currentRapport.networks.find(x => x.id === netId);
-    if(n){ n.photo = compressed; rapportChanged(); renderNetworks(); toast('📷 Photo ajoutée au réseau'); }
+    if(n){
+      // Migrate legacy single photo to array
+      if(!n.photos){ n.photos = n.photo ? [n.photo] : []; delete n.photo; }
+      n.photos.push(compressed);
+      rapportChanged(); renderNetworks(); toast('📷 Photo ajoutée au réseau');
+    }
   }
 }
 
@@ -2027,6 +2107,74 @@ function viewConclusionPhoto(idx){
   document.body.appendChild(overlay);
 }
 
+// ════════════════════════════════════════════
+//  SIGNATURE PAD
+// ════════════════════════════════════════════
+let sigDrawing = false;
+let sigCtx = null;
+
+function initSignaturePad(){
+  const canvas = document.getElementById('sig-canvas');
+  if(!canvas || canvas._sigInited) return;
+  canvas._sigInited = true;
+  // Set real pixel dimensions
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width || 340;
+  canvas.height = 140;
+  sigCtx = canvas.getContext('2d');
+  sigCtx.strokeStyle = '#1a1a2e';
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return {x:(src.clientX-r.left)*(canvas.width/r.width), y:(src.clientY-r.top)*(canvas.height/r.height)};
+  }
+  canvas.addEventListener('mousedown', e=>{ sigDrawing=true; const p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); });
+  canvas.addEventListener('mousemove', e=>{ if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); });
+  canvas.addEventListener('mouseup', ()=>{ sigDrawing=false; });
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); sigDrawing=true; const p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); },{passive:false});
+  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); },{passive:false});
+  canvas.addEventListener('touchend', ()=>{ sigDrawing=false; });
+
+  // Restore existing signature if any
+  if(S.currentRapport && S.currentRapport.signature){
+    const img = new Image();
+    img.onload = ()=>sigCtx.drawImage(img,0,0,canvas.width,canvas.height);
+    img.src = S.currentRapport.signature;
+    document.getElementById('sig-preview').style.display='block';
+    document.getElementById('sig-img').src = S.currentRapport.signature;
+  }
+}
+
+function clearSignature(){
+  const canvas = document.getElementById('sig-canvas');
+  if(!canvas) return;
+  if(!sigCtx){ sigCtx = canvas.getContext('2d'); }
+  sigCtx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById('sig-preview').style.display='none';
+  document.getElementById('sig-img').src='';
+  if(S.currentRapport){ S.currentRapport.signature=null; rapportChanged(); }
+  canvas._sigInited = false;
+  sigDrawing = false;
+}
+
+function saveSignature(){
+  const canvas = document.getElementById('sig-canvas');
+  if(!canvas || !sigCtx) return;
+  const dataUrl = canvas.toDataURL('image/png');
+  // Check if canvas is empty (all transparent)
+  const pixels = sigCtx.getImageData(0,0,canvas.width,canvas.height).data;
+  const hasContent = pixels.some((v,i)=>i%4===3 && v>0);
+  if(!hasContent){ toast('⚠️ Tracez votre signature d\'abord'); return; }
+  if(S.currentRapport){ S.currentRapport.signature = dataUrl; rapportChanged(); }
+  document.getElementById('sig-img').src = dataUrl;
+  document.getElementById('sig-preview').style.display = 'block';
+  toast('✅ Signature enregistrée');
+}
+
 function pickNetModalPhoto(){
   // now handled via showPhotoSource('netModal')
   showPhotoSource('netModal');
@@ -2050,9 +2198,23 @@ function addNetPhoto(netId){
   showPhotoSource('net:'+netId);
 }
 
-function removeNetPhoto(netId){
+function removeNetPhoto(netId, idx){
   const n=S.currentRapport.networks.find(x=>x.id===netId);
-  if(n){ delete n.photo; rapportChanged(); renderNetworks(); toast('🗑️ Photo supprimée'); }
+  if(!n) return;
+  if(!n.photos){ n.photos = n.photo ? [n.photo] : []; delete n.photo; }
+  n.photos.splice(idx, 1);
+  rapportChanged(); renderNetworks(); toast('🗑️ Photo supprimée');
+}
+
+function viewNetPhoto(netId, idx){
+  const n=S.currentRapport.networks.find(x=>x.id===netId);
+  if(!n) return;
+  const photos = n.photos || (n.photo ? [n.photo] : []);
+  const src = photos[idx]; if(!src) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML=`<img src="${src}" style="max-width:95vw;max-height:90vh;border-radius:8px"><button onclick="this.parentNode.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:40px;height:40px;font-family:inherit">✕</button>`;
+  document.body.appendChild(overlay);
 }
 
 async function addNetwork(){
@@ -2060,7 +2222,7 @@ async function addNetwork(){
   if(!nature){toast('⚠️ Nom du réseau requis');return}
   if(!S.currentRapport.networks) S.currentRapport.networks=[];
   const net={id:uid(),nature,
-    photo:netModalPhotoData||null,
+    photos:netModalPhotoData?[netModalPhotoData]:[],
     methode:document.getElementById('net-methode').value,
     remarques:document.getElementById('net-remarques').value,
     active:true};
@@ -2332,7 +2494,8 @@ const DOC_CATEGORIES = {
 let S_docs = [];
 
 async function loadDossier(){
-  S_docs = await db.getAll('documents');
+  // Documents stored locally only (binary files exceed Firestore 1MB limit)
+  S_docs = await db._idb.getAll('documents');
 }
 
 function renderDossier(){
@@ -2397,7 +2560,7 @@ async function handleDocUpload(input, category){
       data: e.target.result,
       uploadedAt: new Date().toLocaleDateString('fr-FR')
     };
-    await db.put('documents', doc);
+    await db._idb.put('documents', doc);
     S_docs.push(doc);
     renderDossier();
     toast('✅ Document ajouté : '+file.name);
@@ -2436,10 +2599,67 @@ function viewDocument(docId){
 
 async function deleteDocument(docId){
   if(!confirm('Supprimer ce document ?')) return;
-  await db.del('documents', docId);
+  await db._idb.del('documents', docId);
   S_docs = S_docs.filter(d => d.id !== docId);
   renderDossier();
   toast('🗑️ Document supprimé');
+}
+
+function exportDocsPDF(){
+  if(!S_docs.length){ toast('⚠️ Aucun document à exporter'); return; }
+  const rows = S_docs.map(d => `
+    <tr>
+      <td style="padding:8px;border:1px solid #ddd;font-weight:600">${d.name}</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:center">${d.fileType ? d.fileType.toUpperCase() : '—'}</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:center">${formatDocSize(d.size)}</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:center">${DOC_CATEGORIES[d.category]?.label || d.category}</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:center">${d.uploadedAt || '—'}</td>
+    </tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Registre Documents – NCVRD Detect</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#1a1a1a}
+    h1{font-size:18px;margin-bottom:4px}
+    p{font-size:12px;color:#666;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th{background:#1d4ed8;color:#fff;padding:8px;border:1px solid #1d4ed8;text-align:left}
+    tr:nth-child(even){background:#f0f4ff}
+    @media print{@page{margin:16mm}}</style>
+  </head><body>
+    <h1>📄 Registre des Documents</h1>
+    <p>Généré le ${new Date().toLocaleDateString('fr-FR')} · Total : ${S_docs.length} document(s)</p>
+    <table><thead><tr><th>Nom</th><th>Type</th><th>Taille</th><th>Catégorie</th><th>Date</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </body></html>`;
+  const win = window.open('','_blank');
+  if(!win){ toast('⚠️ Autorisez les popups'); return; }
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>win.print(), 600);
+}
+
+function exportDocsWord(){
+  if(!S_docs.length){ toast('⚠️ Aucun document à exporter'); return; }
+  const rows = S_docs.map(d =>
+    `<tr><td>${d.name}</td><td>${d.fileType ? d.fileType.toUpperCase() : '—'}</td><td>${formatDocSize(d.size)}</td><td>${DOC_CATEGORIES[d.category]?.label || d.category}</td><td>${d.uploadedAt || '—'}</td></tr>`
+  ).join('');
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:w="urn:schemas-microsoft-com:office:word"
+    xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8">
+    <style>body{font-family:Arial;font-size:11pt}h1{font-size:14pt;color:#1d4ed8}
+    table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px;font-size:10pt}
+    th{background:#1d4ed8;color:white;font-weight:bold}</style></head>
+    <body>
+    <h1>Registre des Documents – NCVRD Detect</h1>
+    <p>Généré le ${new Date().toLocaleDateString('fr-FR')} · ${S_docs.length} document(s)</p>
+    <table><tr><th>Nom</th><th>Type</th><th>Taille</th><th>Catégorie</th><th>Date</th></tr>${rows}</table>
+    </body></html>`;
+  const blob = new Blob(['\ufeff'+html], {type:'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'registre_documents.doc'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  toast('📝 Téléchargement Word démarré');
 }
 
 function renderConsignes(){
@@ -2502,7 +2722,7 @@ function buildPDFHTML(c,r,photos,gps){
   const netRows=activeNets.map(n=>`
     <tr>
       <td style="font-weight:700;vertical-align:top">${n.nature}</td>
-      <td style="vertical-align:top">${n.photo?`<img src="${n.photo}" style="width:80px;height:60px;object-fit:cover;border-radius:4px;display:block;margin-bottom:4px">`:'—'}</td>
+      <td style="vertical-align:top">${(n.photos||(n.photo?[n.photo]:[])).map(p=>`<img src="${p}" style="width:72px;height:54px;object-fit:cover;border-radius:4px;display:inline-block;margin:2px">`).join('')||'—'}</td>
       <td style="vertical-align:top">${n.methode||'—'}</td>
       <td style="vertical-align:top">${n.remarques||'—'}</td>
     </tr>`).join('');
@@ -2616,7 +2836,12 @@ L'intervention a été réalisée le ${r.dateDebut?new Date(r.dateDebut).toLocal
 
   <h2>Signatures</h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div><div style="font-size:10px;color:#666;margin-bottom:6px">Responsable projet / NEOCONCEPT VRD</div><div class="sig-box">Signature</div></div>
+    <div>
+      <div style="font-size:10px;color:#666;margin-bottom:6px">Responsable projet / NEOCONCEPT VRD</div>
+      ${r.signature
+        ? `<img src="${r.signature}" style="width:100%;max-height:80px;object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fff">`
+        : '<div class="sig-box">Signature</div>'}
+    </div>
     <div><div style="font-size:10px;color:#666;margin-bottom:6px">Validateur / Client</div><div class="sig-box">Signature</div></div>
   </div>
 
