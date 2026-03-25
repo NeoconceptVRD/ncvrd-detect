@@ -728,8 +728,11 @@ body{
     <!-- § Export -->
     <div class="sec-hdr">Export du rapport</div>
     <div class="btn-row">
-      <button class="btn-big btn-green" onclick="exportPDF()">📄 PDF</button>
-      <button class="btn-big btn-card" onclick="shareRapport()">📤 Partager</button>
+      <button class="btn-big btn-green" style="flex:1" onclick="exportPDF()">📄 PDF</button>
+      <button class="btn-big btn-card" style="flex:1;background:var(--blue);color:#fff;border-color:var(--blue)" onclick="exportRapportWord()">📝 Word</button>
+    </div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn-big btn-card" style="flex:1" onclick="shareRapport()">📤 Partager</button>
     </div>
     <button class="btn-big btn-card" onclick="openModal('m-collab')">👥 Collaborateurs</button>
     <div style="height:10px"></div>
@@ -1036,7 +1039,7 @@ body{
   <button class="nav-btn" id="nav-photos" onclick="showScreen('s-photos')">
     <span class="nav-icon">📸</span>Photos
   </button>
-  <button {match}
+  <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')">
     <span class="nav-icon">📄</span>Documents
   </button>
   <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')">
@@ -1618,11 +1621,7 @@ function renderChantiers(list){
          ondragend="chantierDragEnd()"
          onclick="openChantier('${c.id}')">
       <div class="card-body">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-          <div class="card-title" style="margin-bottom:0">🏗️ ${c.name}</div>
-          <button onclick="event.stopPropagation();deleteChantier('${c.id}')"
-            style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;flex-shrink:0">🗑️</button>
-        </div>
+        <div class="card-title">🏗️ ${c.name}</div>
         <div class="card-meta">
           ${c.adresse?`<span>📍 ${c.adresse}</span>`:''}
           <span>👤 ${c.client||'—'}</span>
@@ -1630,10 +1629,18 @@ function renderChantiers(list){
         </div>
         <div class="card-footer">
           ${badge}
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
             ${actionBtn}
-            <span style="color:var(--blue);font-size:16px;font-weight:700;cursor:grab" title="Glisser pour réorganiser">⠿</span>
+            <span style="color:var(--muted);font-size:14px;cursor:grab" title="Glisser pour réorganiser">⠿</span>
           </div>
+        </div>
+        <!-- Bouton supprimer explicite -->
+        <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+          <button onclick="event.stopPropagation();deleteChantier('${c.id}')"
+            style="width:100%;background:rgba(220,38,38,.08);border:1.5px solid rgba(220,38,38,.3);color:#dc2626;border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s"
+            onmouseover="this.style.background='rgba(220,38,38,.18)'" onmouseout="this.style.background='rgba(220,38,38,.08)'">
+            🗑️ Supprimer ce chantier
+          </button>
         </div>
       </div>
     </div>`;
@@ -2714,6 +2721,80 @@ function exportPDF(){
   win.document.close();
   setTimeout(()=>win.print(),800);
   toast('📄 PDF généré – utilisez Enregistrer sous PDF dans le dialogue d\'impression');
+}
+
+function exportRapportWord(){
+  const r=S.currentRapport;
+  const c=S.currentChantier;
+  if(!r||!c){toast('⚠️ Aucun rapport ouvert');return}
+  const activeNets=(r.networks||[]).filter(n=>n.active);
+  const netRows=activeNets.map(n=>`
+    <tr>
+      <td style="border:1px solid #ccc;padding:6px;font-weight:600">${n.nature}</td>
+      <td style="border:1px solid #ccc;padding:6px">${n.methode||'—'}</td>
+      <td style="border:1px solid #ccc;padding:6px">${n.remarques||'—'}</td>
+    </tr>`).join('');
+  const matRows=(r.materiels||[]).map(m=>`
+    <tr><td style="border:1px solid #ccc;padding:5px">${m.type||'—'}</td>
+    <td style="border:1px solid #ccc;padding:5px">${m.serie||'—'}</td></tr>`).join('');
+  const opRows=[...(r.opDetection||[]),...(r.opGeo||[])].map(o=>`
+    <tr><td style="border:1px solid #ccc;padding:5px">${o.nom||'—'}</td>
+    <td style="border:1px solid #ccc;padding:5px">${o.poste||'—'}</td></tr>`).join('');
+  const sigBlock = r.signature
+    ? `<img src="${r.signature}" style="width:200px;height:80px;object-fit:contain;border:1px solid #ccc;border-radius:4px;background:#fff">`
+    : '<div style="border:1px solid #ccc;height:60px;width:200px;display:inline-block"></div>';
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:w="urn:schemas-microsoft-com:office:word"
+    xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="utf-8">
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:2cm}
+    h1{font-size:16pt;color:#1d4ed8;border-bottom:2px solid #1d4ed8;padding-bottom:6pt;margin-bottom:12pt}
+    h2{font-size:12pt;color:#1d4ed8;margin-top:14pt;margin-bottom:6pt;border-left:3px solid #1d4ed8;padding-left:8pt}
+    table{border-collapse:collapse;width:100%;margin-bottom:10pt;font-size:10pt}
+    th{background:#1d4ed8;color:white;border:1px solid #1d4ed8;padding:6pt;text-align:left;font-size:10pt}
+    p{margin:4pt 0;line-height:1.6}
+    .label{font-weight:bold;color:#374151}
+    .val{color:#1a1a1a}
+    .footer{font-size:8pt;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:20pt;padding-top:6pt;text-align:center}
+  </style></head>
+  <body>
+    <h1>📋 Compte rendu de détection de réseaux</h1>
+    <p><span class="label">Chantier :</span> <span class="val">${c.name||'—'}</span></p>
+    <p><span class="label">Client :</span> <span class="val">${c.client||'—'}</span></p>
+    <p><span class="label">Adresse :</span> <span class="val">${r.adresse||c.address||'—'}</span></p>
+    <p><span class="label">Date début :</span> <span class="val">${r.dateDebut||'—'}</span> &nbsp;
+       <span class="label">Date fin :</span> <span class="val">${r.dateFin||'—'}</span></p>
+    <p><span class="label">Responsable :</span> <span class="val">${r.responsable||'—'}</span></p>
+    <p><span class="label">Objet :</span> <span class="val">${r.objetEtude||'—'}</span></p>
+    <p><span class="label">Nature des opérations :</span> <span class="val">${r.natureOperations||'—'}</span></p>
+
+    ${opRows?`<h2>Moyens humains</h2>
+    <table><tr><th>Nom</th><th>Poste</th></tr>${opRows}</table>`:''}
+
+    ${matRows?`<h2>Moyens matériels</h2>
+    <table><tr><th>Appareil</th><th>N° Série</th></tr>${matRows}</table>`:''}
+
+    ${activeNets.length?`<h2>Réseaux détectés</h2>
+    <table><tr><th>Nature du réseau</th><th>Méthode</th><th>Remarques</th></tr>${netRows}</table>`:''}
+
+    <h2>Conclusions</h2>
+    <p>${(r.conclusions||'—').replace(/\n/g,'<br>')}</p>
+    ${r.observations?`<p><span class="label">Observations :</span><br>${r.observations.replace(/\n/g,'<br>')}</p>`:''}
+
+    <h2>Signature</h2>
+    <p><span class="label">Responsable projet / NEOCONCEPT VRD :</span></p>
+    ${sigBlock}
+
+    <div class="footer">Rapport généré par NCVRD Detect · NEOCONCEPT VRD · ${new Date().toLocaleDateString('fr-FR')}</div>
+  </body></html>`;
+  const blob=new Blob(['\ufeff'+html],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const fname=(c.name||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.href=url; a.download=`rapport_${fname}.doc`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast('📝 Téléchargement Word démarré');
 }
 
 function buildPDFHTML(c,r,photos,gps){
