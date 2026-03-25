@@ -707,7 +707,7 @@ body{
 
     <!-- § Signature -->
     <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
+      <button class="acc-toggle" onclick="toggleAcc(this);setTimeout(initSignaturePad,120)">
         <span>✍️ 6. Signature</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
@@ -734,7 +734,7 @@ body{
     <div class="btn-row" style="margin-top:0">
       <button class="btn-big btn-card" style="flex:1" onclick="shareRapport()">📤 Partager</button>
     </div>
-    <button class="btn-big btn-card" onclick="openModal('m-collab')">👥 Collaborateurs</button>
+    <button class="btn-big btn-card" onclick="openCollabModal()">👥 Collaborateurs</button>
     <div style="height:10px"></div>
   </div>
 
@@ -1033,10 +1033,7 @@ body{
   <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')">
     <span class="nav-icon">🏠</span>Accueil
   </button>
-  <button class="nav-btn" id="nav-rapport" onclick="showRapportIfAny()" style="display:none">
-    <span class="nav-icon">📋</span>Rapport
-  </button>
-  <button class="nav-btn" id="nav-photos" onclick="showScreen('s-photos')">
+<button class="nav-btn" id="nav-photos" onclick="showScreen('s-photos')">
     <span class="nav-icon">📸</span>Photos
   </button>
   <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')">
@@ -1087,13 +1084,11 @@ body{
     <div class="form-group"><label class="form-label">Nature du réseau *</label>
       <input class="form-input" id="net-nature" placeholder="Ex: ENEDIS, GAZ, AEP, SLT…"></div>
     <div class="form-group">
-      <label class="form-label">Photo</label>
-      <div id="net-photo-preview" style="display:none;margin-bottom:8px">
-        <img id="net-photo-img" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-      </div>
+      <label class="form-label">Photos (plusieurs possibles)</label>
+      <div id="net-modal-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
       <button type="button" onclick="showPhotoSource('netModal')"
         style="width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:13px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
-        📷 <span id="net-photo-btn-label">Ajouter une photo</span>
+        📷 Ajouter une photo
       </button>
       <input type="file" id="net-photo-input" accept="image/*" style="display:none" onchange="handleNetModalPhoto(this)">
     </div>
@@ -1132,27 +1127,22 @@ body{
 <div class="modal" id="m-collab">
   <div class="modal-box">
     <div class="modal-hdr">
-      <span class="modal-title">👥 Collaborateurs</span>
+      <span class="modal-title">👥 Équipe / Collaborateurs</span>
       <button class="modal-close" onclick="closeModal('m-collab')">✕</button>
     </div>
-    <div class="info-box" style="margin:0 0 14px">
-      Partagez le lien du rapport avec vos collègues. Avec le mode cloud activé, ils pourront modifier en temps réel.
+    <!-- Liste membres réels -->
+    <div class="form-label" style="margin-bottom:6px">Membres de l'équipe</div>
+    <div id="collab-list" style="margin-bottom:14px;max-height:160px;overflow-y:auto">
+      <div style="color:var(--muted);font-size:12px;text-align:center;padding:8px">Chargement…</div>
     </div>
-    <div id="collab-list">
-      <div class="net-row" style="margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-weight:700;font-size:13px">👤 Jean Dupont</div>
-          <div style="font-size:11px;color:var(--muted)">Vous · <span style="color:var(--accent)">Rédacteur</span></div></div>
-        </div>
-      </div>
+    <!-- Code d'invitation -->
+    <div class="form-label" style="margin-bottom:6px">Inviter un collaborateur</div>
+    <div class="info-box" style="margin:0 0 10px;font-size:11px">Partagez ce code à votre collègue. Il devra l'entrer lors de la création de son compte dans l'application.</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="flex:1;background:var(--input);border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:16px;font-weight:800;letter-spacing:3px;text-align:center;color:var(--blue)" id="collab-invite-code">—</div>
+      <button onclick="copyCollabInviteCode()" style="background:var(--blue);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap">📋 Copier</button>
     </div>
-    <div class="form-group" style="margin-top:14px"><label class="form-label">Inviter par email</label>
-      <input class="form-input" id="collab-email" placeholder="email@exemple.fr" type="email"></div>
-    <div class="form-group"><label class="form-label">Rôle</label>
-      <select class="form-select" id="collab-role">
-        <option>Lecteur</option><option>Rédacteur</option><option>Validateur</option>
-      </select></div>
-    <button class="btn-big btn-accent" onclick="inviteCollab()">📧 Envoyer invitation</button>
+    <button onclick="shareCollabInvite()" style="width:100%;background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">📤 Partager le lien d'invitation</button>
   </div>
 </div>
 
@@ -1463,7 +1453,7 @@ const today=()=>new Date().toISOString().split('T')[0];
 // ════════════════════════════════════════════
 const SCREENS=['screen-home','screen-rapport','s-camera','s-photos','s-dossier','s-consignes','s-profil','s-login'];
 const NAV_MAP={
-  'screen-home':'nav-home','screen-rapport':'nav-rapport',
+  'screen-home':'nav-home',
   's-photos':'nav-photos','s-dossier':'nav-dossier','s-consignes':'nav-consignes','s-profil':'nav-profil'
 };
 const TITLES={
@@ -1503,7 +1493,7 @@ function showScreen(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(NAV_MAP[id]){const nb=document.getElementById(NAV_MAP[id]);if(nb)nb.classList.add('active')}
 
-  if(id==='screen-rapport'){renderRapportScreen();document.getElementById('nav-rapport').style.display='flex'}
+  if(id==='screen-rapport'){renderRapportScreen();}
   if(id==='s-photos'){renderAllPhotos()}
   if(id==='s-consignes'){renderConsignes()}
   if(id==='s-dossier'){loadDossier().then(()=>renderDossier())}
@@ -1760,7 +1750,6 @@ async function openChantier(id){
   S.currentRapport=rapport;
   S.photos=await db.getAll('photos');
   S.gpsPoints=await db.getAll('gps_points');
-  document.getElementById('nav-rapport').style.display='flex';
   showScreen('screen-rapport');
 }
 
@@ -2062,10 +2051,8 @@ async function handlePhotoSrcInput(input){
     rapportChanged();
     toast('📍 Plan de situation ajouté');
   } else if(ctx === 'netModal'){
-    netModalPhotoData = compressed;
-    document.getElementById('net-photo-img').src = compressed;
-    document.getElementById('net-photo-preview').style.display = 'block';
-    document.getElementById('net-photo-btn-label').textContent = 'Changer la photo';
+    netModalPhotos.push(compressed);
+    renderNetModalPhotos();
   } else if(ctx === 'conclusion'){
     if(!S.currentRapport.conclusionPhotos) S.currentRapport.conclusionPhotos=[];
     S.currentRapport.conclusionPhotos.push(compressed);
@@ -2084,7 +2071,19 @@ async function handlePhotoSrcInput(input){
   }
 }
 
-let netModalPhotoData=null;
+let netModalPhotoData=null; // legacy
+let netModalPhotos=[];
+
+function renderNetModalPhotos(){
+  const el=document.getElementById('net-modal-photos');
+  if(!el) return;
+  if(!netModalPhotos.length){ el.innerHTML=''; return; }
+  el.innerHTML=netModalPhotos.map((src,i)=>`
+    <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+      <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--border)">
+      <button onclick="netModalPhotos.splice(${i},1);renderNetModalPhotos()" style="position:absolute;top:-6px;right:-6px;background:var(--red);border:none;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit">✕</button>
+    </div>`).join('');
+}
 
 function renderConclusionPhotos(){
   const strip=document.getElementById('conclusion-photo-strip');
@@ -2121,32 +2120,40 @@ let sigDrawing = false;
 let sigCtx = null;
 
 function initSignaturePad(){
-  const canvas = document.getElementById('sig-canvas');
-  if(!canvas || canvas._sigInited) return;
-  canvas._sigInited = true;
-  // Set real pixel dimensions
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width || 340;
+  const old = document.getElementById('sig-canvas');
+  if(!old) return;
+  // Si l'accordéon est encore fermé, la largeur est 0 — on reporte
+  const w = old.offsetWidth;
+  if(!w){ setTimeout(initSignaturePad, 120); return; }
+
+  // Remplace le canvas pour supprimer les anciens event listeners
+  const canvas = old.cloneNode(false);
+  canvas.id = 'sig-canvas';
+  old.parentNode.replaceChild(canvas, old);
+
+  canvas.width = w;
   canvas.height = 140;
   sigCtx = canvas.getContext('2d');
   sigCtx.strokeStyle = '#1a1a2e';
-  sigCtx.lineWidth = 2.2;
+  sigCtx.lineWidth = 2.5;
   sigCtx.lineCap = 'round';
   sigCtx.lineJoin = 'round';
+  sigDrawing = false;
 
   function getPos(e){
     const r = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
     return {x:(src.clientX-r.left)*(canvas.width/r.width), y:(src.clientY-r.top)*(canvas.height/r.height)};
   }
-  canvas.addEventListener('mousedown', e=>{ sigDrawing=true; const p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); });
-  canvas.addEventListener('mousemove', e=>{ if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); });
-  canvas.addEventListener('mouseup', ()=>{ sigDrawing=false; });
+  canvas.addEventListener('mousedown',  e=>{ sigDrawing=true; const p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); });
+  canvas.addEventListener('mousemove',  e=>{ if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); });
+  canvas.addEventListener('mouseup',    ()=>{ sigDrawing=false; });
+  canvas.addEventListener('mouseleave', ()=>{ sigDrawing=false; });
   canvas.addEventListener('touchstart', e=>{ e.preventDefault(); sigDrawing=true; const p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); },{passive:false});
-  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); },{passive:false});
-  canvas.addEventListener('touchend', ()=>{ sigDrawing=false; });
+  canvas.addEventListener('touchmove',  e=>{ e.preventDefault(); if(!sigDrawing) return; const p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); },{passive:false});
+  canvas.addEventListener('touchend',   ()=>{ sigDrawing=false; });
 
-  // Restore existing signature if any
+  // Restaurer signature existante
   if(S.currentRapport && S.currentRapport.signature){
     const img = new Image();
     img.onload = ()=>sigCtx.drawImage(img,0,0,canvas.width,canvas.height);
@@ -2190,10 +2197,9 @@ function pickNetModalPhoto(){
 
 async function handleNetModalPhoto(input){
   if(!input.files[0]) return;
-  netModalPhotoData=await compressImage(input.files[0],900);
-  document.getElementById('net-photo-img').src=netModalPhotoData;
-  document.getElementById('net-photo-preview').style.display='block';
-  document.getElementById('net-photo-btn-label').textContent='Changer la photo';
+  const compressed=await compressImage(input.files[0],900);
+  netModalPhotos.push(compressed);
+  renderNetModalPhotos();
   input.value='';
 }
 
@@ -2229,7 +2235,7 @@ async function addNetwork(){
   if(!nature){toast('⚠️ Nom du réseau requis');return}
   if(!S.currentRapport.networks) S.currentRapport.networks=[];
   const net={id:uid(),nature,
-    photos:netModalPhotoData?[netModalPhotoData]:[],
+    photos:[...netModalPhotos],
     methode:document.getElementById('net-methode').value,
     remarques:document.getElementById('net-remarques').value,
     active:true};
@@ -2238,9 +2244,8 @@ async function addNetwork(){
   closeModal('m-add-network');
   renderNetworks();
   ['net-nature','net-methode','net-remarques'].forEach(id=>document.getElementById(id).value='');
-  netModalPhotoData=null;
-  document.getElementById('net-photo-preview').style.display='none';
-  document.getElementById('net-photo-btn-label').textContent='Ajouter une photo';
+  netModalPhotos=[];
+  renderNetModalPhotos();
   toast(`✅ Réseau ${nature} ajouté`);
 }
 
@@ -2713,88 +2718,138 @@ function exportPDF(){
   const r=S.currentRapport;
   const c=S.currentChantier;
   if(!r||!c){toast('⚠️ Aucun rapport ouvert');return}
+  toast('⏳ Préparation du PDF…');
   const photos=S.photos.filter(p=>p.rapportId===r.id);
   const gps=S.gpsPoints.filter(p=>p.rapportId===r.id);
   const html=buildPDFHTML(c,r,photos,gps);
-  const win=window.open('','_blank','width=900,height=700');
-  win.document.write(html);
-  win.document.close();
-  setTimeout(()=>win.print(),800);
-  toast('📄 PDF généré – utilisez Enregistrer sous PDF dans le dialogue d\'impression');
+  const fname=(c.name||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+
+  function doGenerate(){
+    const container=document.createElement('div');
+    container.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;background:#fff';
+    // Extract body content from the HTML string
+    const bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    container.innerHTML=bodyMatch?bodyMatch[1]:html;
+    document.body.appendChild(container);
+    window.html2pdf().set({
+      margin:[10,10,10,10],
+      filename:`rapport_${fname}.pdf`,
+      image:{type:'jpeg',quality:0.88},
+      html2canvas:{scale:2,useCORS:true,logging:false},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+    }).from(container).save().then(()=>{
+      document.body.removeChild(container);
+      toast('✅ PDF téléchargé !');
+    }).catch(()=>{
+      document.body.removeChild(container);
+      toast('⚠️ Erreur PDF – ouverture impression de secours');
+      const win=window.open('','_blank'); win.document.write(html); win.document.close(); setTimeout(()=>win.print(),600);
+    });
+  }
+
+  if(window.html2pdf){ doGenerate(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+  s.onload=doGenerate;
+  s.onerror=()=>{ const win=window.open('','_blank'); win.document.write(html); win.document.close(); setTimeout(()=>win.print(),600); toast('📄 Dialogue impression ouvert'); };
+  document.head.appendChild(s);
+}
+
+function _xmlEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _wp(text,bold,size,color){
+  const b=bold?'<w:b/>':'';
+  const sz=size?`<w:sz w:val="${size}"/><w:szCs w:val="${size}"/>`:'';
+  const col=color?`<w:color w:val="${color}"/>`:'';
+  return `<w:p><w:r><w:rPr>${b}${sz}${col}</w:rPr><w:t xml:space="preserve">${_xmlEsc(text)}</w:t></w:r></w:p>`;
+}
+function _wh(text,level){
+  const sz=level===1?32:26;
+  const col=level===1?'1d4ed8':'374151';
+  return `<w:p><w:pPr><w:pStyle w:val="Heading${level}"/><w:spacing w:before="200" w:after="100"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:color w:val="${col}"/></w:rPr><w:t>${_xmlEsc(text)}</w:t></w:r></w:p>`;
+}
+function _wrow(cells,header){
+  const rPr=header?'<w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr>':'<w:rPr></w:rPr>';
+  const trPr=header?'<w:trPr><w:shd w:val="clear" w:color="auto" w:fill="1d4ed8"/></w:trPr>':'';
+  return `<w:tr>${trPr}${cells.map(c=>`<w:tc><w:tcPr><w:tcBorders><w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/></w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="${header?'1d4ed8':'FFFFFF'}"/></w:tcPr><w:p><w:r>${rPr}<w:t xml:space="preserve">${_xmlEsc(c)}</w:t></w:r></w:p></w:tc>`).join('')}</w:tr>`;
 }
 
 function exportRapportWord(){
-  const r=S.currentRapport;
-  const c=S.currentChantier;
+  const r=S.currentRapport, c=S.currentChantier;
   if(!r||!c){toast('⚠️ Aucun rapport ouvert');return}
-  const activeNets=(r.networks||[]).filter(n=>n.active);
-  const netRows=activeNets.map(n=>`
-    <tr>
-      <td style="border:1px solid #ccc;padding:6px;font-weight:600">${n.nature}</td>
-      <td style="border:1px solid #ccc;padding:6px">${n.methode||'—'}</td>
-      <td style="border:1px solid #ccc;padding:6px">${n.remarques||'—'}</td>
-    </tr>`).join('');
-  const matRows=(r.materiels||[]).map(m=>`
-    <tr><td style="border:1px solid #ccc;padding:5px">${m.type||'—'}</td>
-    <td style="border:1px solid #ccc;padding:5px">${m.serie||'—'}</td></tr>`).join('');
-  const opRows=[...(r.opDetection||[]),...(r.opGeo||[])].map(o=>`
-    <tr><td style="border:1px solid #ccc;padding:5px">${o.nom||'—'}</td>
-    <td style="border:1px solid #ccc;padding:5px">${o.poste||'—'}</td></tr>`).join('');
-  const sigBlock = r.signature
-    ? `<img src="${r.signature}" style="width:200px;height:80px;object-fit:contain;border:1px solid #ccc;border-radius:4px;background:#fff">`
-    : '<div style="border:1px solid #ccc;height:60px;width:200px;display:inline-block"></div>';
-  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office"
-    xmlns:w="urn:schemas-microsoft-com:office:word"
-    xmlns="http://www.w3.org/TR/REC-html40">
-  <head><meta charset="utf-8">
-  <style>
-    body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:2cm}
-    h1{font-size:16pt;color:#1d4ed8;border-bottom:2px solid #1d4ed8;padding-bottom:6pt;margin-bottom:12pt}
-    h2{font-size:12pt;color:#1d4ed8;margin-top:14pt;margin-bottom:6pt;border-left:3px solid #1d4ed8;padding-left:8pt}
-    table{border-collapse:collapse;width:100%;margin-bottom:10pt;font-size:10pt}
-    th{background:#1d4ed8;color:white;border:1px solid #1d4ed8;padding:6pt;text-align:left;font-size:10pt}
-    p{margin:4pt 0;line-height:1.6}
-    .label{font-weight:bold;color:#374151}
-    .val{color:#1a1a1a}
-    .footer{font-size:8pt;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:20pt;padding-top:6pt;text-align:center}
-  </style></head>
-  <body>
-    <h1>📋 Compte rendu de détection de réseaux</h1>
-    <p><span class="label">Chantier :</span> <span class="val">${c.name||'—'}</span></p>
-    <p><span class="label">Client :</span> <span class="val">${c.client||'—'}</span></p>
-    <p><span class="label">Adresse :</span> <span class="val">${r.adresse||c.address||'—'}</span></p>
-    <p><span class="label">Date début :</span> <span class="val">${r.dateDebut||'—'}</span> &nbsp;
-       <span class="label">Date fin :</span> <span class="val">${r.dateFin||'—'}</span></p>
-    <p><span class="label">Responsable :</span> <span class="val">${r.responsable||'—'}</span></p>
-    <p><span class="label">Objet :</span> <span class="val">${r.objetEtude||'—'}</span></p>
-    <p><span class="label">Nature des opérations :</span> <span class="val">${r.natureOperations||'—'}</span></p>
+  toast('⏳ Génération du Word…');
+  function doWord(){
+    const activeNets=(r.networks||[]).filter(n=>n.active);
+    const ops=[...(r.opDetection||[]),...(r.opGeo||[])];
+    const mats=r.materiels||[];
+    // Build body XML
+    let body='';
+    body+=_wh('Compte rendu de détection de réseaux',1);
+    body+=_wh('Informations générales',2);
+    body+=_wp(`Chantier : ${c.name||'—'}`,false,22);
+    body+=_wp(`Client : ${c.client||'—'}`,false,22);
+    body+=_wp(`Adresse : ${r.adresse||c.address||'—'}`,false,22);
+    body+=_wp(`Date début : ${r.dateDebut||'—'}   Date fin : ${r.dateFin||'—'}`,false,22);
+    body+=_wp(`Responsable : ${r.responsable||'—'}`,false,22);
+    body+=_wp(`Objet : ${r.objetEtude||'—'}`,false,22);
+    body+=_wp(`Nature des opérations : ${r.natureOperations||'—'}`,false,22);
+    if(ops.length){
+      body+=_wh('Moyens humains',2);
+      body+=`<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>`;
+      body+=_wrow(['Nom','Poste'],true);
+      ops.forEach(o=>{ body+=_wrow([o.nom||'—',o.poste||'—'],false); });
+      body+='</w:tbl><w:p/>';
+    }
+    if(mats.length){
+      body+=_wh('Moyens matériels',2);
+      body+=`<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>`;
+      body+=_wrow(['Appareil','N° Série'],true);
+      mats.forEach(m=>{ body+=_wrow([m.type||'—',m.serie||'—'],false); });
+      body+='</w:tbl><w:p/>';
+    }
+    if(activeNets.length){
+      body+=_wh('Réseaux détectés',2);
+      body+=`<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>`;
+      body+=_wrow(['Nature du réseau','Méthode','Remarques'],true);
+      activeNets.forEach(n=>{ body+=_wrow([n.nature||'—',n.methode||'—',n.remarques||'—'],false); });
+      body+='</w:tbl><w:p/>';
+    }
+    body+=_wh('Conclusions',2);
+    (r.conclusions||'—').split('\n').forEach(line=>{ body+=_wp(line,false,22); });
+    if(r.observations){
+      body+=_wp('Observations :',true,22);
+      r.observations.split('\n').forEach(line=>{ body+=_wp(line,false,22); });
+    }
+    body+=_wh('Signature',2);
+    body+=_wp('Responsable projet / NEOCONCEPT VRD :',false,22);
+    body+=`<w:p><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t>______________________________</w:t></w:r></w:p>`;
+    body+=_wp(`Rapport généré le ${new Date().toLocaleDateString('fr-FR')} – NEOCONCEPT VRD`,false,18);
 
-    ${opRows?`<h2>Moyens humains</h2>
-    <table><tr><th>Nom</th><th>Poste</th></tr>${opRows}</table>`:''}
+    // Build DOCX XML files
+    const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+    const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+    const wrels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body></w:document>`;
 
-    ${matRows?`<h2>Moyens matériels</h2>
-    <table><tr><th>Appareil</th><th>N° Série</th></tr>${matRows}</table>`:''}
-
-    ${activeNets.length?`<h2>Réseaux détectés</h2>
-    <table><tr><th>Nature du réseau</th><th>Méthode</th><th>Remarques</th></tr>${netRows}</table>`:''}
-
-    <h2>Conclusions</h2>
-    <p>${(r.conclusions||'—').replace(/\n/g,'<br>')}</p>
-    ${r.observations?`<p><span class="label">Observations :</span><br>${r.observations.replace(/\n/g,'<br>')}</p>`:''}
-
-    <h2>Signature</h2>
-    <p><span class="label">Responsable projet / NEOCONCEPT VRD :</span></p>
-    ${sigBlock}
-
-    <div class="footer">Rapport généré par NCVRD Detect · NEOCONCEPT VRD · ${new Date().toLocaleDateString('fr-FR')}</div>
-  </body></html>`;
-  const blob=new Blob(['\ufeff'+html],{type:'application/msword'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const fname=(c.name||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase();
-  a.href=url; a.download=`rapport_${fname}.doc`; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('📝 Téléchargement Word démarré');
+    const zip=new JSZip();
+    zip.file('[Content_Types].xml',ct);
+    zip.folder('_rels').file('.rels',rels);
+    zip.folder('word').file('document.xml',doc);
+    zip.folder('word').folder('_rels').file('document.xml.rels',wrels);
+    const fname=(c.name||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+    zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}).then(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=`rapport_${fname}.docx`; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      toast('✅ Word (.docx) téléchargé !');
+    });
+  }
+  if(window.JSZip){ doWord(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+  s.onload=doWord;
+  s.onerror=()=>toast('⚠️ Impossible de charger JSZip – vérifiez votre connexion');
+  document.head.appendChild(s);
 }
 
 function buildPDFHTML(c,r,photos,gps){
@@ -2942,13 +2997,51 @@ function shareRapport(){
 // ════════════════════════════════════════════
 //  COLLABORATION
 // ════════════════════════════════════════════
-function inviteCollab(){
-  const email=document.getElementById('collab-email').value.trim();
-  const role=document.getElementById('collab-role').value;
-  if(!email){toast('⚠️ Email requis');return}
-  toast(`📧 Invitation envoyée à ${email} (${role})`);
-  document.getElementById('collab-email').value='';
-  closeModal('m-collab');
+async function openCollabModal(){
+  openModal('m-collab');
+  const listEl = document.getElementById('collab-list');
+  const codeEl = document.getElementById('collab-invite-code');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px">Chargement…</div>';
+
+  if(!FIREBASE_CONFIGURED || !currentUserProfile){
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Connectez-vous pour voir l\'équipe.</div>';
+    return;
+  }
+  try {
+    // Charger membres de l'équipe
+    const snap = await fdb.collection('users').where('teamId','==',currentUserProfile.teamId).get();
+    const users = snap.docs.map(d=>({uid:d.id,...d.data()}));
+    if(!users.length){
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Aucun membre trouvé.</div>';
+    } else {
+      listEl.innerHTML = users.map(u=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:700;font-size:13px">👤 ${u.displayName||u.email}</div>
+            <div style="font-size:11px;color:var(--muted)">${u.email||''}${u.uid===currentUser.uid?' · <strong>Vous</strong>':''} · <span style="color:var(--accent)">${u.role||'Technicien'}</span></div>
+          </div>
+        </div>`).join('');
+    }
+    // Charger code invitation
+    const teamSnap = await fdb.collection('teams').doc(currentUserProfile.teamId).get();
+    if(teamSnap.exists) codeEl.textContent = teamSnap.data().inviteCode || '—';
+  } catch(e){
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Erreur de chargement.</div>';
+  }
+}
+
+function copyCollabInviteCode(){
+  const code = document.getElementById('collab-invite-code').textContent;
+  if(code==='—') return;
+  navigator.clipboard.writeText(code).then(()=>toast('✅ Code copié : '+code)).catch(()=>{ prompt("Code d'invitation :",code); });
+}
+
+function shareCollabInvite(){
+  const code = document.getElementById('collab-invite-code').textContent;
+  const url = window.location.href;
+  const text = `Rejoignez mon équipe sur NCVRD Detect !\nCode d'invitation : ${code}\nApplication : ${url}`;
+  if(navigator.share){ navigator.share({title:'NCVRD Detect – Invitation',text}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(text).then(()=>toast('✅ Lien copié dans le presse-papier')).catch(()=>{ prompt('Partagez ce lien :',text); }); }
 }
 
 // ════════════════════════════════════════════
