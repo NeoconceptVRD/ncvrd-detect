@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NCVRD Detect">
-<meta name="theme-color" content="#1e3a6e">
+<meta name="theme-color" content="#070b14">
 <title>NCVRD Detect – Détection Réseaux VRD</title>
 <!-- ─── FIREBASE SDK ─── -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -23,39 +23,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Couleurs principales — Gris clair + Bleu foncé */
-  --primary:   #1e3a6e;
-  --primary2:  #1a3260;
-  --accent:    #1d4ed8;
-  --accent2:   #2563eb;
-  --green:     #16a34a;
-  --red:       #dc2626;
-  --blue:      #1d4ed8;
-  --purple:    #6366f1;
-  --orange:    #ea580c;
-  --teal:      #0284c7;
+  /* ═══ PREMIUM DARK PALETTE ═══ */
+  --primary:   #0a1628;
+  --primary2:  #060d1c;
+  --accent:    #00b4ff;
+  --accent2:   #0099e6;
+  --green:     #00e676;
+  --red:       #ff4757;
+  --blue:      #00b4ff;
+  --purple:    #a855f7;
+  --orange:    #ff6b35;
+  --teal:      #00d4aa;
 
-  /* Surfaces — fond gris clair */
-  --bg:        #f0f2f5; /* pattern applied via body */
-  --card:      #ffffff;
-  --card2:     #f8f9fb;
-  --card3:     #eef0f4;
-  --border:    #dde1ea;
-  --border2:   #c8cdd8;
+  /* Surfaces — fond très sombre */
+  --bg:        #070b14;
+  --card:      rgba(255,255,255,.055);
+  --card2:     rgba(255,255,255,.03);
+  --card3:     rgba(255,255,255,.04);
+  --border:    rgba(0,180,255,.18);
+  --border2:   rgba(0,180,255,.1);
 
   /* Texte */
-  --text:      #1a2035;
-  --text2:     #3d4a5e;
-  --muted:     #7a8499;
+  --text:      #e8edf8;
+  --text2:     #a0b0cc;
+  --muted:     #5a6880;
 
   /* Inputs */
-  --input:     #f4f6f9;
-  --inputborder: #d0d5e0;
+  --input:     rgba(255,255,255,.07);
+  --inputborder: rgba(0,180,255,.25);
 
-  /* Ombres */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
-  --shadow-lg: 0 10px 30px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.08);
+  /* Ombres premium */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.5), 0 2px 8px rgba(0,180,255,.08);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,.6), 0 4px 16px rgba(0,180,255,.12);
+
+  /* Glow effects */
+  --glow-blue: 0 0 20px rgba(0,180,255,.3), 0 0 40px rgba(0,180,255,.1);
+  --glow-green: 0 0 20px rgba(0,230,118,.25);
+  --glow-purple: 0 0 20px rgba(168,85,247,.3);
 }
 
 /* ── Reset & Base ────────────────────── */
@@ -63,23 +68,30 @@
 html,body{height:100%;overflow:hidden}
 body{
   font-family:'Inter',system-ui,-apple-system,sans-serif;
-  background-color:#f0f2f5;background-image:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='1.5' fill='%231d4ed8' fill-opacity='0.07'/%3E%3C/svg%3E");background-size:40px 40px;color:var(--text);
+  background-color:#070b14;
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='none'/%3E%3Cpath d='M 60 0 L 0 0 0 60' fill='none' stroke='%2300b4ff' stroke-width='0.4' stroke-opacity='0.08'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 20% 50%, rgba(0,90,160,.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(100,40,200,.08) 0%, transparent 50%);
+  background-size:60px 60px, 100% 100%, 100% 100%;
+  color:var(--text);
   max-width:480px;margin:0 auto;
-  position:relative;display:flex;flex-direction:column;
+  position:relative;display:flex;flex-direction:column;height:100vh;overflow:hidden;
   -webkit-font-smoothing:antialiased;
 }
 
 /* ── TOP BAR ─────────────────────────── */
 #topbar{
-  background:linear-gradient(135deg,#1a2e4a 0%,#1e3a6e 100%);
+  background:rgba(7,11,20,.9);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   padding:13px 16px;
   display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1.5px solid rgba(37,99,235,.5);
+  border-bottom:1px solid rgba(0,180,255,.2);
   flex-shrink:0;z-index:50;
-  box-shadow:0 2px 12px rgba(0,0,0,.4),0 1px 0 rgba(37,99,235,.2);
+  box-shadow:0 2px 20px rgba(0,0,0,.6),0 1px 0 rgba(0,180,255,.15);
 }
 .tb-left{display:flex;align-items:center;gap:10px}
-.tb-title{font-weight:800;font-size:15px;letter-spacing:-.2px;color:#fff}
+.tb-title{font-weight:800;font-size:15px;letter-spacing:-.2px;color:#e8edf8;text-shadow:0 0 20px rgba(0,180,255,.3)}
 .back-btn{
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
   color:#fff;font-size:16px;width:36px;height:36px;border-radius:10px;
@@ -91,37 +103,43 @@ body{
   font-size:10px;font-weight:700;padding:5px 10px;border-radius:20px;
   display:flex;align-items:center;gap:5px;letter-spacing:.2px;
 }
-.sync-pill.online{background:rgba(22,163,74,.12);color:#15803d;border:1px solid rgba(22,163,74,.3)}
-.sync-pill.offline{background:rgba(220,38,38,.1);color:#b91c1c;border:1px solid rgba(220,38,38,.25)}
+.sync-pill.online{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.3)}
+.sync-pill.offline{background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.25)}
 .sync-dot{width:6px;height:6px;border-radius:50%}
 
 /* ── SCREENS ─────────────────────────── */
-#app{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:76px}
+#app{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .screen{display:none;min-height:100%}
 .screen.active{display:block}
 
-/* ── BOTTOM NAV ──────────────────────── */
+/* ── LEFT NAV ────────────────────────── */
 #bottom-nav{
-  background:var(--card);
+  background:rgba(5,9,18,.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   display:flex;
-  border-top:1px solid var(--border);
+  flex-direction:column;
+  border-right:1px solid rgba(0,180,255,.15);
   flex-shrink:0;position:relative;z-index:50;
-  box-shadow:0 -4px 16px rgba(0,0,0,.4);
-  padding:4px 0 env(safe-area-inset-bottom,0px);
+  box-shadow:4px 0 24px rgba(0,0,0,.5);
+  width:64px;
+  padding:8px 0;
+  align-items:center;
 }
 .nav-btn{
-  flex:1;padding:8px 2px 6px;
-  display:flex;flex-direction:column;align-items:center;gap:3px;
+  width:100%;padding:12px 4px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
   cursor:pointer;border:none;background:none;
-  color:#9aa0b0;font-size:9.5px;font-weight:600;
-  letter-spacing:.2px;transition:color .2s;position:relative;
+  color:rgba(255,255,255,.5);font-size:9px;font-weight:600;
+  letter-spacing:.2px;transition:color .2s,background .2s;position:relative;
 }
-.nav-btn.active{color:var(--blue)}
+.nav-btn:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.07);}
+.nav-btn.active{color:#00b4ff;background:rgba(0,180,255,.12);}
 .nav-btn.active::after{
-  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-  width:18px;height:2.5px;background:var(--blue);border-radius:2px 2px 0 0;
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:28px;background:var(--accent);border-radius:0 3px 3px 0;
+  box-shadow:0 0 8px rgba(0,180,255,.6);
 }
-.nav-icon{font-size:20px;line-height:1}
+.nav-icon{font-size:22px;line-height:1}
 
 /* ── TYPOGRAPHY ──────────────────────── */
 .sec-hdr{
@@ -131,15 +149,22 @@ body{
 
 /* ── CARDS ────────────────────────────── */
 .card{
-  background:var(--card);border-radius:16px;
-  border:1px solid var(--border);
-  border-left:3px solid var(--blue);
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-radius:16px;
+  border:1px solid rgba(0,180,255,.18);
+  border-left:3px solid var(--accent);
   margin:0 14px 12px;overflow:hidden;cursor:pointer;
-  transition:border-color .2s,box-shadow .2s;
-  box-shadow:var(--shadow-sm);
+  transition:border-color .25s,box-shadow .25s,transform .2s,background .2s;
+  box-shadow:0 4px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+  animation:cardIn .4s ease both;
 }
-.card:active{opacity:.88;transform:scale(.99)}
-.card:hover{border-color:rgba(37,99,235,.45);box-shadow:0 0 0 1px rgba(37,99,235,.15),var(--shadow-md)}
+.card:active{opacity:.9;transform:scale(.99)}
+.card:hover{
+  border-color:rgba(0,180,255,.45);
+  box-shadow:0 8px 28px rgba(0,0,0,.5),0 0 0 1px rgba(0,180,255,.2),inset 0 1px 0 rgba(255,255,255,.08);
+  background:rgba(255,255,255,.08);
+}
 .card-body{padding:16px}
 .card-title{font-weight:700;font-size:15px;margin-bottom:5px;letter-spacing:-.1px}
 .card-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
@@ -147,10 +172,10 @@ body{
 
 /* ── STATUS BADGES ───────────────────── */
 .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.2px}
-.badge-green{background:rgba(22,163,74,.1);color:#15803d;border:1px solid rgba(22,163,74,.25)}
-.badge-orange{background:rgba(234,88,12,.08);color:#c2410c;border:1px solid rgba(234,88,12,.2)}
-.badge-gray{background:rgba(107,114,128,.1);color:#6b7280;border:1px solid rgba(107,114,128,.2)}
-.badge-blue{background:rgba(29,78,216,.08);color:#1d4ed8;border:1px solid rgba(29,78,216,.2)}
+.badge-green{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.3)}
+.badge-orange{background:rgba(255,107,53,.1);color:#ff6b35;border:1px solid rgba(255,107,53,.25)}
+.badge-gray{background:rgba(255,255,255,.07);color:#8899bb;border:1px solid rgba(255,255,255,.12)}
+.badge-blue{background:rgba(0,180,255,.1);color:#00b4ff;border:1px solid rgba(0,180,255,.3)}
 
 /* ── BUTTONS ──────────────────────────── */
 .btn-big{
@@ -164,39 +189,40 @@ body{
 }
 .btn-big:active{transform:scale(.97);opacity:.9}
 .btn-accent{
-  background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 100%);
+  background:linear-gradient(135deg,#0077cc 0%,#00b4ff 100%);
   color:#fff;
-  box-shadow:0 4px 14px rgba(37,99,235,.35),var(--shadow-sm);
+  box-shadow:0 4px 20px rgba(0,180,255,.35),var(--shadow-sm);
 }
-.btn-accent:hover{box-shadow:0 6px 20px rgba(37,99,235,.45),var(--shadow-sm)}
+.btn-accent:hover{box-shadow:0 6px 28px rgba(0,180,255,.5),var(--shadow-sm)}
 .btn-card{
-  background:#ffffff;color:var(--text);
-  border:1px solid var(--border);
+  background:rgba(255,255,255,.07);color:var(--text);
+  border:1px solid rgba(0,180,255,.2);
   box-shadow:var(--shadow-sm);
+  backdrop-filter:blur(8px);
 }
 .btn-green{
-  background:linear-gradient(135deg,#16a34a 0%,var(--green) 100%);
-  color:white;box-shadow:0 4px 14px rgba(34,197,94,.25);
+  background:linear-gradient(135deg,#00a854 0%,#00e676 100%);
+  color:#070b14;box-shadow:0 4px 20px rgba(0,230,118,.3);
 }
-.btn-red{background:linear-gradient(135deg,#dc2626 0%,var(--red) 100%);color:white}
+.btn-red{background:linear-gradient(135deg,#cc1a1a 0%,#ff4757 100%);color:white;box-shadow:0 4px 16px rgba(255,71,87,.3)}
 .btn-row{display:flex;gap:10px;margin:0 14px 12px}
 .btn-row .btn-big{width:auto;flex:1;margin:0}
 .btn-icon-big{
   flex:1;padding:16px 8px;
-  background:#fff;border:1px solid var(--border);
+  background:rgba(255,255,255,.06);border:1px solid rgba(0,180,255,.2);
   border-radius:14px;cursor:pointer;text-align:center;
-  transition:all .15s;font-family:'Inter',inherit;
-  box-shadow:var(--shadow-sm);
+  transition:all .2s;font-family:'Inter',inherit;
+  box-shadow:var(--shadow-sm);backdrop-filter:blur(8px);
 }
 .btn-icon-big:active{transform:scale(.95)}
 .btn-icon-big .bib-icon{font-size:26px;display:block;margin-bottom:6px}
 .btn-icon-big .bib-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.2px}
-.btn-icon-big.cam{border-color:rgba(29,78,216,.3);background:rgba(29,78,216,.05)}
-.btn-icon-big.cam .bib-label{color:#1d4ed8}
-.btn-icon-big.gps{border-color:rgba(22,163,74,.3);background:rgba(22,163,74,.05)}
-.btn-icon-big.gps .bib-label{color:#15803d}
-.btn-icon-big.pdf{border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.05)}
-.btn-icon-big.pdf .bib-label{color:#dc2626}
+.btn-icon-big.cam{border-color:rgba(0,180,255,.3);background:rgba(0,180,255,.08)}
+.btn-icon-big.cam .bib-label{color:#00b4ff}
+.btn-icon-big.gps{border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.08)}
+.btn-icon-big.gps .bib-label{color:#00e676}
+.btn-icon-big.pdf{border-color:rgba(255,71,87,.3);background:rgba(255,71,87,.08)}
+.btn-icon-big.pdf .bib-label{color:#ff4757}
 
 /* ── FORM ─────────────────────────────── */
 .form-group{margin:0 0 14px}
@@ -206,17 +232,20 @@ body{
   color:var(--muted);margin-bottom:7px;
 }
 .form-input,.form-textarea,.form-select{
-  width:100%;background:var(--input);
-  border:1.5px solid var(--inputborder);
+  width:100%;background:rgba(255,255,255,.07);
+  border:1.5px solid rgba(0,180,255,.2);
   border-radius:11px;color:var(--text);
   font-size:15px;padding:13px 14px;
   font-family:'Inter',inherit;outline:none;
   transition:border-color .2s,box-shadow .2s;
+  backdrop-filter:blur(8px);
 }
 .form-input:focus,.form-textarea:focus,.form-select:focus{
   border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(37,99,235,.18);
+  box-shadow:0 0 0 3px rgba(0,180,255,.2),0 0 12px rgba(0,180,255,.15);
+  background:rgba(255,255,255,.1);
 }
+.form-input::placeholder,.form-textarea::placeholder{color:rgba(255,255,255,.25)}
 .form-textarea{min-height:85px;resize:vertical}
 .form-select{
   cursor:pointer;
@@ -228,27 +257,19 @@ body{
 
 /* ── ACCORDION ───────────────────────── */
 .acc-section{
-  background:var(--card);border-radius:16px;
-  border:1px solid var(--border);
-  border-top:2px solid rgba(29,78,216,.15);
+  background:rgba(255,255,255,.05);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-radius:16px;
+  border:1px solid rgba(0,180,255,.15);
+  border-top:2px solid rgba(0,180,255,.35);
   margin:0 14px 10px;overflow:hidden;
-  box-shadow:var(--shadow-sm);
+  box-shadow:0 4px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05);
 }
-.acc-toggle{
-  width:100%;background:none;border:none;color:var(--text);
-  padding:16px;display:flex;align-items:center;
-  justify-content:space-between;cursor:pointer;
-  font-size:14px;font-weight:600;font-family:'Inter',inherit;text-align:left;
-  transition:background .15s;
-}
+.acc-toggle{width:100%;padding:14px 16px;background:none;border:none;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;font-weight:700;color:var(--text);font-family:inherit;text-align:left;letter-spacing:-.1px}
 .acc-toggle:active{background:rgba(255,255,255,.04)}
-.acc-chevron{
-  font-size:10px;color:var(--muted);transition:transform .25s;flex-shrink:0;
-  background:var(--input);border-radius:50%;width:22px;height:22px;
-  display:flex;align-items:center;justify-content:center;
-}
+.acc-chevron{font-size:12px;transition:transform .2s;color:var(--accent);opacity:.7}
 .acc-chevron.open{transform:rotate(180deg)}
-.acc-body{padding:0 14px 14px;display:none}
+.acc-body{display:none;padding:0 16px 16px}
 .acc-body.open{display:block}
 
 /* ── CHIPS ────────────────────────────── */
@@ -270,13 +291,8 @@ body{
 .net-type{font-weight:700;font-size:13px;letter-spacing:-.1px}
 .del-btn{background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:2px 6px}
 .net-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.mini-lbl{font-size:10px;color:var(--muted);margin-bottom:3px;display:block;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-.mini-inp{
-  width:100%;background:var(--card);border:1px solid var(--border);
-  border-radius:8px;padding:7px 9px;color:var(--text);
-  font-size:12px;font-family:'Inter',inherit;outline:none;
-  transition:border-color .15s;
-}
+.mini-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:block;margin-bottom:4px}
+.mini-inp{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(0,180,255,.2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;transition:border-color .2s}
 .mini-inp:focus{border-color:var(--accent)}
 
 /* ── PERSON PICKER ───────────────────── */
@@ -293,10 +309,10 @@ body{
 .picker-item-name{font-size:13px;font-weight:700;color:var(--text)}
 .picker-item-poste{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .picker-item-contact{font-size:10px;color:var(--accent);margin-top:1px}
-.picker-btn{background:linear-gradient(135deg,#1e3a6e,#1d4ed8);color:#fff;border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.picker-btn{background:rgba(0,180,255,.1);border:1px solid rgba(0,180,255,.25);color:var(--accent);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
 
 /* ── PHOTO GRID ───────────────────────── */
-.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 12px}
 .photo-cell{
   aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;
   cursor:pointer;background:var(--input);border:1px solid var(--border);
@@ -323,11 +339,7 @@ body{
 .photo-add-btn:hover{border-color:var(--blue);background:rgba(59,130,246,.05)}
 
 /* ── GPS ──────────────────────────────── */
-.gps-item{
-  background:var(--input);border-radius:11px;
-  border:1px solid var(--inputborder);padding:12px 14px;
-  margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
-}
+.gps-item{background:rgba(255,255,255,.05);border:1px solid rgba(0,180,255,.15);border-radius:12px;padding:12px;margin-bottom:8px}
 .gps-coords{font-family:'Inter',monospace;font-size:12px;color:#15803d;font-weight:700}
 .gps-desc{font-size:11px;color:var(--muted);margin-top:2px}
 
@@ -355,13 +367,7 @@ body{
   backdrop-filter:blur(6px);
 }
 .modal.show{display:flex}
-.modal-box{
-  background:var(--card2);
-  border-radius:24px 24px 0 0;padding:24px 18px 32px;
-  width:100%;max-height:90vh;overflow-y:auto;
-  border-top:2px solid var(--border2);
-  box-shadow:0 -8px 40px rgba(0,0,0,.6);
-}
+.modal-box{background:rgba(8,13,26,.97);border:1px solid rgba(0,180,255,.2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px;box-shadow:0 -20px 60px rgba(0,0,0,.7),0 0 0 1px rgba(0,180,255,.08);max-height:85vh;overflow-y:auto}
 .modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .modal-title{font-size:17px;font-weight:700;letter-spacing:-.2px}
 .modal-close{
@@ -397,24 +403,12 @@ body{
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── SEARCH ───────────────────────────── */
-.search-box{padding:12px 14px 8px}
-.search-inp{
-  width:100%;background:var(--card);
-  border:1.5px solid var(--border);
-  border-radius:13px;padding:12px 16px;
-  font-size:14px;color:var(--text);
-  font-family:'Inter',inherit;outline:none;
-  transition:border-color .2s,box-shadow .2s;
-  box-shadow:var(--shadow-sm);
-}
+.search-box{padding:10px 14px;background:transparent}
+.search-inp{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(0,180,255,.2);border-radius:14px;padding:13px 16px;font-size:14px;color:var(--text);font-family:'Inter',inherit;outline:none;backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s}
 .search-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
 
 /* ── AUTOSAVE ─────────────────────────── */
-.autosave-bar{
-  font-size:11px;color:#15803d;font-weight:600;
-  text-align:center;padding:6px;
-  display:flex;align-items:center;justify-content:center;gap:5px;
-}
+.autosave-bar{font-size:11px;font-weight:700;color:#00e676;text-align:center;padding:6px;background:rgba(0,230,118,.08);border-bottom:1px solid rgba(0,230,118,.2);letter-spacing:.5px}
 
 /* ── EMPTY STATE ─────────────────────── */
 .empty{text-align:center;padding:56px 24px;color:var(--muted)}
@@ -422,7 +416,7 @@ body{
 .empty-text{font-size:14px;line-height:1.7;font-weight:500}
 
 /* ── DIVIDER ──────────────────────────── */
-.divider{height:1px;background:var(--border);margin:6px 14px}
+.divider{height:1px;background:rgba(0,180,255,.12);margin:8px 14px}
 
 /* ── SCROLLBAR ───────────────────────── */
 ::-webkit-scrollbar{width:4px}
@@ -430,21 +424,20 @@ body{
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 /* ── PROFILE ──────────────────────────── */
-.profile-avatar{
-  width:76px;height:76px;border-radius:50%;
-  background:linear-gradient(135deg,#1e3a6e,#1d4ed8);
-  border:2px solid var(--blue);
-  display:flex;align-items:center;justify-content:center;
-  font-size:34px;margin:0 auto 14px;
-  box-shadow:0 4px 16px rgba(37,99,235,.25);
-}
-.profile-stat{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:14px 16px;border-bottom:1px solid var(--border);
-}
+.profile-avatar-wrap{position:relative;display:inline-block;margin-bottom:10px;cursor:pointer}
+.profile-avatar{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#005fa3,#00b4ff);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;border:3px solid rgba(0,180,255,.4);box-shadow:0 0 20px rgba(0,180,255,.25)}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-cam-overlay{position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:rgba(0,180,255,.9);display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #070b14}
+.profile-stat{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(0,180,255,.1)}
 .profile-stat:last-child{border-bottom:none}
-.ps-label{font-size:14px;color:var(--muted);font-weight:500}
-.ps-val{font-size:14px;font-weight:700}
+.ps-label{font-size:13px;color:var(--muted)}
+.ps-val{font-size:13px;font-weight:700;color:var(--text)}
+.prof-edit-btn{
+  background:var(--card2);border:1px solid var(--border);color:var(--muted);
+  font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer;
+  font-weight:600;transition:all .15s;flex-shrink:0;
+}
+.prof-edit-btn:hover{background:var(--border);color:var(--text)}
 
 /* ── QUALITY ──────────────────────────── */
 .qual-A{color:var(--green);font-weight:800}
@@ -452,20 +445,11 @@ body{
 .qual-C{color:var(--red);font-weight:800}
 
 /* ── INFO/WARN BOXES ─────────────────── */
-.info-box{
-  background:rgba(29,78,216,.06);
-  border:1px solid rgba(29,78,216,.18);
-  border-radius:11px;padding:12px 14px;
-  margin:0 14px 12px;font-size:12px;
-  color:#1e40af;line-height:1.7;font-weight:500;
-}
-.warn-box{
-  background:rgba(234,88,12,.07);
-  border:1px solid rgba(234,88,12,.2);
-  border-radius:11px;padding:12px 14px;
-  margin:0 14px 12px;font-size:12px;
-  color:#c2410c;line-height:1.7;font-weight:500;
-}
+.info-box{margin:0 14px 10px;padding:12px 14px;border-radius:12px;font-size:13px;background:rgba(0,180,255,.08);border:1px solid rgba(0,180,255,.2);color:var(--text2);line-height:1.5}
+.warn-box{margin:0 14px 10px;padding:12px 14px;border-radius:12px;font-size:13px;background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.25);color:#ff9060;line-height:1.5}
+
+/* ── MAIN WRAPPER ─────────────────────── */
+#main-wrapper{display:flex;flex:1;min-height:0;overflow:hidden;}
 
 /* ── HIDDEN ───────────────────────────── */
 #file-input{display:none}
@@ -474,7 +458,167 @@ body{
 @media print {
   body{background:white;color:black;max-width:none;overflow:visible}
   #topbar,#bottom-nav,#toast,#camera-preview{display:none!important}
+  #main-wrapper{display:block}
   .modal{display:none!important}
+}
+
+/* ════════════════════════════════════════
+   PREMIUM DARK — Animations & Effects
+════════════════════════════════════════ */
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(16px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes screenIn {
+  from { opacity:0; transform:translateX(20px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.7; transform:scale(1.2); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes glow-pulse {
+  0%,100% { box-shadow:0 0 8px rgba(0,180,255,.3); }
+  50%     { box-shadow:0 0 20px rgba(0,180,255,.6),0 0 40px rgba(0,180,255,.2); }
+}
+@keyframes float {
+  0%,100% { transform:translateY(0); }
+  50%     { transform:translateY(-6px); }
+}
+@keyframes networkDraw {
+  from { stroke-dashoffset: 300; opacity:0; }
+  to   { stroke-dashoffset: 0; opacity:1; }
+}
+@keyframes ripple {
+  to { transform:scale(3); opacity:0; }
+}
+@keyframes scanline {
+  0%   { transform:translateY(-100%); }
+  100% { transform:translateY(400%); }
+}
+
+.screen.active { animation: screenIn .3s ease both; }
+
+/* Staggered card animations */
+.card:nth-child(1){animation-delay:.05s}
+.card:nth-child(2){animation-delay:.1s}
+.card:nth-child(3){animation-delay:.15s}
+.card:nth-child(4){animation-delay:.2s}
+.card:nth-child(5){animation-delay:.25s}
+.card:nth-child(n+6){animation-delay:.3s}
+
+/* Ripple effect on buttons */
+.btn-big { position:relative; overflow:hidden; }
+.btn-big::after {
+  content:'';
+  position:absolute;
+  width:20px;height:20px;
+  border-radius:50%;
+  background:rgba(255,255,255,.25);
+  transform:scale(0);
+  pointer-events:none;
+  transition:none;
+}
+.btn-big:active::after {
+  animation: ripple .4s ease-out;
+}
+
+/* Online indicator pulse */
+.sync-dot.online-dot {
+  animation: pulse 2s ease-in-out infinite;
+  background:#00e676;
+}
+
+/* Glassmorphism panel */
+.glass-panel {
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(0,180,255,.18);
+  border-radius:18px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+/* Neon accent line */
+.neon-line {
+  height:2px;
+  background:linear-gradient(90deg,transparent,#00b4ff,#a855f7,transparent);
+  opacity:.6;
+}
+
+/* Premium scrollbar */
+#app::-webkit-scrollbar { width:4px; }
+#app::-webkit-scrollbar-track { background:transparent; }
+#app::-webkit-scrollbar-thumb { background:rgba(0,180,255,.3); border-radius:4px; }
+#app::-webkit-scrollbar-thumb:hover { background:rgba(0,180,255,.5); }
+
+/* Section headers */
+.sec-hdr {
+  padding:20px 16px 9px;font-size:10px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--accent);opacity:.7;
+}
+
+/* Modal / overlay dark */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.modal-box{background:rgba(8,13,26,.97);border:1px solid rgba(0,180,255,.2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px;box-shadow:0 -20px 60px rgba(0,0,0,.7),0 0 0 1px rgba(0,180,255,.08);max-height:85vh;overflow-y:auto}
+
+/* Input group dark */
+.input-group-addon {
+  background:rgba(255,255,255,.07);
+  border-color:rgba(0,180,255,.2);
+  color:var(--muted);
+}
+
+/* Tab active dark */
+.tab-active-dark {
+  background:linear-gradient(135deg,#005fa3,#00b4ff) !important;
+  color:#fff !important;
+  box-shadow:0 4px 14px rgba(0,180,255,.3) !important;
+}
+
+
+/* Network type color pills */
+.net-eau   {color:#00b4ff;border-color:rgba(0,180,255,.35);background:rgba(0,180,255,.1)}
+.net-gaz   {color:#ffb300;border-color:rgba(255,179,0,.35);background:rgba(255,179,0,.1)}
+.net-elec  {color:#a855f7;border-color:rgba(168,85,247,.35);background:rgba(168,85,247,.1)}
+.net-telec {color:#00d4aa;border-color:rgba(0,212,170,.35);background:rgba(0,212,170,.1)}
+.net-assain{color:#ff6b35;border-color:rgba(255,107,53,.35);background:rgba(255,107,53,.1)}
+.net-fibre {color:#00e676;border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.1)}
+.net-chauf {color:#ff4757;border-color:rgba(255,71,87,.35);background:rgba(255,71,87,.1)}
+.net-autre {color:#8899bb;border-color:rgba(136,153,187,.25);background:rgba(136,153,187,.06)}
+
+/* Team member avatars — vibrant gradient palette */
+.person-card:nth-child(1) .person-avatar { background:linear-gradient(135deg,#005fa3,#00b4ff); border-color:rgba(0,180,255,.4); box-shadow:0 4px 12px rgba(0,180,255,.2) }
+.person-card:nth-child(2) .person-avatar { background:linear-gradient(135deg,#7c1faa,#a855f7); border-color:rgba(168,85,247,.4); box-shadow:0 4px 12px rgba(168,85,247,.2) }
+.person-card:nth-child(3) .person-avatar { background:linear-gradient(135deg,#006638,#00e676); border-color:rgba(0,230,118,.4); box-shadow:0 4px 12px rgba(0,230,118,.2) }
+.person-card:nth-child(4) .person-avatar { background:linear-gradient(135deg,#9e4000,#ff6b35); border-color:rgba(255,107,53,.4); box-shadow:0 4px 12px rgba(255,107,53,.2) }
+.person-card:nth-child(5) .person-avatar { background:linear-gradient(135deg,#004d3d,#00d4aa); border-color:rgba(0,212,170,.4); box-shadow:0 4px 12px rgba(0,212,170,.2) }
+.person-card:nth-child(6) .person-avatar { background:linear-gradient(135deg,#8b0000,#ff4757); border-color:rgba(255,71,87,.4); box-shadow:0 4px 12px rgba(255,71,87,.2) }
+.person-card:nth-child(n+7) .person-avatar { background:linear-gradient(135deg,#005fa3,#00b4ff); border-color:rgba(0,180,255,.4) }
+
+.person-card {
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(0,180,255,.15);
+  border-radius:16px;
+  padding:14px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;
+  transition:all .2s;
+  animation:cardIn .4s ease both;
+}
+.person-card:hover {
+  background:rgba(255,255,255,.08);
+  border-color:rgba(0,180,255,.35);
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
 }
 </style>
 </head>
@@ -498,69 +642,143 @@ body{
 <!-- ─── TOAST ─────────────────────────────── -->
 <div id="toast"></div>
 
+<!-- ─── MAIN WRAPPER (sidebar + content) ──── -->
+<div id="main-wrapper">
+
+<!-- ─── LEFT NAV ──────────────────────────── -->
+<div id="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')">
+    <span class="nav-icon">🏠</span>Accueil
+  </button>
+  <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')">
+    <span class="nav-icon">📄</span>Documents
+  </button>
+  <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')">
+    <span class="nav-icon">📋</span>Consignes
+  </button>
+  <button class="nav-btn" id="nav-profil" onclick="showScreen('s-profil')">
+    <span class="nav-icon">👤</span>Profil
+  </button>
+  <button class="nav-btn" id="nav-admin" onclick="openAdmin()" style="display:none">
+    <span class="nav-icon">⚙️</span>Admin
+  </button>
+</div>
+
 <!-- ─── APP CONTAINER ─────────────────────── -->
 <div id="app">
 
   <!-- ══════════════════ SCREEN HOME ══════════════════ -->
   <div class="screen active" id="screen-home">
-    <!-- Hero Banner -->
-    <div style="
-      background:linear-gradient(135deg,#1e3a6e 0%,#1d4ed8 60%,#2563eb 100%);
-      margin:0;padding:28px 20px 24px;
-      position:relative;overflow:hidden;
-    ">
-      <!-- Cercles décoratifs -->
-      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>
-      <div style="position:absolute;bottom:-20px;right:30px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
-      <div style="position:absolute;top:10px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
-      <!-- Grille technique décorative -->
-      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.08" viewBox="0 0 390 130" preserveAspectRatio="xMidYMid slice">
-        <defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="white" stroke-width="0.8"/></pattern></defs>
-        <rect width="390" height="130" fill="url(%23grid)"/>
-        <!-- Lignes de réseau stylisées -->
-        <circle cx="80" cy="65" r="18" fill="none" stroke="white" stroke-width="1.2" opacity=".6"/>
-        <circle cx="80" cy="65" r="6" fill="white" opacity=".4"/>
-        <line x1="98" y1="65" x2="180" y2="65" stroke="white" stroke-width="1" stroke-dasharray="4 3" opacity=".5"/>
-        <circle cx="200" cy="65" r="14" fill="none" stroke="white" stroke-width="1.2" opacity=".5"/>
-        <line x1="214" y1="65" x2="280" y2="40" stroke="white" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
-        <circle cx="295" cy="35" r="10" fill="none" stroke="white" stroke-width="1" opacity=".4"/>
-        <line x1="214" y1="65" x2="300" y2="90" stroke="white" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
-        <circle cx="310" cy="95" r="8" fill="none" stroke="white" stroke-width="1" opacity=".35"/>
+    <!-- ═══ HERO BANNER PREMIUM DARK ═══ -->
+    <div style="position:relative;margin:0;padding:0;overflow:hidden;background:#070b14">
+      <!-- Fond dégradé profond -->
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#050a18 0%,#0a1628 50%,#0d1a35 100%)"></div>
+      <!-- Particules / grille technique animée -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 390 155" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="pgrid" width="30" height="30" patternUnits="userSpaceOnUse">
+            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#00b4ff" stroke-width="0.5" opacity="0.12"/>
+          </pattern>
+          <radialGradient id="heroGlow" cx="70%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#00b4ff" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#00b4ff" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="heroGlow2" cx="20%" cy="80%" r="50%">
+            <stop offset="0%" stop-color="#a855f7" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+        </defs>
+        <rect width="390" height="155" fill="url(#pgrid)"/>
+        <rect width="390" height="155" fill="url(#heroGlow)"/>
+        <rect width="390" height="155" fill="url(#heroGlow2)"/>
+        <!-- Réseau de détection animé -->
+        <!-- Nœud principal — Eau -->
+        <circle cx="60" cy="78" r="16" fill="none" stroke="#00b4ff" stroke-width="1.5" opacity="0.9" style="animation:glow-pulse 3s ease-in-out infinite"/>
+        <circle cx="60" cy="78" r="8" fill="#00b4ff" opacity="0.2"/>
+        <circle cx="60" cy="78" r="3" fill="#00b4ff" opacity="0.9"/>
+        <text x="60" y="100" text-anchor="middle" fill="#00b4ff" font-size="7" font-family="Inter,sans-serif" font-weight="700" opacity="0.8">EAU</text>
+        <!-- Ligne vers Gaz -->
+        <line x1="76" y1="72" x2="148" y2="52" stroke="#00b4ff" stroke-width="1" stroke-dasharray="5 3" opacity="0.5"
+          style="stroke-dashoffset:0;animation:shimmer 3s linear infinite"/>
+        <!-- Nœud Gaz -->
+        <circle cx="160" cy="47" r="12" fill="none" stroke="#ffb300" stroke-width="1.5" opacity="0.85"/>
+        <circle cx="160" cy="47" r="4" fill="#ffb300" opacity="0.8"/>
+        <text x="160" y="65" text-anchor="middle" fill="#ffb300" font-size="7" font-family="Inter,sans-serif" font-weight="700" opacity="0.8">GAZ</text>
+        <!-- Ligne vers Électricité -->
+        <line x1="172" y1="52" x2="235" y2="68" stroke="#a855f7" stroke-width="1" stroke-dasharray="5 3" opacity="0.5"/>
+        <!-- Nœud Électricité -->
+        <circle cx="248" cy="72" r="14" fill="none" stroke="#a855f7" stroke-width="1.5" opacity="0.85"/>
+        <circle cx="248" cy="72" r="5" fill="#a855f7" opacity="0.7"/>
+        <text x="248" y="92" text-anchor="middle" fill="#a855f7" font-size="7" font-family="Inter,sans-serif" font-weight="700" opacity="0.8">ÉLEC</text>
+        <!-- Ligne vers Télécom -->
+        <line x1="262" y1="68" x2="315" y2="45" stroke="#00d4aa" stroke-width="1" stroke-dasharray="5 3" opacity="0.45"/>
+        <!-- Nœud Télécom -->
+        <circle cx="325" cy="40" r="10" fill="none" stroke="#00d4aa" stroke-width="1.5" opacity="0.8"/>
+        <circle cx="325" cy="40" r="3.5" fill="#00d4aa" opacity="0.8"/>
+        <text x="325" y="57" text-anchor="middle" fill="#00d4aa" font-size="6.5" font-family="Inter,sans-serif" font-weight="700" opacity="0.8">TÉLEC</text>
+        <!-- Ligne vers Fibre -->
+        <line x1="262" y1="78" x2="315" y2="105" stroke="#ff6b35" stroke-width="1" stroke-dasharray="5 3" opacity="0.4"/>
+        <!-- Nœud Fibre/Assain -->
+        <circle cx="325" cy="112" r="10" fill="none" stroke="#ff6b35" stroke-width="1.2" opacity="0.75"/>
+        <circle cx="325" cy="112" r="3.5" fill="#ff6b35" opacity="0.8"/>
+        <text x="325" y="129" text-anchor="middle" fill="#ff6b35" font-size="6.5" font-family="Inter,sans-serif" font-weight="700" opacity="0.8">ASSAIN</text>
+        <!-- Scan line animé -->
+        <rect x="0" y="0" width="390" height="2" fill="url(#heroGlow)" opacity="0.4"
+          style="animation:scanline 4s linear infinite"/>
       </svg>
-      <!-- Contenu -->
-      <div style="position:relative;z-index:1">
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">NEOCONCEPT VRD</div>
-        <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px;line-height:1.2;margin-bottom:4px">Détection<br>de Réseaux</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.65);font-weight:500;margin-top:8px;display:flex;align-items:center;gap:6px">
-          <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block"></span>
-          Application terrain · Mode hors-ligne
+      <!-- Contenu principal -->
+      <div style="position:relative;z-index:1;padding:28px 20px 24px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#00b4ff;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px;opacity:.85">NEOCONCEPT VRD</div>
+            <div style="font-size:24px;font-weight:900;color:#e8edf8;letter-spacing:-.5px;line-height:1.15;margin-bottom:4px">Détection<br><span style="background:linear-gradient(90deg,#00b4ff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">de Réseaux</span></div>
+            <div style="font-size:12px;color:rgba(232,237,248,.5);font-weight:500;margin-top:10px;display:flex;align-items:center;gap:6px">
+              <span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 6px rgba(0,230,118,.6)"></span>
+              Application terrain · Mode hors-ligne
+            </div>
+          </div>
+          <!-- Logo / icône flottant -->
+          <div style="width:52px;height:52px;border-radius:16px;background:rgba(0,180,255,.1);border:1.5px solid rgba(0,180,255,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:float 4s ease-in-out infinite;box-shadow:0 0 20px rgba(0,180,255,.2)">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <circle cx="14" cy="14" r="6" fill="none" stroke="#00b4ff" stroke-width="1.5" opacity=".9"/>
+              <circle cx="14" cy="14" r="2.5" fill="#00b4ff"/>
+              <line x1="14" y1="4" x2="14" y2="8" stroke="#00b4ff" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+              <line x1="14" y1="20" x2="14" y2="24" stroke="#00b4ff" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+              <line x1="4" y1="14" x2="8" y2="14" stroke="#00b4ff" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+              <line x1="20" y1="14" x2="24" y2="14" stroke="#00b4ff" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+              <circle cx="14" cy="14" r="10" fill="none" stroke="#00b4ff" stroke-width=".8" opacity=".3" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
         </div>
         <!-- Badge agence -->
-        <div id="home-agency-badge" style="display:none;margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:5px 12px">
+        <div id="home-agency-badge" style="display:none;margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:rgba(0,180,255,.1);border:1px solid rgba(0,180,255,.25);border-radius:20px;padding:6px 14px;backdrop-filter:blur(8px)">
           <span style="font-size:14px">🏢</span>
           <div>
-            <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;line-height:1">Région</div>
-            <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.3px" id="home-agency-name">—</div>
+            <div style="font-size:10px;color:rgba(0,180,255,.7);text-transform:uppercase;letter-spacing:.8px;line-height:1">Région</div>
+            <div style="font-size:13px;font-weight:800;color:#e8edf8;letter-spacing:.3px" id="home-agency-name">—</div>
           </div>
-          <span style="width:1px;height:24px;background:rgba(255,255,255,.2);display:block"></span>
+          <span style="width:1px;height:24px;background:rgba(0,180,255,.2);display:block"></span>
           <div>
-            <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;line-height:1" id="home-user-role">Technicien</div>
-            <div style="font-size:13px;font-weight:700;color:#fff" id="home-user-name">—</div>
+            <div style="font-size:10px;color:rgba(0,180,255,.7);text-transform:uppercase;letter-spacing:.8px;line-height:1" id="home-user-role">Technicien</div>
+            <div style="font-size:13px;font-weight:700;color:#e8edf8" id="home-user-name">—</div>
           </div>
         </div>
       </div>
+      <!-- Ligne néon bas -->
+      <div style="height:1px;background:linear-gradient(90deg,transparent 0%,#00b4ff 30%,#a855f7 70%,transparent 100%);opacity:.5"></div>
     </div>
     <div class="search-box">
       <input class="search-inp" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
     </div>
     <!-- Onglets En cours / Terminés -->
-    <div style="display:flex;gap:0;margin:8px 14px 0;background:var(--card3);border-radius:13px;padding:4px;border:1px solid var(--border)">
+    <div style="display:flex;gap:0;margin:8px 14px 0;background:rgba(255,255,255,.04);border-radius:13px;padding:4px;border:1px solid rgba(0,180,255,.15)">
       <button id="tab-encours" onclick="switchTab('encours')"
-        style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',inherit;transition:all .2s;background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(29,78,216,.3)">
+        style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',inherit;transition:all .2s;background:linear-gradient(135deg,#005fa3,#00b4ff);color:#fff;box-shadow:0 4px 14px rgba(0,180,255,.3)">
         🟢 En cours <span id="badge-encours" style="background:rgba(255,255,255,.25);color:#fff;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:4px">0</span>
       </button>
       <button id="tab-termine" onclick="switchTab('termine')"
-        style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',inherit;transition:all .2s;background:transparent;color:var(--muted)">
+        style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',inherit;transition:all .2s;background:transparent;color:rgba(160,176,204,.6)">
         ✅ Terminés <span id="badge-termine" style="background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:4px">0</span>
       </button>
     </div>
@@ -568,7 +786,7 @@ body{
     <span id="count-badge" style="display:none">0</span>
     <div class="divider"></div>
     <div class="sec-hdr">Actions</div>
-    <button class="btn-big btn-accent" onclick="openModal('m-new-chantier')">➕ Nouveau chantier</button>
+    <button class="btn-big btn-accent" onclick="createChantierDirect()">➕ Nouveau chantier</button>
     <button class="btn-big btn-card" onclick="showScreen('s-dossier')">📄 Documents</button>
     <button class="btn-big btn-card" onclick="showScreen('s-consignes')">📋 Consignes de sécurité</button>
   </div>
@@ -576,8 +794,14 @@ body{
   <!-- ══════════════════ SCREEN RAPPORT ══════════════════ -->
   <div class="screen" id="screen-rapport">
     <!-- Banner rapport -->
-    <div style="background:linear-gradient(90deg,#1e3a6e,#2563eb);height:4px;margin:0 0 4px"></div>
+    <div style="background:linear-gradient(90deg,#00b4ff,#a855f7,#00d4aa);height:3px;margin:0 0 4px;opacity:.8"></div>
     <div class="autosave-bar" id="autosave-bar">✓ Sauvegardé automatiquement</div>
+
+    <!-- Référence chantier (identifiant principal) -->
+    <div style="padding:10px 14px 0">
+      <input class="form-input" id="r-reference" placeholder="Référence chantier (ex: 2026-047 – Rue de la Paix…)"
+        style="font-weight:700;font-size:14px" oninput="chantierRefChanged()">
+    </div>
 
     <!-- § Infos générales -->
     <div class="acc-section">
@@ -592,15 +816,6 @@ body{
         <div class="form-group">
           <label class="form-label">Nature des opérations / Mission</label>
           <input class="form-input" id="r-nature" placeholder="Ex : détection de réseaux souterrains…" oninput="rapportChanged()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Classe de précision</label>
-          <select class="form-select" id="r-classe" onchange="rapportChanged()">
-            <option value="">— Sélectionner —</option>
-            <option value="Classe A">Classe A (±10 cm)</option>
-            <option value="Classe B">Classe B (±25 cm)</option>
-            <option value="Classe C">Classe C (supposée)</option>
-          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Adresse de l'intervention</label>
@@ -625,7 +840,7 @@ body{
         </div>
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Plan de situation</label>
-          <div id="plan-situation-zone" style="background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:16px;text-align:center;cursor:pointer" onclick="showPhotoSource('plan')">
+          <div id="plan-situation-zone" style="background:rgba(0,180,255,.05);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:background .2s" onclick="showPhotoSource('plan')">
             <div id="plan-situation-img-wrap" style="display:none;margin-bottom:8px"></div>
             <span style="font-size:13px;color:var(--muted)">📍 Appuyer pour ajouter le plan de situation</span>
           </div>
@@ -645,7 +860,7 @@ body{
           <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">Responsable projet</div>
           <div style="display:flex;gap:6px">
             <button onclick="showPersonPicker('resp',-1)" class="picker-btn">👤 Choisir</button>
-            <button onclick="prefillEquipeRegionale()" id="btn-equipe-region" style="display:none;background:linear-gradient(135deg,#1e3a6e,#1d4ed8);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏢 Équipe</button>
+            <button onclick="prefillEquipeRegionale()" id="btn-equipe-region" style="display:none;background:linear-gradient(135deg,#005fa3,#00b4ff);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏢 Équipe</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
@@ -692,25 +907,7 @@ body{
       </div>
     </div>
 
-    <!-- § Photos inline -->
-    <div style="margin:0 12px 12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px">📸 Photos du rapport</span>
-        <span id="photo-count-label" style="font-size:11px;color:var(--muted)">0 photo(s)</span>
-      </div>
-      <div id="rapport-photo-strip" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
-    </div>
 
-    <!-- § Points GPS -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>📍 Points GPS enregistrés</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div id="gps-list"></div>
-        <button class="btn-big btn-card" style="margin:6px 0 0" onclick="captureGPS()">📍 Enregistrer position actuelle</button>
-      </div>
-    </div>
 
     <!-- § Conclusions -->
     <div class="acc-section">
@@ -760,7 +957,6 @@ body{
     <!-- § Export -->
     <div class="sec-hdr">Export du rapport</div>
     <div class="btn-row">
-      <button class="btn-big btn-green" style="flex:1" onclick="exportPDF()">📄 PDF</button>
       <button class="btn-big btn-card" style="flex:1;background:var(--blue);color:#fff;border-color:var(--blue)" onclick="exportRapportWord()">📝 Word</button>
     </div>
     <div class="btn-row" style="margin-top:0">
@@ -774,18 +970,18 @@ body{
   <!-- ══════════════════ SCREEN DOSSIER CHANTIER ══════════════════ -->
   <div class="screen" id="s-dossier" style="display:none;padding-bottom:16px">
     <div class="sec-hdr">📄 Documents</div>
-    <div class="info-box" style="font-size:11px">📂 Stockez vos documents terrain : AIPR, habilitations, certificats, PPSPS et autres. Les fichiers sont enregistrés localement sur l\'appareil.</div>
+    <div class="info-box" style="font-size:11px">📂 Stockez vos documents terrain : AIPR, habilitations, normes, fascicules, réglementation, CTST et DT/DICT. Les fichiers sont enregistrés localement sur l\'appareil.</div>
 
     <!-- AIPR -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>🟠 AIPR</span><span id="badge-AIPR" style="background:var(--blue);color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px">0</span><span class="acc-chevron open">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff6b35;display:inline-block;opacity:.85;flex-shrink:0"></span>🟠 AIPR</span><span id="badge-AIPR" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron open">▼</span>
       </button>
       <div class="acc-body open">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Autorisation d'Intervention à Proximité des Réseaux : attestations de compétences, cartes AIPR, etc.</div>
         <div id="docs-AIPR" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('AIPR')" style="margin-top:8px;width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
-          ➕ Ajouter un document AIPR
+        <button onclick="uploadDocument('AIPR')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
         </button>
       </div>
     </div>
@@ -793,70 +989,99 @@ body{
     <!-- Habilitation électrique -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>⚡ Habilitation électrique</span><span id="badge-ELEC" style="background:var(--blue);color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ffb300;display:inline-block;opacity:.85;flex-shrink:0"></span>⚡ Habilitation électrique</span><span id="badge-ELEC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Titres d'habilitation électrique (B0, H0, BR, BC…), recyclages, formations.</div>
         <div id="docs-ELEC" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('ELEC')" style="margin-top:8px;width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
-          ➕ Ajouter un document Habilitation
+        <button onclick="uploadDocument('ELEC')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
         </button>
       </div>
     </div>
 
-    <!-- Certificat de formation -->
+    <!-- Normes -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>🎓 Certificats de formation</span><span id="badge-FORM" style="background:var(--blue);color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00d4aa;display:inline-block;opacity:.85;flex-shrink:0"></span>📐 Normes</span><span id="badge-NORME" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Certificats, attestations de formation : détection de réseaux, topographie, sécurité, etc.</div>
-        <div id="docs-FORM" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('FORM')" style="margin-top:8px;width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
-          ➕ Ajouter un certificat
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Normes NF S70-003 relatives à la détection et au géoréférencement des réseaux souterrains.</div>
+        <div id="docs-NORME" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('NORME')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
         </button>
       </div>
     </div>
 
-    <!-- PPSPS -->
+    <!-- Fascicules -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>🦺 PPSPS</span><span id="badge-PPSPS" style="background:var(--blue);color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📘 Fascicules</span><span id="badge-FASC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Plan Particulier de Prévention de la Santé et de la Sécurité : plans, fiches de prévention, analyses de risques.</div>
-        <div id="docs-PPSPS" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('PPSPS')" style="margin-top:8px;width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
-          ➕ Ajouter un document PPSPS
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Fascicules 1, 2 et 3 — guides techniques DT/DICT et formulaires pratiques.</div>
+        <div id="docs-FASC" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('FASC')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
         </button>
       </div>
     </div>
 
-    <!-- Autres documents -->
+    <!-- Réglementation -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>📄 Autres documents</span><span id="badge-AUTRE" style="background:var(--blue);color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#a855f7;display:inline-block;opacity:.85;flex-shrink:0"></span>⚖️ Réglementation</span><span id="badge-REGL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Tout autre document utile au chantier : plans, photos, courriers, etc.</div>
-        <div id="docs-AUTRE" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('AUTRE')" style="margin-top:8px;width:100%;background:var(--input);border:1.5px dashed var(--inputborder);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
-          ➕ Ajouter un document
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Arrêtés, décrets et textes réglementaires relatifs aux travaux à proximité des réseaux.</div>
+        <div id="docs-REGL" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('REGL')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
+        </button>
+      </div>
+    </div>
+
+    <!-- CTST -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00e676;display:inline-block;opacity:.85;flex-shrink:0"></span>🏗️ CTST</span><span id="badge-CTST" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents CTST : cahiers des charges, spécifications techniques et documents de référence.</div>
+        <div id="docs-CTST" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('CTST')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
+        </button>
+      </div>
+    </div>
+
+    <!-- DT/DICT -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff4757;display:inline-block;opacity:.85;flex-shrink:0"></span>📋 DT/DICT</span><span id="badge-DTDICT" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Déclarations de Travaux et DICT : récépissés, plans de réseaux, formulaires Cerfa.</div>
+        <div id="docs-DTDICT" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('DTDICT')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+          ➕ Insérer un document
         </button>
       </div>
     </div>
 
     <!-- Hidden file inputs per category -->
-    <input type="file" id="doc-input-AIPR"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AIPR')">
-    <input type="file" id="doc-input-ELEC"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'ELEC')">
-    <input type="file" id="doc-input-FORM"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'FORM')">
-    <input type="file" id="doc-input-PPSPS" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'PPSPS')">
-    <input type="file" id="doc-input-AUTRE" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AUTRE')">
+    <input type="file" id="doc-input-AIPR"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AIPR')">
+    <input type="file" id="doc-input-ELEC"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'ELEC')">
+    <input type="file" id="doc-input-NORME"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'NORME')">
+    <input type="file" id="doc-input-FASC"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'FASC')">
+    <input type="file" id="doc-input-REGL"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'REGL')">
+    <input type="file" id="doc-input-CTST"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'CTST')">
+    <input type="file" id="doc-input-DTDICT" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'DTDICT')">
 
     <!-- Export Documents -->
     <div class="sec-hdr" style="margin-top:8px">Exporter le registre</div>
     <div class="btn-row" style="margin:0 14px 16px">
-      <button class="btn-big btn-green" style="flex:1" onclick="exportDocsPDF()">📄 PDF</button>
       <button class="btn-big btn-card" style="flex:1" onclick="exportDocsWord()">📝 Word</button>
     </div>
   </div>
@@ -953,23 +1178,31 @@ body{
   <!-- ══════════════════ SCREEN PROFIL ══════════════════ -->
   <div class="screen" id="s-profil">
     <div style="padding:24px 16px 10px;text-align:center">
-      <div class="profile-avatar" id="prof-avatar">👤</div>
+      <!-- Avatar cliquable -->
+      <div class="profile-avatar-wrap" onclick="openProfilePhotoEdit()">
+        <div class="profile-avatar" id="prof-avatar">👤</div>
+        <div class="avatar-cam-overlay">📷</div>
+      </div>
+      <input type="file" id="prof-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhotoChange(event)">
       <div style="font-weight:800;font-size:18px" id="prof-name">—</div>
       <div style="font-size:13px;color:var(--muted);margin-top:2px" id="prof-email">—</div>
-      <div style="margin-top:8px" id="prof-role-badge"><span class="badge badge-orange">Technicien</span></div>
+      <!-- Badge rôle (lecture seule) -->
+      <div style="margin-top:10px" id="prof-role-badge"><span class="badge badge-orange">Technicien</span></div>
     </div>
-    <!-- Bandeau Agence bien visible -->
-    <div style="margin:8px 14px 0;background:linear-gradient(135deg,#1e3a6e,#1d4ed8);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+
+    <!-- Bandeau Agence -->
+    <div style="margin:10px 14px 0;background:linear-gradient(135deg,#050d20,#0a1e3a);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;border:1px solid rgba(0,180,255,.2)">
       <div style="width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏢</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.6)">Ma région</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.6)">Mon agence</div>
         <div style="font-size:16px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="prof-company">—</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.6)">Code invitation</div>
-        <div style="font-family:monospace;font-size:15px;font-weight:800;color:#fff;letter-spacing:2px;cursor:pointer" id="prof-invite-code" onclick="copyInviteCode()">—</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button class="prof-edit-btn" onclick="openEditAgence()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:#fff">✏️ Changer</button>
+        <div style="font-family:monospace;font-size:13px;font-weight:800;color:rgba(255,255,255,.8);letter-spacing:2px;cursor:pointer" id="prof-invite-code" onclick="copyInviteCode()">—</div>
       </div>
     </div>
+
     <div class="acc-section" style="margin-top:10px">
       <div class="profile-stat">
         <span class="ps-label">Code équipe</span>
@@ -993,19 +1226,19 @@ body{
     <button class="btn-big btn-card" onclick="openModal('m-install')">📱 Installer sur mobile</button>
     <button class="btn-big btn-card" onclick="clearAllData()">🗑️ Effacer les données locales</button>
     <div class="sec-hdr">Session</div>
-    <button class="btn-big" style="background:#fee2e2;color:#dc2626;border:none;border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;margin:0 14px 8px;display:block;width:calc(100% - 28px)" onclick="logoutUser()">🚪 Se déconnecter</button>
+    <button class="btn-big" style="background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.3);border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;margin:0 14px 8px;display:block;width:calc(100% - 28px)" onclick="logoutUser()">🚪 Se déconnecter</button>
   </div>
 
 
   <!-- ══════════════════ SCREEN ADMIN ══════════════════ -->
   <div class="screen" id="s-admin">
-    <div style="background:linear-gradient(135deg,#1e3a6e,#1d4ed8);padding:22px 16px 18px">
+    <div style="background:linear-gradient(135deg,#050d20,#0a1e3a);padding:22px 16px 18px;border-bottom:1px solid rgba(0,180,255,.2)">
       <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">NCVRD Detect</div>
       <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:2px">⚙️ Panneau Admin</div>
       <div style="font-size:12px;color:rgba(255,255,255,.65)" id="admin-subtitle">Gestion des régions et utilisateurs</div>
     </div>
     <!-- Onglets -->
-    <div style="display:flex;border-bottom:2px solid var(--border);background:var(--card2)">
+    <div style="display:flex;border-bottom:1px solid rgba(0,180,255,.15);background:rgba(0,0,0,.3)">
       <button onclick="adminTab('agencies')" id="atab-agencies" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--blue);border-bottom:3px solid var(--blue);font-family:inherit">🗺️ Régions</button>
       <button onclick="adminTab('users')" id="atab-users" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit">👤 Utilisateurs</button>
       <button onclick="adminTab('params')" id="atab-params" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit">⚙️ Paramètres</button>
@@ -1112,30 +1345,30 @@ body{
   </div>
 
 </div><!-- end #app -->
-
-<!-- ─── BOTTOM NAV ─────────────────────── -->
-<div id="bottom-nav">
-  <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')">
-    <span class="nav-icon">🏠</span>Accueil
-  </button>
-<button class="nav-btn" id="nav-photos" onclick="showScreen('s-photos')">
-    <span class="nav-icon">📸</span>Photos
-  </button>
-  <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')">
-    <span class="nav-icon">📄</span>Documents
-  </button>
-  <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')">
-    <span class="nav-icon">📋</span>Consignes
-  </button>
-  <button class="nav-btn" id="nav-profil" onclick="showScreen('s-profil')">
-    <span class="nav-icon">👤</span>Profil
-  </button>
-  <button class="nav-btn" id="nav-admin" onclick="openAdmin()" style="display:none">
-    <span class="nav-icon">⚙️</span>Admin
-  </button>
-</div>
+</div><!-- end #main-wrapper -->
 
 <!-- ─── MODALS ─────────────────────────── -->
+
+<!-- Modal: Modifier le rôle -->
+
+<!-- Modal: Modifier l'agence -->
+<div class="modal" id="m-edit-agence">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-title">🏢 Mon agence</span>
+      <button class="modal-close" onclick="closeModal('m-edit-agence')">✕</button>
+    </div>
+    <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">Saisissez le nom de votre agence ou sélectionnez une région.</div>
+    <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Nom de l'agence</label>
+    <input id="edit-agence-input" type="text" class="form-input" placeholder="Ex: Grand EST, IDF…" style="margin-bottom:14px">
+    <div style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Régions disponibles</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+      <button class="chip" onclick="document.getElementById('edit-agence-input').value='Grand EST'">🗺️ Grand EST</button>
+      <button class="chip" onclick="document.getElementById('edit-agence-input').value='IDF'">🗺️ IDF</button>
+    </div>
+    <button class="btn-big btn-accent" onclick="saveProfileAgence()">💾 Enregistrer</button>
+  </div>
+</div>
 
 <!-- Modal: Nouveau chantier -->
 <div class="modal" id="m-new-chantier">
@@ -1170,7 +1403,24 @@ body{
       <button class="modal-close" onclick="closeModal('m-add-network')">✕</button>
     </div>
     <div class="form-group"><label class="form-label">Nature du réseau *</label>
-      <input class="form-input" id="net-nature" placeholder="Ex: ENEDIS, GAZ, AEP, SLT…"></div>
+      <select class="form-select" id="net-nature" onchange="autoFillNetwork(this.value)">
+        <option value="">— Choisir un réseau —</option>
+        <option value="ENEDIS">ENEDIS</option>
+        <option value="France Télécom">France Télécom</option>
+        <option value="ASSAINISSEMENT">ASSAINISSEMENT</option>
+        <option value="GAZ">GAZ</option>
+        <option value="AEP">AEP</option>
+        <option value="Éclairage public">Éclairage public</option>
+        <option value="Réseau inconnu">Réseau inconnu</option>
+        <option value="SLT">SLT</option>
+        <option value="RATP">RATP</option>
+        <option value="GRT">GRT</option>
+        <option value="RTE">RTE</option>
+        <option value="Chauffage urbain">Chauffage urbain</option>
+        <option value="__autre__">Autre (saisie libre)…</option>
+      </select>
+      <input class="form-input" id="net-nature-custom" placeholder="Nom du réseau…" style="display:none;margin-top:8px">
+    </div>
     <div class="form-group">
       <label class="form-label">Photos (plusieurs possibles)</label>
       <div id="net-modal-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
@@ -1182,6 +1432,13 @@ body{
     </div>
     <div class="form-group"><label class="form-label">Méthode de détection</label>
       <input class="form-input" id="net-methode" placeholder="Ex: Radiodétection en 50Hz et GEORADAR…"></div>
+    <div class="form-group"><label class="form-label">Classe de précision</label>
+      <select class="form-select" id="net-classe">
+        <option value="">— Sélectionner —</option>
+        <option value="Classe A">Classe A (±10 cm)</option>
+        <option value="Classe B">Classe B (±25 cm)</option>
+        <option value="Classe C">Classe C (supposée)</option>
+      </select></div>
     <div class="form-group"><label class="form-label">Remarque</label>
       <textarea class="form-textarea" id="net-remarques" placeholder="Observations, précisions…" style="min-height:70px"></textarea></div>
     <button class="btn-big btn-accent" onclick="addNetwork()">✅ Ajouter au tableau</button>
@@ -1400,6 +1657,9 @@ const ROLES = [...ROLES_TECH, ...ROLES_ADMIN_LIST];
 // Ensemble des rôles ayant accès au panneau Admin
 const ADMIN_ROLES = new Set(['Responsable Opérationnel',"Directeur d'agence",'Directeur Général','QHSE']);
 function isAdminRole(role){ return ADMIN_ROLES.has(role); }
+// Rôles ayant accès à TOUTES les régions (chantiers + admin)
+const GLOBAL_ROLES = new Set(['Directeur Général','QHSE']);
+function isGlobalAdmin(role){ return GLOBAL_ROLES.has(role); }
 
 // ── Données régionales pour auto-remplissage des rapports ──────────────────
 const REGION_DATA = {
@@ -1683,6 +1943,13 @@ async function updateProfileScreen(){
   document.getElementById('prof-name').textContent  = p.displayName || '—';
   document.getElementById('prof-email').textContent = p.email || '—';
   document.getElementById('prof-company').textContent = p.teamName || '—';
+  // Photo de profil
+  const av = document.getElementById('prof-avatar');
+  if(av){
+    const photoURL = p.photoURL || localStorage.getItem('profilePhoto_'+(p.uid||'user'));
+    if(photoURL) av.innerHTML = `<img src="${photoURL}" alt="Photo">`;
+    else av.innerHTML = '👤';
+  }
   // Badge rôle coloré
   const roleBadgeEl = document.getElementById('prof-role-badge');
   if(roleBadgeEl && p.role) roleBadgeEl.innerHTML = roleBadgeHTML(p.role);
@@ -1844,6 +2111,21 @@ function toggleAcc(btn){
 //  CHANTIERS
 // ════════════════════════════════════════════
 async function loadChantiers(){
+  // Directeur Général : charge les chantiers de TOUTES les équipes
+  if(FIREBASE_CONFIGURED && currentUserProfile && isGlobalAdmin(currentUserProfile.role)){
+    try{
+      const teamsSnap = await fdb.collection('teams').get();
+      let all=[];
+      for(const teamDoc of teamsSnap.docs){
+        const snap = await fdb.collection('teams').doc(teamDoc.id).collection('chantiers').get();
+        snap.docs.forEach(d=>all.push({id:d.id,...d.data(),_teamId:teamDoc.id}));
+      }
+      all.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      S.chantiers=all;
+      renderChantiers(S.chantiers);
+      return;
+    }catch(e){ console.error('Multi-team loadChantiers:',e); }
+  }
   S.chantiers=await db.getAll('chantiers');
   renderChantiers(S.chantiers);
 }
@@ -2007,6 +2289,8 @@ function filterChantiers(q){
 
 async function openChantier(id){
   S.currentChantier=S.chantiers.find(c=>c.id===id);
+  // Si le chantier vient d'une autre équipe (DG multi-team), on switche temporairement
+  if(S.currentChantier && S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
   let rapport=await db.get('rapports',id);
   if(!rapport){
     rapport={id,chantierId:id,
@@ -2086,6 +2370,25 @@ async function createChantier(){
   setTimeout(()=>openChantier(c.id),300);
 }
 
+async function createChantierDirect(){
+  const c={id:uid(),name:'Nouveau chantier – '+today(),address:'',client:'',
+    reference:'',dateDebut:today(),dateFin:'',status:'active',createdAt:Date.now()};
+  await db.put('chantiers',c);
+  S.chantiers.unshift(c);
+  renderChantiers(S.chantiers);
+  toast('✅ Chantier créé');
+  setTimeout(()=>openChantier(c.id),150);
+}
+
+function chantierRefChanged(){
+  const c=S.currentChantier; if(!c) return;
+  const val=document.getElementById('r-reference').value;
+  c.name=val||c.name;
+  const tt=document.getElementById('topTitle');
+  if(tt) tt.textContent='📋 '+(val||c.name);
+  rapportChanged();
+}
+
 // ════════════════════════════════════════════
 //  RAPPORT
 // ════════════════════════════════════════════
@@ -2094,11 +2397,14 @@ function renderRapportScreen(){
   const c=S.currentChantier;
   if(!r||!c) return;
   document.getElementById('topTitle').textContent='📋 '+c.name;
+  const rref=document.getElementById('r-reference'); if(rref) rref.value=r.reference||c.name||'';
+  const rcli=document.getElementById('r-client'); if(rcli) rcli.value=r.client||c.client||'';
   document.getElementById('r-objet').value=r.objetEtude||'';
   document.getElementById('r-nature').value=r.natureOperations||'';
   document.getElementById('r-adresse').value=r.adresse||c.address||'';
   document.getElementById('r-date-debut').value=r.dateDebut||c.dateDebut||today();
   document.getElementById('r-date-fin').value=r.dateFin||c.dateFin||'';
+  const rclasse=document.getElementById('r-classe'); if(rclasse) rclasse.value=r.classePresicion||'';
   document.getElementById('r-responsable').value=r.responsable||'';
   document.getElementById('r-conclusions').value=r.conclusions||'';
   document.getElementById('r-observations').value=r.observations||'';
@@ -2123,6 +2429,7 @@ function renderRapportScreen(){
 let saveTimer;
 function rapportChanged(){
   const r=S.currentRapport; if(!r) return;
+  const _rref=document.getElementById('r-reference'); if(_rref) r.reference=_rref.value;
   r.client=document.getElementById('r-client').value;
   r.natureOperations=document.getElementById('r-nature').value;
   r.classePresicion=document.getElementById('r-classe')?.value||'';
@@ -2206,7 +2513,7 @@ function showPersonPicker(type, idx){
   const listHTML = Object.entries(cats).map(([cat, members])=>`
     <div class="picker-cat">${cat}</div>
     ${members.map(p=>`
-      <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom)},${JSON.stringify(p.poste)},${JSON.stringify(p.contact||'')})">
+      <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom).replace(/"/g,'&quot;')},${JSON.stringify(p.poste).replace(/"/g,'&quot;')},${JSON.stringify(p.contact||'').replace(/"/g,'&quot;')})">
         <div class="picker-item-avatar">${p.nom.charAt(0)}</div>
         <div class="picker-item-info">
           <div class="picker-item-name">${p.nom}</div>
@@ -2248,7 +2555,7 @@ function filterPickerList(q){
   ) : people;
   if(!filtered.length){ inner.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Aucun résultat</div>'; return; }
   inner.innerHTML = filtered.map(p=>`
-    <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom)},${JSON.stringify(p.poste)},${JSON.stringify(p.contact||'')})">
+    <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom).replace(/"/g,'&quot;')},${JSON.stringify(p.poste).replace(/"/g,'&quot;')},${JSON.stringify(p.contact||'').replace(/"/g,'&quot;')})">
       <div class="picker-item-avatar">${p.nom.charAt(0)}</div>
       <div class="picker-item-info">
         <div class="picker-item-name">${p.nom}</div>
@@ -2325,11 +2632,9 @@ function renderMateriels(){
   const mats=S.currentRapport.materiels||[];
   el.innerHTML=mats.map((m,i)=>`
     <div class="net-row" style="margin-bottom:8px">
-      <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:6px;align-items:center">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">
         <input class="mini-inp" value="${m.type||''}" placeholder="Type de matériel"
           oninput="S.currentRapport.materiels[${i}].type=this.value;rapportChanged()">
-        <input class="mini-inp" value="${m.serie||''}" placeholder="N° de série"
-          oninput="S.currentRapport.materiels[${i}].serie=this.value;rapportChanged()">
         <button class="del-btn" onclick="removeMateriel(${i})">✕</button>
       </div>
     </div>
@@ -2412,11 +2717,23 @@ function renderNetworks(){
           📷 Ajouter une photo
         </button>
       </div>
-      <!-- Méthode -->
-      <div style="margin-bottom:6px">
-        <span class="mini-lbl">Méthode de détection</span>
-        <input class="mini-inp" style="width:100%" value="${n.methode||''}"
-          oninput="updateNet('${n.id}','methode',this.value)" placeholder="Méthode utilisée…">
+      <!-- Méthode + Classe sur la même ligne -->
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;align-items:end">
+        <div>
+          <span class="mini-lbl">Méthode de détection</span>
+          <input class="mini-inp" style="width:100%" value="${n.methode||''}"
+            oninput="updateNet('${n.id}','methode',this.value)" placeholder="Méthode utilisée…">
+        </div>
+        <div>
+          <span class="mini-lbl">Classe</span>
+          <select class="mini-inp" style="padding:6px 8px;min-width:110px"
+            onchange="updateNet('${n.id}','classe',this.value)">
+            <option value="" ${!n.classe?'selected':''}>—</option>
+            <option value="Classe A" ${n.classe==='Classe A'?'selected':''}>A (±10 cm)</option>
+            <option value="Classe B" ${n.classe==='Classe B'?'selected':''}>B (±25 cm)</option>
+            <option value="Classe C" ${n.classe==='Classe C'?'selected':''}>C (supposée)</option>
+          </select>
+        </div>
       </div>
       <!-- Remarque -->
       <div>
@@ -2683,20 +3000,97 @@ function viewNetPhoto(netId, idx){
   document.body.appendChild(overlay);
 }
 
+const NET_METHODS = {
+  'ENEDIS': {
+    methode: "Radiodétection en 50Hz et GEORADAR et/ou en radiodétection par induction via une pince à champ magnétique.",
+    remarques: "Lorsque le réseau n'est pas en classe A sur les DT, La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.\n\nEt/ou :\n\nLe repérage du réseau ENEDIS a été réalisé à l'aide de l'appareil de radiodétection via une pince à champ magnétique et du générateur en mode 8.19Hz."
+  },
+  'France Télécom': {
+    methode: "Radiodétection en RADIO et GEORADAR et/ou en radiodétection par induction via une pince à champ magnétique.",
+    remarques: "Le repérage du réseau France Telecom a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif radio, pour le positionner en X, Y puis le géoradar pour nous confirmer la position en X et Y et donner la position en Z.\n\nEt/ou :\n\nLe repérage du réseau France TELECOM a été réalisé à l'aide de l'appareil de radiodétection via une pince à champ magnétique et du générateur en mode 8.19Hz."
+  },
+  'ASSAINISSEMENT': {
+    methode: "GEORADAR",
+    remarques: "La détection de ce réseau s'est faite à l'aide du géoradar et identifié par ouverture des tampons des regards.\n\nLes branchements dépourvus d'affleurant ne peuvent techniquement pas être détectés, le signal radar ne pouvant être identifié."
+  },
+  'GAZ': {
+    methode: "GEORADAR",
+    remarques: "Lorsque le réseau n'est pas en classe A sur les plans des DT, la détection du réseau GRDF a été réalisé à l'aide du GEORADAR. Et identifié grâce aux affleurants et au plan DT."
+  },
+  'AEP': {
+    methode: "GEORADAR",
+    remarques: "Le réseau a été détecté grâce au géoradar, et identifié grâce aux affleurants (Bouches à clés et chambre à vannes). Les branchements dépourvus d'affleurant ne peuvent techniquement pas être détectés, le signal radar ne pouvant être identifié. Réseau d'arrosage automatique non détectable."
+  },
+  'Éclairage public': {
+    methode: "Radiodétection par induction directe et GEORADAR",
+    remarques: "Le repérage du réseau d'éclairage a été réalisé à l'aide de l'appareil de radiodétection équipé du générateur par branchement direct en mode 640Hz."
+  },
+  'Réseau inconnu': {
+    methode: "Radiodétection en radio et GEORADAR",
+    remarques: "La détection du réseau inconnu a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif radio, pour le positionner en X, Y puis le géoradar pour nous confirmer la position en X et Y et donner la position en Z."
+  },
+  'SLT': {
+    methode: "Radiodétection par induction via une pince à champ magnétique",
+    remarques: "Le repérage du réseau SLT a été réalisé à l'aide de l'appareil de radiodétection via une pince à champ magnétique et du générateur en mode 8.19Hz."
+  },
+  'RATP': {
+    methode: "Radiodétection en 50Hz et GEORADAR",
+    remarques: "La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z."
+  },
+  'GRT': {
+    methode: "",
+    remarques: "Le GRT est à titre indicatif, contacter GRT pour plus d'information."
+  },
+  'RTE': {
+    methode: "Radiodétection en 50Hz et GEORADAR",
+    remarques: "La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z."
+  },
+  'Chauffage urbain': {
+    methode: "Radiodétection en 50Hz et GEORADAR et/ou en radiodétection par induction directe et GEORADAR",
+    remarques: "La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode Power50, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.\n\nEt/ou :\n\nLe repérage du réseau de chauffage urbain a été réalisé à l'aide de l'appareil de radiodétection équipé du générateur par branchement direct en mode 640Hz."
+  }
+};
+
+function autoFillNetwork(val){
+  const customInp = document.getElementById('net-nature-custom');
+  if(val === '__autre__'){
+    customInp.style.display = 'block';
+    customInp.focus();
+    document.getElementById('net-methode').value = '';
+    document.getElementById('net-remarques').value = '';
+    return;
+  }
+  customInp.style.display = 'none';
+  const data = NET_METHODS[val];
+  if(data){
+    document.getElementById('net-methode').value = data.methode;
+    document.getElementById('net-remarques').value = data.remarques;
+  } else {
+    document.getElementById('net-methode').value = '';
+    document.getElementById('net-remarques').value = '';
+  }
+}
+
 async function addNetwork(){
-  const nature=document.getElementById('net-nature').value.trim();
+  const sel = document.getElementById('net-nature');
+  const nature = sel.value === '__autre__'
+    ? document.getElementById('net-nature-custom').value.trim()
+    : sel.value;
   if(!nature){toast('⚠️ Nom du réseau requis');return}
   if(!S.currentRapport.networks) S.currentRapport.networks=[];
   const net={id:uid(),nature,
     photos:[...netModalPhotos],
     methode:document.getElementById('net-methode').value,
+    classe:document.getElementById('net-classe').value,
     remarques:document.getElementById('net-remarques').value,
     active:true};
   S.currentRapport.networks.push(net);
   await db.put('rapports',S.currentRapport);
   closeModal('m-add-network');
   renderNetworks();
-  ['net-nature','net-methode','net-remarques'].forEach(id=>document.getElementById(id).value='');
+  ['net-methode','net-classe','net-remarques'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('net-nature').value='';
+  const nc=document.getElementById('net-nature-custom'); if(nc){nc.value='';nc.style.display='none';}
   netModalPhotos=[];
   renderNetModalPhotos();
   toast(`✅ Réseau ${nature} ajouté`);
@@ -2967,11 +3361,13 @@ async function loadConsignes(){
 //  DOSSIER CHANTIER
 // ════════════════════════════════════════════
 const DOC_CATEGORIES = {
-  AIPR:  {label:'AIPR',                 icon:'🟠'},
-  ELEC:  {label:'Habilitation électrique', icon:'⚡'},
-  FORM:  {label:'Certificat de formation', icon:'🎓'},
-  PPSPS: {label:'PPSPS',               icon:'🦺'},
-  AUTRE: {label:'Autres documents',    icon:'📄'}
+  AIPR:   {label:'AIPR',                    icon:'🟠'},
+  ELEC:   {label:'Habilitation électrique', icon:'⚡'},
+  NORME:  {label:'Normes',                  icon:'📐'},
+  FASC:   {label:'Fascicules',              icon:'📘'},
+  REGL:   {label:'Réglementation',          icon:'⚖️'},
+  CTST:   {label:'CTST',                    icon:'🏗️'},
+  DTDICT: {label:'DT/DICT',                 icon:'📋'}
 };
 
 let S_docs = [];
@@ -3331,14 +3727,14 @@ function exportRapportWord(){
 
     // ── 3. MOYENS MATÉRIELS ──
     body+=_wh('3','Moyens mat\u00e9riels');
-    if(mats.length) body+=_wtable(['Type de mat\u00e9riel','N\u00b0 de s\u00e9rie / Mod\u00e8le'],mats.map(m=>[m.type||'—',m.serie||'—']));
+    if(mats.length) body+=_wtable(['Type de mat\u00e9riel'],mats.map(m=>[m.type||'—']));
     if(logs.length) body+=_wtable(['Type de logiciel','Marque'],logs.map(l=>[l.type||'—',l.marque||'—']));
     body+=_wp('Les fiches techniques ainsi que les m\u00e9thodes op\u00e9rationnelles sont pr\u00e9sent\u00e9es en annexe.',false,20,'595959');
 
     // ── 4. RÉSEAUX DÉTECTÉS ──
     if(activeNets.length){
       body+=_wh('4','R\u00e9seaux d\u00e9tect\u00e9s');
-      body+=_wtable(['Nature du r\u00e9seau','M\u00e9thode de d\u00e9tection','Remarques'],activeNets.map(n=>[n.nature||'—',n.methode||'—',n.remarques||'—']));
+      body+=_wtable(['Nature du r\u00e9seau','M\u00e9thode de d\u00e9tection','Classe','Remarques'],activeNets.map(n=>[n.nature||'—',n.methode||'—',n.classe||'—',n.remarques||'—']));
     }
 
     // ── 5. CONCLUSIONS / ÉCART ──
@@ -3397,6 +3793,7 @@ function buildPDFHTML(c,r,photos,gps,agenceName){
       <td style="font-weight:700;vertical-align:top;color:#272727">${n.nature}</td>
       <td style="vertical-align:top">${(n.photos||(n.photo?[n.photo]:[])).map(p=>`<img src="${p}" style="width:72px;height:54px;object-fit:cover;border-radius:4px;display:inline-block;margin:2px">`).join('')||'—'}</td>
       <td style="vertical-align:top">${n.methode||'—'}</td>
+      <td style="vertical-align:top;font-weight:700">${n.classe||'—'}</td>
       <td style="vertical-align:top">${n.remarques||'—'}</td>
     </tr>`).join('');
   const photoGrid=photos.map((p,idx)=>`
@@ -3408,7 +3805,7 @@ function buildPDFHTML(c,r,photos,gps,agenceName){
       </div>
     </div>`).join('');
   const matRows=(r.materiels||[]).map(m=>`
-    <tr><td>${m.type||'—'}</td><td>${m.serie||'—'}</td></tr>`).join('');
+    <tr><td>${m.type||'—'}</td></tr>`).join('');
   const logRows=(r.logiciels||[]).map(l=>`
     <tr><td>${l.type||'—'}</td><td>${l.marque||'—'}</td></tr>`).join('');
   const opDetRows=(r.opDetection||[]).map(o=>`
@@ -3446,7 +3843,7 @@ function buildPDFHTML(c,r,photos,gps,agenceName){
   tr:nth-child(even) td{background:#f2f5fb}
   .text-block{background:#f2f5fb;border-left:4px solid #2F5496;padding:10px 14px;margin-bottom:12px;line-height:1.75;font-size:11px;color:#272727;white-space:pre-wrap}
   .obs-block{background:#fffbeb;border-left:4px solid #f59e0b;padding:10px 14px;margin-bottom:12px;line-height:1.75;font-size:11px;color:#272727;white-space:pre-wrap}
-  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 12px}
   .plan-img{width:100%;max-height:300px;object-fit:contain;border:1px solid #d0d7e3;margin-bottom:12px}
   .sig-box{border:1px solid #ccc;padding:32px 14px;text-align:center;color:#aaa;font-size:10px}
   .annex-note{background:#eef1f7;border-left:4px solid #2F5496;padding:8px 12px;font-size:10.5px;color:#595959;margin-bottom:12px;font-style:italic}
@@ -3513,8 +3910,8 @@ L'intervention a été réalisée le ${r.dateDebut?new Date(r.dateDebut).toLocal
 
     <!-- 3. MOYENS MATÉRIELS -->
     <h2>3. Moyens matériels</h2>
-    <table><thead><tr><th>Type de matériel</th><th>Marque</th><th>N° de série / Modèle</th></tr></thead>
-    <tbody>${matRows||'<tr><td colspan="3">—</td></tr>'}</tbody></table>
+    <table><thead><tr><th>Type de matériel</th></tr></thead>
+    <tbody>${matRows||'<tr><td>—</td></tr>'}</tbody></table>
     <div class="annex-note">Les fiches techniques ainsi que les méthodes opérationnelles sont présentées en annexe.</div>
     ${logRows?`<table><thead><tr><th>Type de logiciel</th><th>Marque</th></tr></thead><tbody>${logRows}</tbody></table>`:''}
 
@@ -3531,7 +3928,7 @@ L'intervention a été réalisée le ${r.dateDebut?new Date(r.dateDebut).toLocal
 
     ${activeNets.length?`
     <h3>Tableau des réseaux détectés</h3>
-    <table><thead><tr><th style="width:18%">Nature du réseau</th><th style="width:12%">Photo</th><th style="width:35%">Méthode de détection</th><th style="width:35%">Remarque</th></tr></thead>
+    <table><thead><tr><th style="width:18%">Nature du réseau</th><th style="width:10%">Photo</th><th style="width:30%">Méthode de détection</th><th style="width:10%">Classe</th><th style="width:32%">Remarque</th></tr></thead>
     <tbody>${netRows}</tbody></table>`:''}
 
     ${gps.length?`
@@ -3667,7 +4064,7 @@ async function openAdmin(){
   showScreen('s-admin');
   // Sous-titre selon le rôle
   const sub = document.getElementById('admin-subtitle');
-  if(sub) sub.textContent = currentUserProfile.role === 'Directeur Général'
+  if(sub) sub.textContent = isGlobalAdmin(currentUserProfile.role)
     ? 'Toutes les régions · Tous les utilisateurs'
     : `Région : ${currentUserProfile.teamName||'—'}`;
   adminTab('agencies');
@@ -3678,7 +4075,7 @@ async function openAdmin(){
 async function loadAdminData(){
   if(!FIREBASE_CONFIGURED) return;
   try {
-    const isDG = currentUserProfile.role === 'Directeur Général';
+    const isDG = isGlobalAdmin(currentUserProfile.role);
     // Charger les agences
     let teamsSnap;
     if(isDG){
@@ -3696,7 +4093,11 @@ async function loadAdminData(){
     }
     _adminData.users = usersSnap.docs.map(d=>({uid:d.id,...d.data()}));
     _adminData.loaded = true;
-  } catch(e){ toast('⚠️ Erreur de chargement admin'); }
+  } catch(e){
+    console.error('loadAdminData error:', e.message);
+    _adminData.loaded = true; // avoid infinite "Chargement…"
+    toast('⚠️ Erreur de chargement admin: ' + e.message);
+  }
 }
 
 function adminTab(tab){
@@ -3978,9 +4379,78 @@ function toggleOffline(){
 //  PROFILE
 // ════════════════════════════════════════════
 function updateProfile(){
-  document.getElementById('prof-nb-chantiers').textContent=S.chantiers.length;
-  document.getElementById('prof-nb-photos').textContent=S.photos.length;
-  document.getElementById('prof-nb-offline').textContent=S.photos.filter(p=>!p.synced).length;
+  const nbC=document.getElementById('prof-nb-chantiers'); if(nbC) nbC.textContent=S.chantiers.length;
+  const nbP=document.getElementById('prof-nb-photos'); if(nbP) nbP.textContent=S.photos?S.photos.length:0;
+  const nbO=document.getElementById('prof-nb-offline'); if(nbO) nbO.textContent=S.photos?S.photos.filter(p=>!p.synced).length:0;
+}
+
+// ════════ PROFIL : PHOTO ════════
+function openProfilePhotoEdit(){
+  document.getElementById('prof-photo-input').click();
+}
+
+function handleProfilePhotoChange(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    const img = new Image();
+    img.onload = async function(){
+      // Redimensionner en 200x200 max
+      const size = 200;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min)/2, sy = (img.height - min)/2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+      // Afficher immédiatement
+      const av = document.getElementById('prof-avatar');
+      av.innerHTML = `<img src="${dataURL}" alt="Photo">`;
+      // Sauvegarder dans Firestore
+      if(FIREBASE_CONFIGURED && currentUserProfile){
+        try{
+          await fdb.collection('users').doc(currentUserProfile.uid).update({photoURL: dataURL});
+          currentUserProfile.photoURL = dataURL;
+          toast('✅ Photo de profil mise à jour');
+        }catch(err){ toast('❌ Erreur sauvegarde photo'); }
+      } else {
+        localStorage.setItem('profilePhoto_'+( currentUserProfile&&currentUserProfile.uid||'user'), dataURL);
+        toast('✅ Photo enregistrée localement');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value=''; // reset input
+}
+
+// ════════ PROFIL : AGENCE ════════
+function openEditAgence(){
+  const inp = document.getElementById('edit-agence-input');
+  if(inp) inp.value = (currentUserProfile && currentUserProfile.teamName) || '';
+  openModal('m-edit-agence');
+}
+
+async function saveProfileAgence(){
+  const inp = document.getElementById('edit-agence-input');
+  const newName = inp ? inp.value.trim() : '';
+  if(!newName){ toast('Veuillez saisir le nom de l\'agence'); return; }
+  if(!currentUserProfile){ closeModal('m-edit-agence'); return; }
+  try{
+    if(FIREBASE_CONFIGURED){
+      await fdb.collection('users').doc(currentUserProfile.uid).update({teamName: newName});
+      // Mettre à jour aussi le document de l'équipe si elle existe
+      if(currentUserProfile.teamId){
+        await fdb.collection('teams').doc(currentUserProfile.teamId).update({name: newName}).catch(()=>{});
+      }
+    }
+    currentUserProfile.teamName = newName;
+    updateProfileScreen();
+    closeModal('m-edit-agence');
+    toast('✅ Agence mise à jour : ' + newName);
+  }catch(err){ toast('❌ Erreur : ' + err.message); }
 }
 
 async function clearAllData(){
