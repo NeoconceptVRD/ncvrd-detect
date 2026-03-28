@@ -969,8 +969,78 @@ body{
 
   <!-- ══════════════════ SCREEN DOSSIER CHANTIER ══════════════════ -->
   <div class="screen" id="s-dossier" style="display:none;padding-bottom:16px">
-    <div class="sec-hdr">📄 Documents</div>
-    <div class="info-box" style="font-size:11px">📂 Stockez vos documents terrain : AIPR, habilitations, normes, fascicules, réglementation, CTST et DT/DICT. Les fichiers sont enregistrés localement sur l\'appareil.</div>
+
+    <!-- ── SECTION 1 : Bibliothèque partagée (admin → tous) ────────── -->
+    <div style="margin:14px 14px 4px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;height:1px;background:rgba(0,180,255,.2)"></div>
+      <span style="font-size:11px;font-weight:800;color:#00b4ff;text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap">☁️ Bibliothèque partagée</span>
+      <div style="flex:1;height:1px;background:rgba(0,180,255,.2)"></div>
+    </div>
+    <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents mis à disposition par les administrateurs et accessibles à toute l'équipe depuis n'importe quel appareil.</div>
+
+    <!-- Normes -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00d4aa;display:inline-block;opacity:.85;flex-shrink:0"></span>📐 Normes</span><span id="badge-NORME" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Normes NF S70-003 relatives à la détection et au géoréférencement des réseaux souterrains.</div>
+        <div id="docs-NORME" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-NORME" onclick="openAddLinkModal('NORME')" style="display:none;margin-top:8px;width:100%;background:rgba(0,212,170,.08);border:1.5px dashed rgba(0,212,170,.4);border-radius:10px;padding:12px;color:#00d4aa;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- Fascicules -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📘 Fascicules</span><span id="badge-FASC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Fascicules 1, 2 et 3 — guides techniques DT/DICT et formulaires pratiques.</div>
+        <div id="docs-FASC" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-FASC" onclick="openAddLinkModal('FASC')" style="display:none;margin-top:8px;width:100%;background:rgba(0,180,255,.08);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- Réglementation -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#a855f7;display:inline-block;opacity:.85;flex-shrink:0"></span>⚖️ Réglementation</span><span id="badge-REGL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Arrêtés, décrets et textes réglementaires relatifs aux travaux à proximité des réseaux.</div>
+        <div id="docs-REGL" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-REGL" onclick="openAddLinkModal('REGL')" style="display:none;margin-top:8px;width:100%;background:rgba(168,85,247,.08);border:1.5px dashed rgba(168,85,247,.4);border-radius:10px;padding:12px;color:#a855f7;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- CTST -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00e676;display:inline-block;opacity:.85;flex-shrink:0"></span>🏗️ CTST</span><span id="badge-CTST" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents CTST : cahiers des charges, spécifications techniques et documents de référence.</div>
+        <div id="docs-CTST" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-CTST" onclick="openAddLinkModal('CTST')" style="display:none;margin-top:8px;width:100%;background:rgba(0,230,118,.08);border:1.5px dashed rgba(0,230,118,.4);border-radius:10px;padding:12px;color:#00e676;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2 : Documents personnels (local) ─────────────────── -->
+    <div style="margin:20px 14px 4px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+      <span style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap">📱 Mes documents locaux</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+    </div>
+    <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents personnels stockés uniquement sur cet appareil (AIPR, habilitations, DT/DICT…). Non visibles par les autres.</div>
 
     <!-- AIPR -->
     <div class="acc-section">
@@ -1000,62 +1070,6 @@ body{
       </div>
     </div>
 
-    <!-- Normes -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00d4aa;display:inline-block;opacity:.85;flex-shrink:0"></span>📐 Normes</span><span id="badge-NORME" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Normes NF S70-003 relatives à la détection et au géoréférencement des réseaux souterrains.</div>
-        <div id="docs-NORME" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('NORME')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
-    <!-- Fascicules -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📘 Fascicules</span><span id="badge-FASC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Fascicules 1, 2 et 3 — guides techniques DT/DICT et formulaires pratiques.</div>
-        <div id="docs-FASC" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('FASC')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
-    <!-- Réglementation -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#a855f7;display:inline-block;opacity:.85;flex-shrink:0"></span>⚖️ Réglementation</span><span id="badge-REGL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Arrêtés, décrets et textes réglementaires relatifs aux travaux à proximité des réseaux.</div>
-        <div id="docs-REGL" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('REGL')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
-    <!-- CTST -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00e676;display:inline-block;opacity:.85;flex-shrink:0"></span>🏗️ CTST</span><span id="badge-CTST" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents CTST : cahiers des charges, spécifications techniques et documents de référence.</div>
-        <div id="docs-CTST" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('CTST')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
     <!-- DT/DICT -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
@@ -1070,13 +1084,9 @@ body{
       </div>
     </div>
 
-    <!-- Hidden file inputs per category -->
+    <!-- Hidden file inputs — local -->
     <input type="file" id="doc-input-AIPR"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AIPR')">
     <input type="file" id="doc-input-ELEC"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'ELEC')">
-    <input type="file" id="doc-input-NORME"  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'NORME')">
-    <input type="file" id="doc-input-FASC"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'FASC')">
-    <input type="file" id="doc-input-REGL"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'REGL')">
-    <input type="file" id="doc-input-CTST"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'CTST')">
     <input type="file" id="doc-input-DTDICT" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'DTDICT')">
 
     <!-- Export Documents -->
@@ -1221,6 +1231,12 @@ body{
         <span class="ps-val" id="prof-sync-status">☁️ Cloud</span>
       </div>
     </div>
+    <!-- Codes par région (admin uniquement) -->
+    <div id="prof-regions-section" style="display:none">
+      <div class="sec-hdr">Codes par région</div>
+      <div id="prof-regions-codes" style="margin:0 14px 10px"></div>
+    </div>
+
     <div class="sec-hdr">Mon compte</div>
     <button class="btn-big btn-card" onclick="copyInviteCode()" style="border-left:4px solid var(--accent)">🔗 Copier le code d'invitation</button>
     <button class="btn-big btn-card" onclick="openModal('m-install')">📱 Installer sur mobile</button>
@@ -1504,6 +1520,40 @@ body{
     </div>
 
     <button onclick="shareCollabInvite()" style="width:100%;background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">📤 Partager</button>
+  </div>
+</div>
+
+<!-- Modal: Ajouter un lien partagé -->
+<div class="modal" id="m-add-link" onclick="if(event.target===this)closeModal('m-add-link')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-title">🔗 Ajouter un document partagé</span>
+      <button class="modal-close" onclick="closeModal('m-add-link')">✕</button>
+    </div>
+    <div class="info-box" style="font-size:11px;margin-bottom:14px">Collez un lien Google Drive, OneDrive, Dropbox ou toute URL directe vers le document.</div>
+    <div class="form-group">
+      <label class="form-label">Nom du document</label>
+      <input class="form-input" id="link-doc-name" placeholder="Ex : Norme NF S70-003 partie 2" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lien URL</label>
+      <input class="form-input" id="link-doc-url" placeholder="https://drive.google.com/..." type="url">
+    </div>
+    <button class="btn-big btn-accent" style="margin-top:4px" onclick="saveSharedLink()">✅ Enregistrer</button>
+  </div>
+</div>
+
+<!-- Modal: Inviter collaborateur sur un chantier -->
+<div class="modal" id="m-invite-chantier" onclick="if(event.target===this)closeModal('m-invite-chantier')">
+  <div class="modal-box">
+    <div class="modal-hdr" style="position:sticky;top:0;background:var(--card2);z-index:10;padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--border)">
+      <span class="modal-title">👥 Partager ce chantier</span>
+      <button class="modal-close" onclick="closeModal('m-invite-chantier')">✕</button>
+    </div>
+    <div class="info-box" style="margin:0 0 12px;font-size:12px">Les collaborateurs invités pourront accéder et compléter ce chantier depuis leur propre appareil.</div>
+    <div id="invite-chantier-list" style="max-height:320px;overflow-y:auto">
+      <div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Chargement…</div>
+    </div>
   </div>
 </div>
 
@@ -1970,6 +2020,40 @@ async function updateProfileScreen(){
   document.getElementById('prof-invite-code').textContent = inviteCode;
   const ic2 = document.getElementById('prof-invite-code-2');
   if(ic2) ic2.textContent = inviteCode;
+
+  // ── Codes par région (admins uniquement) ──────────────────────────
+  const regionsSec  = document.getElementById('prof-regions-section');
+  const regionsCont = document.getElementById('prof-regions-codes');
+  if(regionsSec && regionsCont && isAdminRole(p.role) && FIREBASE_CONFIGURED){
+    try {
+      const teamsSnap = await fdb.collection('teams').get();
+      let html = '';
+      teamsSnap.forEach(doc => {
+        const td   = doc.data();
+        const name = td.name || td.teamName || doc.id;
+        const code = td.inviteCode    || '—';
+        const admCode = td.adminInviteCode || '—';
+        html += `<div style="background:var(--card2);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">🗺️ ${name}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:11px;color:var(--muted)">👷 Code équipe</span>
+            <span style="font-family:monospace;font-size:13px;font-weight:800;color:var(--accent);cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText('${code}').then(()=>toast('📋 Code copié'))">${code}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--muted)">🔑 Code admin</span>
+            <span style="font-family:monospace;font-size:12px;font-weight:700;color:#f59e0b;cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText('${admCode}').then(()=>toast('📋 Code admin copié'))">${admCode}</span>
+          </div>
+        </div>`;
+      });
+      regionsCont.innerHTML = html || '<div style="color:var(--muted);font-size:12px;padding:8px 0">Aucune région trouvée.</div>';
+      regionsSec.style.display = 'block';
+    } catch(e){
+      regionsSec.style.display = 'none';
+    }
+  } else if(regionsSec){
+    regionsSec.style.display = 'none';
+  }
+
   document.getElementById('prof-nb-chantiers').textContent = S.chantiers.length;
   document.getElementById('prof-nb-photos').textContent = S.photos ? S.photos.length : 0;
   document.getElementById('prof-sync-status').textContent = FIREBASE_CONFIGURED ? '☁️ Synchronisé' : '💾 Local';
@@ -2063,7 +2147,7 @@ function showScreen(id){
   if(id==='screen-rapport'){renderRapportScreen();}
   if(id==='s-photos'){renderAllPhotos()}
   if(id==='s-consignes'){renderConsignes()}
-  if(id==='s-dossier'){loadDossier().then(()=>renderDossier())}
+  if(id==='s-dossier'){loadDossier().then(()=>renderDossier()); loadSharedDocs();}
   if(id==='s-profil'){updateProfile()}
   if(id==='s-camera'){initCamera()}
   if(id==='screen-home'){stopCamera()}
@@ -2111,21 +2195,41 @@ function toggleAcc(btn){
 //  CHANTIERS
 // ════════════════════════════════════════════
 async function loadChantiers(){
-  // Directeur Général : charge les chantiers de TOUTES les équipes
-  if(FIREBASE_CONFIGURED && currentUserProfile && isGlobalAdmin(currentUserProfile.role)){
+  if(FIREBASE_CONFIGURED && currentUserProfile){
+    const p = currentUserProfile;
     try{
-      const teamsSnap = await fdb.collection('teams').get();
-      let all=[];
-      for(const teamDoc of teamsSnap.docs){
-        const snap = await fdb.collection('teams').doc(teamDoc.id).collection('chantiers').get();
-        snap.docs.forEach(d=>all.push({id:d.id,...d.data(),_teamId:teamDoc.id}));
+      let all = [];
+
+      if(isGlobalAdmin(p.role)){
+        // DG / QHSE : tous les chantiers de toutes les équipes
+        const teamsSnap = await fdb.collection('teams').get();
+        for(const teamDoc of teamsSnap.docs){
+          const snap = await fdb.collection('teams').doc(teamDoc.id).collection('chantiers').get();
+          snap.docs.forEach(d=>all.push({id:d.id,...d.data(),_teamId:teamDoc.id}));
+        }
+
+      } else if(isAdminRole(p.role)){
+        // Responsable / Directeur d'agence : tous les chantiers de leur équipe
+        const snap = await fdb.collection('teams').doc(p.teamId).collection('chantiers').get();
+        snap.docs.forEach(d=>all.push({id:d.id,...d.data(),_teamId:p.teamId}));
+
+      } else {
+        // Technicien : seulement ses chantiers + ceux où il est collaborateur
+        const uid = p.uid;
+        const teamId = p.teamId;
+        const q1 = await fdb.collection('teams').doc(teamId).collection('chantiers').where('createdBy','==',uid).get();
+        const q2 = await fdb.collection('teams').doc(teamId).collection('chantiers').where('collaborators','array-contains',uid).get();
+        const seen = new Set();
+        [...q1.docs,...q2.docs].forEach(d=>{ if(!seen.has(d.id)){seen.add(d.id); all.push({id:d.id,...d.data(),_teamId:teamId});} });
       }
+
       all.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-      S.chantiers=all;
+      S.chantiers = all;
       renderChantiers(S.chantiers);
       return;
-    }catch(e){ console.error('Multi-team loadChantiers:',e); }
+    }catch(e){ console.error('loadChantiers Firebase:',e); }
   }
+  // Fallback local IndexedDB
   S.chantiers=await db.getAll('chantiers');
   renderChantiers(S.chantiers);
 }
@@ -2178,13 +2282,27 @@ function renderChantiers(list){
   }
 
   el.innerHTML = filtered.map(c => {
-    const isTermine = c.statut === 'termine';
+    const isTermine  = c.statut === 'termine';
+    const myUid      = currentUserProfile?.uid;
+    const isCreator  = !c.createdBy || c.createdBy === myUid;
+    const isAdmin    = currentUserProfile && isAdminRole(currentUserProfile.role);
+    const canInvite  = FIREBASE_CONFIGURED && (isCreator || isAdmin);
+    const collabs    = c.collaborators || [];
+    const collabsBadge = collabs.length
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(29,78,216,.12);border:1px solid rgba(29,78,216,.25);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">👥 ${collabs.length} collab.</span>`
+      : '';
+    const sharedBadge = (!isCreator && !isAdmin)
+      ? '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#92400e;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">🔗 Partagé</span>'
+      : '';
     const badge = isTermine
       ? '<span class="badge badge-green">✅ Terminé</span>'
       : '<span class="badge badge-blue">🟢 En cours</span>';
     const actionBtn = isTermine
       ? `<button onclick="event.stopPropagation();rouvrir('${c.id}')" style="background:rgba(29,78,216,.1);border:1px solid rgba(29,78,216,.25);color:var(--blue);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">↩ Rouvrir</button>`
       : `<button onclick="event.stopPropagation();terminerChantier('${c.id}')" style="background:rgba(21,128,61,.1);border:1px solid rgba(21,128,61,.25);color:#15803d;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">✅ Terminer</button>`;
+    const inviteBtn = canInvite
+      ? `<button onclick="event.stopPropagation();openInviteChantierModal('${c.id}')" style="background:rgba(29,78,216,.08);border:1px solid rgba(29,78,216,.2);color:var(--accent);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit" title="Partager avec un collaborateur">👥 Partager</button>`
+      : '';
     return `
     <div class="card" draggable="true"
          ondragstart="chantierDragStart(event,'${c.id}')"
@@ -2199,9 +2317,11 @@ function renderChantiers(list){
           <span>👤 ${c.client||'—'}</span>
           ${c.createdAt?`<span>📅 ${c.createdAt}</span>`:''}
         </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 2px">${collabsBadge}${sharedBadge}</div>
         <div class="card-footer">
           ${badge}
-          <div style="display:flex;align-items:center;gap:6px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${inviteBtn}
             ${actionBtn}
             <span style="color:var(--muted);font-size:14px;cursor:grab" title="Glisser pour réorganiser">⠿</span>
           </div>
@@ -2225,6 +2345,7 @@ async function terminerChantier(id){
   c.statut = 'termine';
   c.updatedAt = Date.now();
   await db.put('chantiers', c);
+  syncChantierToFirebase(c);
   toast('✅ Chantier marqué comme terminé');
   renderChantiers(S.chantiers);
 }
@@ -2235,6 +2356,7 @@ async function rouvrir(id){
   c.statut = 'en_cours';
   c.updatedAt = Date.now();
   await db.put('chantiers', c);
+  syncChantierToFirebase(c);
   toast('🟢 Chantier réouvert');
   renderChantiers(S.chantiers);
 }
@@ -2292,6 +2414,14 @@ async function openChantier(id){
   // Si le chantier vient d'une autre équipe (DG multi-team), on switche temporairement
   if(S.currentChantier && S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
   let rapport=await db.get('rapports',id);
+  // Si non trouvé localement, essayer Firebase (chantier partagé)
+  if(!rapport && FIREBASE_CONFIGURED && S.currentChantier){
+    try{
+      const teamId = S.currentChantier._teamId || currentUserProfile?.teamId;
+      const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(id).get();
+      if(snap.exists){ rapport={id,...snap.data()}; await db.put('rapports',rapport); }
+    }catch(e){ console.warn('openChantier rapport Firebase:',e); }
+  }
   if(!rapport){
     rapport={id,chantierId:id,
       client:S.currentChantier.client||'',
@@ -2358,8 +2488,11 @@ async function createChantier(){
     reference:document.getElementById('nc-ref').value.trim()||'2026-'+Math.floor(Math.random()*900+100),
     dateDebut:document.getElementById('nc-debut').value||today(),
     dateFin:document.getElementById('nc-fin').value||'',
-    status:'active',createdAt:Date.now()};
+    status:'active',createdAt:Date.now(),
+    createdBy: currentUserProfile?.uid || 'local',
+    collaborators: []};
   await db.put('chantiers',c);
+  syncChantierToFirebase(c);
   S.chantiers.unshift(c);
   renderChantiers(S.chantiers);
   closeModal('m-new-chantier');
@@ -2372,8 +2505,11 @@ async function createChantier(){
 
 async function createChantierDirect(){
   const c={id:uid(),name:'Nouveau chantier – '+today(),address:'',client:'',
-    reference:'',dateDebut:today(),dateFin:'',status:'active',createdAt:Date.now()};
+    reference:'',dateDebut:today(),dateFin:'',status:'active',createdAt:Date.now(),
+    createdBy: currentUserProfile?.uid || 'local',
+    collaborators: []};
   await db.put('chantiers',c);
+  syncChantierToFirebase(c);
   S.chantiers.unshift(c);
   renderChantiers(S.chantiers);
   toast('✅ Chantier créé');
@@ -2446,6 +2582,7 @@ function rapportChanged(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     await db.put('rapports',r);
+    syncRapportToFirebase(r);
     document.getElementById('autosave-bar').textContent='✓ Sauvegardé à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(S.isOffline?' · hors ligne':'');
   },800);
 }
@@ -3484,6 +3621,106 @@ async function deleteDocument(docId){
   toast('🗑️ Document supprimé');
 }
 
+// ════════════════════════════════════════════
+//  DOCUMENTS PARTAGÉS (liens URL + Firestore)
+// ════════════════════════════════════════════
+const SHARED_CATEGORIES = ['NORME','FASC','REGL','CTST'];
+let S_sharedDocs = [];
+let _addLinkCategory = null;
+
+function openAddLinkModal(category){
+  _addLinkCategory = category;
+  document.getElementById('link-doc-name').value = '';
+  document.getElementById('link-doc-url').value  = '';
+  openModal('m-add-link');
+}
+
+async function saveSharedLink(){
+  const name = document.getElementById('link-doc-name').value.trim();
+  const url  = document.getElementById('link-doc-url').value.trim();
+  if(!name){ toast('⚠️ Donnez un nom au document'); return; }
+  if(!url)  { toast('⚠️ Collez un lien URL');        return; }
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId){
+    toast('⚠️ Connexion Firebase requise'); return;
+  }
+  const docId  = uid();
+  const teamId = currentUserProfile.teamId;
+  const meta   = {
+    id: docId, category: _addLinkCategory, name, url,
+    fileType: 'lien',
+    addedAt: new Date().toLocaleDateString('fr-FR'),
+    addedBy: currentUserProfile.displayName || currentUserProfile.email || '—'
+  };
+  try {
+    await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(docId).set(meta);
+    S_sharedDocs.push(meta);
+    renderSharedDocs();
+    closeModal('m-add-link');
+    toast('✅ Lien ajouté : '+name);
+  } catch(e){
+    toast('❌ Erreur : '+e.message);
+  }
+}
+
+async function loadSharedDocs(){
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  try {
+    const snap = await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get();
+    S_sharedDocs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderSharedDocs();
+  } catch(e){ console.warn('loadSharedDocs:',e); }
+}
+
+function renderSharedDocs(){
+  const isAdmin = currentUserProfile && isAdminRole(currentUserProfile.role);
+  // Afficher/masquer boutons upload selon le rôle
+  SHARED_CATEGORIES.forEach(cat => {
+    const btn = document.getElementById('upload-btn-'+cat);
+    if(btn) btn.style.display = isAdmin ? 'flex' : 'none';
+  });
+
+  SHARED_CATEGORIES.forEach(cat => {
+    const docs  = S_sharedDocs.filter(d=>d.category===cat);
+    const listEl= document.getElementById('docs-'+cat);
+    const badge = document.getElementById('badge-'+cat);
+    if(!listEl) return;
+    if(badge) badge.textContent = docs.length;
+    if(!docs.length){
+      listEl.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0">Aucun document partagé</div>'; return;
+    }
+    listEl.innerHTML = docs.map(doc=>`
+      <div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px;flex-shrink:0">🔗</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${doc.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${doc.addedAt||'—'} · par ${doc.addedBy||'—'}</div>
+          <div style="font-size:10px;color:#00b4ff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☁️ ${doc.url}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="viewSharedDoc('${doc.id}')" style="background:var(--blue);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">↗️</button>
+          ${isAdmin?`<button onclick="deleteSharedDoc('${doc.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🗑️</button>`:''}
+        </div>
+      </div>`).join('');
+  });
+}
+
+function viewSharedDoc(docId){
+  const doc = S_sharedDocs.find(d=>d.id===docId);
+  if(!doc || !doc.url) return;
+  window.open(doc.url, '_blank');
+}
+
+async function deleteSharedDoc(docId){
+  if(!confirm('Supprimer ce lien pour toute l\'équipe ?')) return;
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  try {
+    await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').doc(docId).delete();
+    S_sharedDocs = S_sharedDocs.filter(d=>d.id!==docId);
+    renderSharedDocs();
+    toast('🗑️ Lien supprimé');
+  } catch(e){ toast('❌ Erreur suppression'); }
+}
+
 function exportDocsPDF(){
   if(!S_docs.length){ toast('⚠️ Aucun document à exporter'); return; }
   const rows = S_docs.map(d => `
@@ -3968,6 +4205,92 @@ function shareRapport(){
   } else {
     toast('📤 Partagez via votre navigateur');
   }
+}
+
+// ════════════════════════════════════════════
+//  FIREBASE SYNC HELPERS
+// ════════════════════════════════════════════
+
+async function syncChantierToFirebase(c){
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const teamId = c._teamId || currentUserProfile.teamId;
+  const data = {...c}; delete data._teamId;
+  try { await fdb.collection('teams').doc(teamId).collection('chantiers').doc(c.id).set(data,{merge:true}); }
+  catch(e){ console.warn('syncChantierToFirebase:',e); }
+}
+
+async function syncRapportToFirebase(r){
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
+  try { await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(r,{merge:true}); }
+  catch(e){ console.warn('syncRapportToFirebase:',e); }
+}
+
+// ── Invitation collaborateurs sur un chantier ──────────────────
+let _inviteTargetId = null;
+
+async function openInviteChantierModal(chantierId){
+  event && event.stopPropagation();
+  _inviteTargetId = chantierId;
+  openModal('m-invite-chantier');
+  await refreshInviteChantierList();
+}
+
+async function refreshInviteChantierList(){
+  const listEl = document.getElementById('invite-chantier-list');
+  if(!listEl) return;
+  if(!FIREBASE_CONFIGURED || !currentUserProfile){
+    listEl.innerHTML='<div style="color:var(--muted);font-size:12px">Connexion Firebase requise.</div>'; return;
+  }
+  const chantierId = _inviteTargetId;
+  const chantier   = S.chantiers.find(c=>c.id===chantierId);
+  const collabs    = chantier?.collaborators || [];
+  try {
+    const snap  = await fdb.collection('users').where('teamId','==',currentUserProfile.teamId).get();
+    const users = snap.docs.map(d=>({uid:d.id,...d.data()}))
+      .filter(u => u.uid !== (chantier?.createdBy||currentUserProfile.uid));
+    if(!users.length){
+      listEl.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Aucun autre membre dans l\'équipe.</div>'; return;
+    }
+    listEl.innerHTML = users.map(u=>{
+      const isCollab = collabs.includes(u.uid);
+      const btnAdd  = `<button onclick="addCollaborateurChantier('${chantierId}','${u.uid}')" style="background:rgba(29,78,216,.12);border:1px solid rgba(29,78,216,.3);color:var(--accent);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">＋ Inviter</button>`;
+      const btnRm   = `<button onclick="removeCollaborateurChantier('${chantierId}','${u.uid}')" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#dc2626;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Retirer</button>`;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
+        <div>
+          <div style="font-weight:700;font-size:13px">👤 ${u.displayName||u.email||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${u.role||'Technicien'}${isCollab?' · <span style="color:#15803d;font-weight:700">✅ Invité</span>':''}</div>
+        </div>
+        ${isCollab ? btnRm : btnAdd}
+      </div>`;
+    }).join('');
+  } catch(e){
+    listEl.innerHTML='<div style="color:var(--muted);font-size:12px">Erreur de chargement.</div>';
+  }
+}
+
+async function addCollaborateurChantier(chantierId, targetUid){
+  const chantier = S.chantiers.find(c=>c.id===chantierId);
+  if(!chantier) return;
+  if(!chantier.collaborators) chantier.collaborators=[];
+  if(chantier.collaborators.includes(targetUid)) return;
+  chantier.collaborators.push(targetUid);
+  chantier.updatedAt = Date.now();
+  await db.put('chantiers', chantier);
+  await syncChantierToFirebase(chantier);
+  toast('✅ Collaborateur ajouté');
+  await refreshInviteChantierList();
+}
+
+async function removeCollaborateurChantier(chantierId, targetUid){
+  const chantier = S.chantiers.find(c=>c.id===chantierId);
+  if(!chantier || !chantier.collaborators) return;
+  chantier.collaborators = chantier.collaborators.filter(u=>u!==targetUid);
+  chantier.updatedAt = Date.now();
+  await db.put('chantiers', chantier);
+  await syncChantierToFirebase(chantier);
+  toast('✅ Collaborateur retiré');
+  await refreshInviteChantierList();
 }
 
 // ════════════════════════════════════════════
