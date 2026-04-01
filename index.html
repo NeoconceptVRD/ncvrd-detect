@@ -1788,11 +1788,129 @@ const FIREBASE_CONFIG = {
 let fauth = null, fdb = null, currentUser = null, currentUserProfile = null;
 const FIREBASE_CONFIGURED = !FIREBASE_CONFIG.apiKey.includes('VOTRE');
 
+// ════════════════════════════════════════════
+//  LOGGER – Système de logging structuré
+// ════════════════════════════════════════════
+const Logger = {
+  _levels: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 },
+  _minLevel: 1, // INFO par défaut en prod
+  _history: [],
+  _maxHistory: 200,
+
+  _log(level, module, message, data) {
+    if (this._levels[level] < this._minLevel) return;
+    const entry = {
+      ts: new Date().toISOString(),
+      level,
+      module,
+      message,
+      ...(data !== undefined && { data })
+    };
+    this._history.push(entry);
+    if (this._history.length > this._maxHistory) this._history.shift();
+
+    const prefix = `[${level}][${module}]`;
+    const args = data !== undefined ? [prefix, message, data] : [prefix, message];
+    if (level === 'ERROR') console.error(...args);
+    else if (level === 'WARN') console.warn(...args);
+    else if (level === 'DEBUG') console.debug(...args);
+    else console.log(...args);
+  },
+
+  debug(module, msg, data) { this._log('DEBUG', module, msg, data); },
+  info(module, msg, data)  { this._log('INFO', module, msg, data); },
+  warn(module, msg, data)  { this._log('WARN', module, msg, data); },
+  error(module, msg, data) { this._log('ERROR', module, msg, data); },
+
+  // Récupérer l'historique pour le diagnostic
+  getHistory(level) {
+    if (!level) return [...this._history];
+    return this._history.filter(e => e.level === level);
+  },
+
+  // Export pour support technique
+  exportLogs() {
+    return JSON.stringify(this._history, null, 2);
+  },
+
+  // Activer le mode debug (console: Logger.enableDebug())
+  enableDebug() { this._minLevel = 0; this.info('Logger', 'Mode DEBUG activé'); },
+  disableDebug() { this._minLevel = 1; this.info('Logger', 'Mode DEBUG désactivé'); }
+};
+
+// Exposer Logger globalement pour le diagnostic
+window.Logger = Logger;
+
+// ════════════════════════════════════════════
+//  VALIDATION – Utilitaires de validation
+// ════════════════════════════════════════════
+const Validator = {
+  // Sanitize HTML pour prévenir XSS
+  sanitize(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[<>&"']/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;', "'":'&#39;' }[c]));
+  },
+
+  // Valider email
+  isEmail(val) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  },
+
+  // Valider URL
+  isURL(val) {
+    try { new URL(val); return true; } catch { return false; }
+  },
+
+  // Vérifier longueur
+  isLength(val, min, max) {
+    const len = (val || '').length;
+    return len >= min && len <= max;
+  },
+
+  // Champ requis
+  required(val, fieldName) {
+    if (!val || (typeof val === 'string' && !val.trim())) {
+      return `Le champ "${fieldName}" est obligatoire`;
+    }
+    return null;
+  },
+
+  // Valider un formulaire (retourne première erreur ou null)
+  check(rules) {
+    for (const { val, field, checks } of rules) {
+      for (const c of checks) {
+        if (c === 'required') {
+          const err = this.required(val, field);
+          if (err) return err;
+        }
+        if (c === 'email' && val && !this.isEmail(val)) {
+          return `"${field}" n'est pas une adresse email valide`;
+        }
+        if (c === 'url' && val && !this.isURL(val)) {
+          return `"${field}" n'est pas une URL valide`;
+        }
+        if (typeof c === 'object' && c.minLength && val && val.length < c.minLength) {
+          return `"${field}" doit contenir au moins ${c.minLength} caractères`;
+        }
+        if (typeof c === 'object' && c.maxLength && val && val.length > c.maxLength) {
+          return `"${field}" ne doit pas dépasser ${c.maxLength} caractères`;
+        }
+      }
+    }
+    return null;
+  }
+};
+
 if (FIREBASE_CONFIGURED) {
   firebase.initializeApp(FIREBASE_CONFIG);
   fauth = firebase.auth();
   fdb   = firebase.firestore();
-  fdb.enablePersistence().catch(()=>{});
+  fdb.enablePersistence().catch(err => {
+    Logger.warn('Firebase', 'Persistence non disponible', err?.code || err?.message);
+  });
+  Logger.info('Firebase', 'Firebase initialisé avec succès');
+} else {
+  Logger.warn('Firebase', 'Firebase non configuré – mode hors-ligne');
 }
 
 // ════════════════════════════════════════════
@@ -1812,14 +1930,20 @@ class CloudDB {
     try {
       const snap = await this._col(store).get();
       return snap.docs.map(d=>({id:d.id,...d.data()}));
-    } catch(e){ return this._idb.getAll(store); }
+    } catch(e){
+      Logger.warn('CloudDB', `getAll('${store}') Firestore échoué, fallback IDB`, e?.message);
+      return this._idb.getAll(store);
+    }
   }
   async get(store, id){
     if(!FIREBASE_CONFIGURED || !this._teamId) return this._idb.get(store,id);
     try {
       const doc = await this._col(store).doc(String(id)).get();
       return doc.exists ? {id:doc.id,...doc.data()} : null;
-    } catch(e){ return this._idb.get(store,id); }
+    } catch(e){
+      Logger.warn('CloudDB', `get('${store}', '${id}') Firestore échoué, fallback IDB`, e?.message);
+      return this._idb.get(store,id);
+    }
   }
   async put(store, data){
     if(!FIREBASE_CONFIGURED || !this._teamId) return this._idb.put(store,data);
@@ -1827,13 +1951,19 @@ class CloudDB {
       const d = {...data};
       await this._col(store).doc(String(d.id)).set(d,{merge:true});
       return data;
-    } catch(e){ return this._idb.put(store,data); }
+    } catch(e){
+      Logger.warn('CloudDB', `put('${store}', '${data?.id}') Firestore échoué, fallback IDB`, e?.message);
+      return this._idb.put(store,data);
+    }
   }
   async del(store, id){
     if(!FIREBASE_CONFIGURED || !this._teamId) return this._idb.del(store,id);
     try {
       await this._col(store).doc(String(id)).delete();
-    } catch(e){ return this._idb.del(store,id); }
+    } catch(e){
+      Logger.warn('CloudDB', `del('${store}', '${id}') Firestore échoué, fallback IDB`, e?.message);
+      return this._idb.del(store,id);
+    }
   }
 }
 
@@ -2093,10 +2223,12 @@ const DynLists = {
           Object.assign(this._cache, parsed);
         }
       }
-    } catch(e){ /* ignore cache errors */ }
+    } catch(e){
+      Logger.debug('DynLists', 'Cache localStorage indisponible', e?.message);
+    }
 
     // 2. Charger depuis Firestore si disponible
-    if(!FIREBASE_CONFIGURED || !fdb) { this._loaded = true; return; }
+    if(!FIREBASE_CONFIGURED || !fdb) { this._loaded = true; Logger.info('DynLists', 'Chargé depuis défauts (pas de Firestore)'); return; }
     try {
       const snap = await fdb.collection('config').doc('lists').get();
       if(snap.exists){
@@ -2106,39 +2238,52 @@ const DynLists = {
             this._cache[key] = data[key];
           }
         });
-        // Mettre à jour le cache local
-        try { localStorage.setItem('dynlists_cache', JSON.stringify(this._cache)); } catch(e){}
+        try { localStorage.setItem('dynlists_cache', JSON.stringify(this._cache)); } catch(e){
+          Logger.debug('DynLists', 'Impossible de mettre en cache localStorage', e?.message);
+        }
+        Logger.info('DynLists', 'Listes chargées depuis Firestore', { keys: Object.keys(data).length });
+      } else {
+        Logger.info('DynLists', 'Aucune liste en Firestore, utilisation des défauts');
       }
     } catch(e){
-      console.warn('DynLists: chargement Firestore échoué, utilisation du cache/défaut', e);
+      Logger.warn('DynLists', 'Chargement Firestore échoué, utilisation du cache/défaut', e?.message);
     }
     this._loaded = true;
   },
 
   // ── Sauvegarder une liste dans Firestore ──
   async save(key, value){
+    if(!key) { Logger.error('DynLists', 'save() appelé sans clé'); return; }
     this._cache[key] = value;
-    try { localStorage.setItem('dynlists_cache', JSON.stringify(this._cache)); } catch(e){}
+    try { localStorage.setItem('dynlists_cache', JSON.stringify(this._cache)); } catch(e){
+      Logger.debug('DynLists', 'Cache localStorage non disponible en écriture', e?.message);
+    }
     if(!FIREBASE_CONFIGURED || !fdb) return;
     try {
       await fdb.collection('config').doc('lists').set({[key]: value}, {merge: true});
+      Logger.info('DynLists', `Liste '${key}' sauvegardée dans Firestore`);
     } catch(e){
-      console.error('DynLists: sauvegarde échouée pour', key, e);
+      Logger.error('DynLists', `Sauvegarde échouée pour '${key}'`, e?.message);
+      toast('❌ Erreur sauvegarde de la liste "' + key + '"');
       throw e;
     }
   },
 
   // ── Initialiser Firestore avec les valeurs par défaut (admin) ──
   async seedDefaults(){
-    if(!FIREBASE_CONFIGURED || !fdb) return;
+    if(!FIREBASE_CONFIGURED || !fdb) { Logger.warn('DynLists', 'seedDefaults: Firestore non disponible'); return; }
     try {
       const snap = await fdb.collection('config').doc('lists').get();
       if(!snap.exists){
         await fdb.collection('config').doc('lists').set(this.DEFAULTS);
+        Logger.info('DynLists', 'Valeurs par défaut initialisées dans Firestore');
         toast('✅ Listes par défaut initialisées dans Firestore');
+      } else {
+        Logger.info('DynLists', 'seedDefaults: listes déjà présentes en Firestore');
       }
     } catch(e){
-      console.error('DynLists: seedDefaults error', e);
+      Logger.error('DynLists', 'seedDefaults échoué', e?.message);
+      toast('❌ Erreur initialisation des listes par défaut');
     }
   },
 
@@ -2242,7 +2387,11 @@ async function loginUser(){
   const pwd   = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
-  if(!email || !pwd){ errEl.textContent='Veuillez remplir tous les champs.'; errEl.style.display='block'; return; }
+  const vErr = Validator.check([
+    { val: email, field: 'Email', checks: ['required', 'email'] },
+    { val: pwd, field: 'Mot de passe', checks: ['required'] }
+  ]);
+  if(vErr){ errEl.textContent = vErr; errEl.style.display='block'; return; }
   try {
     await fauth.signInWithEmailAndPassword(email, pwd);
   } catch(e) {
@@ -2252,6 +2401,7 @@ async function loginUser(){
       'auth/invalid-email':'Email invalide.',
       'auth/too-many-requests':'Trop de tentatives. Réessayez plus tard.'
     };
+    Logger.warn('Auth', 'Échec connexion', { code: e.code, email });
     errEl.textContent = msgs[e.code] || 'Erreur de connexion.';
     errEl.style.display = 'block';
   }
@@ -2266,9 +2416,13 @@ async function registerUser(){
   errEl.style.display = 'none';
 
   const role = document.getElementById('reg-role').value;
-  if(!name||!email||!pwd){ errEl.textContent='Veuillez remplir tous les champs.'; errEl.style.display='block'; return; }
-  if(!role){ errEl.textContent='Veuillez sélectionner votre rôle.'; errEl.style.display='block'; return; }
-  if(pwd.length < 6){ errEl.textContent="Le mot de passe doit faire au moins 6 caractères."; errEl.style.display='block'; return; }
+  const vErr = Validator.check([
+    { val: name, field: 'Nom complet', checks: ['required', {minLength: 2}, {maxLength: 100}] },
+    { val: email, field: 'Email', checks: ['required', 'email'] },
+    { val: pwd, field: 'Mot de passe', checks: ['required', {minLength: 6}] },
+    { val: role, field: 'Rôle', checks: ['required'] }
+  ]);
+  if(vErr){ errEl.textContent = vErr; errEl.style.display='block'; return; }
 
   try {
     const cred = await fauth.createUserWithEmailAndPassword(email, pwd);
@@ -2307,6 +2461,7 @@ async function registerUser(){
       'auth/invalid-email':'Email invalide.',
       'auth/weak-password':'Mot de passe trop faible (min 6 caractères).'
     };
+    Logger.error('Auth', 'Échec inscription', { code: e.code, email });
     errEl.textContent = msgs[e.code] || 'Erreur lors de la création du compte.';
     errEl.style.display = 'block';
   }
@@ -2314,7 +2469,13 @@ async function registerUser(){
 
 async function logoutUser(){
   if(!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
-  await fauth.signOut();
+  try {
+    await fauth.signOut();
+    Logger.info('Auth', 'Déconnexion réussie');
+  } catch(e){
+    Logger.error('Auth', 'Erreur déconnexion', e?.message);
+    toast('⚠️ Erreur lors de la déconnexion');
+  }
 }
 
 async function resetPassword(){
@@ -2323,9 +2484,15 @@ async function resetPassword(){
   if(!email){ errEl.textContent="Entrez votre email d'abord."; errEl.style.display='block'; return; }
   try {
     await fauth.sendPasswordResetEmail(email);
+    Logger.info('Auth', 'Email de réinitialisation envoyé', { email });
     errEl.style.color='#16a34a'; errEl.textContent='Email de réinitialisation envoyé !'; errEl.style.display='block';
   } catch(e){
-    errEl.style.color='#dc2626'; errEl.textContent='Erreur : email introuvable.'; errEl.style.display='block';
+    Logger.warn('Auth', 'Réinitialisation mot de passe échouée', { code: e?.code, email });
+    const msgs = {
+      'auth/user-not-found': 'Aucun compte avec cet email.',
+      'auth/invalid-email': 'Adresse email invalide.'
+    };
+    errEl.style.color='#dc2626'; errEl.textContent = msgs[e?.code] || 'Erreur : impossible d\'envoyer l\'email.'; errEl.style.display='block';
   }
 }
 
@@ -2378,7 +2545,10 @@ async function detectCodeType(){
     if(!snapA.empty){ updateRoleOptions('admin'); return; }
     // Code inconnu
     updateRoleOptions('unknown');
-  } catch(e){ updateRoleOptions('all'); }
+  } catch(e){
+    Logger.warn('Auth', 'detectCodeType échoué', e?.message);
+    updateRoleOptions('all');
+  }
 }
 
 function updateRoleOptions(type){
@@ -2629,7 +2799,7 @@ async function loadChantiers(){
       S.chantiers = all;
       renderChantiers(S.chantiers);
       return;
-    }catch(e){ console.error('loadChantiers Firebase:',e); }
+    }catch(e){ Logger.error('Chantiers', 'Chargement Firebase échoué, fallback local', e?.message); }
   }
   // Fallback local IndexedDB
   S.chantiers=await db.getAll('chantiers');
@@ -2726,10 +2896,10 @@ function renderChantiers(list){
          ondragend="chantierDragEnd()"
          onclick="openChantier('${c.id}')">
       <div class="card-body">
-        <div class="card-title">🏗️ ${c.name}</div>
+        <div class="card-title">🏗️ ${Validator.sanitize(c.name)}</div>
         <div class="card-meta">
-          ${c.adresse?`<span>📍 ${c.adresse}</span>`:''}
-          <span>👤 ${c.client||'—'}</span>
+          ${c.adresse?`<span>📍 ${Validator.sanitize(c.adresse)}</span>`:''}
+          <span>👤 ${Validator.sanitize(c.client||'—')}</span>
           ${c.createdAt?`<span>📅 ${c.createdAt}</span>`:''}
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 2px">${collabsBadge}${sharedBadge}</div>
@@ -2835,7 +3005,7 @@ async function openChantier(id){
       const teamId = S.currentChantier._teamId || currentUserProfile?.teamId;
       const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(id).get();
       if(snap.exists){ rapport={id,...snap.data()}; await db.put('rapports',rapport); }
-    }catch(e){ console.warn('openChantier rapport Firebase:',e); }
+    }catch(e){ Logger.warn('Chantiers', `openChantier: rapport Firebase introuvable pour ${id}`, e?.message); }
   }
   if(!rapport){
     rapport={id,chantierId:id,
@@ -2876,7 +3046,10 @@ async function openChantier(id){
 
 async function createChantier(){
   const name=document.getElementById('nc-name').value.trim();
-  if(!name){toast('⚠️ Le nom est obligatoire');return}
+  const vErr = Validator.check([
+    { val: name, field: 'Nom du chantier', checks: ['required', {minLength: 2}, {maxLength: 200}] }
+  ]);
+  if(vErr){toast('⚠️ ' + vErr);return}
   const c={id:uid(),name,address:document.getElementById('nc-addr').value.trim(),
     client:document.getElementById('nc-client').value.trim(),
     reference:document.getElementById('nc-ref').value.trim()||'2026-'+Math.floor(Math.random()*900+100),
@@ -3337,8 +3510,13 @@ function choosePhotoGallery(){
 
 async function handleRapportGallery(input){
   if(!input.files[0]) return;
-  const compressed = await compressImage(input.files[0]);
-  await savePhoto(compressed);
+  try {
+    const compressed = await compressImage(input.files[0]);
+    await savePhoto(compressed);
+  } catch(e){
+    Logger.error('Photos', 'Erreur ajout photo galerie', e?.message);
+    toast('❌ Erreur lors de l\'ajout de la photo');
+  }
   input.value='';
 }
 
@@ -3346,36 +3524,41 @@ async function handlePhotoSrcInput(input){
   if(!input.files[0]) return;
   const ctx = photoSourceCtx;
   const maxW = (ctx==='plan') ? 1200 : 900;
-  const compressed = await compressImage(input.files[0], maxW);
-  input.value = '';
+  try {
+    const compressed = await compressImage(input.files[0], maxW);
+    input.value = '';
 
-  if(ctx === 'plan'){
-    S.currentRapport.planSituation = compressed;
-    const wrap = document.getElementById('plan-situation-img-wrap');
-    wrap.innerHTML = '<img src="'+compressed+'" style="width:100%;border-radius:8px;max-height:200px;object-fit:contain">';
-    wrap.style.display = 'block';
-    rapportChanged();
-    toast('📍 Plan de situation ajouté');
-  } else if(ctx === 'netModal'){
-    netModalPhotos.push(compressed);
-    renderNetModalPhotos();
-  } else if(ctx === 'conclusion'){
-    if(!S.currentRapport.conclusionPhotos) S.currentRapport.conclusionPhotos=[];
-    S.currentRapport.conclusionPhotos.push(compressed);
-    rapportChanged();
-    renderConclusionPhotos();
-    toast('📷 Photo de conclusion ajoutée');
-  } else if(ctx && ctx.startsWith('net:')){
-    const netId = ctx.substring(4);
-    const n = S.currentRapport.networks.find(x => x.id === netId);
-    if(n){
-      if(!n.photos){ n.photos = n.photo ? [n.photo] : []; delete n.photo; }
-      n.photos.push(compressed);
-      rapportChanged(); renderNetworks();
-      toast('📷 Photo ajoutée — 📍 GPS en cours…');
-      // Capture GPS automatique associée à ce réseau
-      captureGPSForNetwork(n.nature);
+    if(ctx === 'plan'){
+      S.currentRapport.planSituation = compressed;
+      const wrap = document.getElementById('plan-situation-img-wrap');
+      wrap.innerHTML = '<img src="'+compressed+'" style="width:100%;border-radius:8px;max-height:200px;object-fit:contain">';
+      wrap.style.display = 'block';
+      rapportChanged();
+      toast('📍 Plan de situation ajouté');
+    } else if(ctx === 'netModal'){
+      netModalPhotos.push(compressed);
+      renderNetModalPhotos();
+    } else if(ctx === 'conclusion'){
+      if(!S.currentRapport.conclusionPhotos) S.currentRapport.conclusionPhotos=[];
+      S.currentRapport.conclusionPhotos.push(compressed);
+      rapportChanged();
+      renderConclusionPhotos();
+      toast('📷 Photo de conclusion ajoutée');
+    } else if(ctx && ctx.startsWith('net:')){
+      const netId = ctx.substring(4);
+      const n = S.currentRapport.networks.find(x => x.id === netId);
+      if(n){
+        if(!n.photos){ n.photos = n.photo ? [n.photo] : []; delete n.photo; }
+        n.photos.push(compressed);
+        rapportChanged(); renderNetworks();
+        toast('📷 Photo ajoutée — 📍 GPS en cours…');
+        captureGPSForNetwork(n.nature);
+      }
     }
+  } catch(e){
+    Logger.error('Photos', `Erreur traitement photo (ctx: ${ctx})`, e?.message);
+    toast('❌ Erreur lors du traitement de la photo');
+    input.value = '';
   }
 }
 
@@ -3505,9 +3688,14 @@ function pickNetModalPhoto(){
 
 async function handleNetModalPhoto(input){
   if(!input.files[0]) return;
-  const compressed=await compressImage(input.files[0],900);
-  netModalPhotos.push(compressed);
-  renderNetModalPhotos();
+  try {
+    const compressed=await compressImage(input.files[0],900);
+    netModalPhotos.push(compressed);
+    renderNetModalPhotos();
+  } catch(e){
+    Logger.error('Photos', 'Erreur compression photo réseau modal', e?.message);
+    toast('❌ Erreur traitement photo');
+  }
   input.value='';
 }
 
@@ -3565,7 +3753,10 @@ async function addNetwork(){
   const nature = sel.value === '__autre__'
     ? document.getElementById('net-nature-custom').value.trim()
     : sel.value;
-  if(!nature){toast('⚠️ Nom du réseau requis');return}
+  const vErrNet = Validator.check([
+    { val: nature, field: 'Nom du réseau', checks: ['required', {maxLength: 100}] }
+  ]);
+  if(vErrNet){toast('⚠️ ' + vErrNet);return}
   if(!S.currentRapport.networks) S.currentRapport.networks=[];
   const net={id:uid(),nature,
     photos:[...netModalPhotos],
@@ -3618,12 +3809,17 @@ async function shootPhoto(){
   if(!camStream||video.style.display==='none'){
     openGallery(); return;
   }
-  const canvas=document.getElementById('cam-canvas');
-  canvas.width=video.videoWidth||640;
-  canvas.height=video.videoHeight||480;
-  canvas.getContext('2d').drawImage(video,0,0);
-  const dataUrl=canvas.toDataURL('image/jpeg',0.75);
-  await savePhoto(dataUrl);
+  try {
+    const canvas=document.getElementById('cam-canvas');
+    canvas.width=video.videoWidth||640;
+    canvas.height=video.videoHeight||480;
+    canvas.getContext('2d').drawImage(video,0,0);
+    const dataUrl=canvas.toDataURL('image/jpeg',0.75);
+    await savePhoto(dataUrl);
+  } catch(e){
+    Logger.error('Camera', 'Erreur capture photo', e?.message);
+    toast('❌ Erreur lors de la capture');
+  }
 }
 
 function openGallery(){
@@ -3632,23 +3828,36 @@ function openGallery(){
 
 async function handleFileInput(input){
   if(!input.files[0]) return;
-  const file=input.files[0];
-  const compressed=await compressImage(file);
-  await savePhoto(compressed);
+  try {
+    const file=input.files[0];
+    const compressed=await compressImage(file);
+    await savePhoto(compressed);
+  } catch(e){
+    Logger.error('Photos', 'Erreur import photo galerie', e?.message);
+    toast('❌ Erreur lors de l\'import de la photo');
+  }
   input.value='';
 }
 
 async function compressImage(file,maxW=1024){
-  return new Promise(res=>{
+  if(!file || !file.type?.startsWith('image/')){
+    Logger.warn('Photos', 'compressImage: fichier invalide', { type: file?.type, name: file?.name });
+    throw new Error('Le fichier sélectionné n\'est pas une image valide');
+  }
+  return new Promise((res,rej)=>{
     const reader=new FileReader();
+    reader.onerror=()=>{ rej(new Error('Erreur lecture du fichier image')); };
     reader.onload=e=>{
       const img=new Image();
+      img.onerror=()=>{ rej(new Error('Impossible de décoder l\'image')); };
       img.onload=()=>{
-        const scale=Math.min(maxW/img.width,1);
-        const canvas=document.createElement('canvas');
-        canvas.width=img.width*scale; canvas.height=img.height*scale;
-        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-        res(canvas.toDataURL('image/jpeg',0.75));
+        try {
+          const scale=Math.min(maxW/img.width,1);
+          const canvas=document.createElement('canvas');
+          canvas.width=img.width*scale; canvas.height=img.height*scale;
+          canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+          res(canvas.toDataURL('image/jpeg',0.75));
+        } catch(e){ rej(e); }
       };
       img.src=e.target.result;
     };
@@ -3982,8 +4191,11 @@ function openAddLinkModal(category){
 async function saveSharedLink(){
   const name = document.getElementById('link-doc-name').value.trim();
   const url  = document.getElementById('link-doc-url').value.trim();
-  if(!name){ toast('⚠️ Donnez un nom au document'); return; }
-  if(!url)  { toast('⚠️ Collez un lien URL');        return; }
+  const vErr = Validator.check([
+    { val: name, field: 'Nom du document', checks: ['required', {maxLength: 200}] },
+    { val: url, field: 'URL', checks: ['required', 'url'] }
+  ]);
+  if(vErr){ toast('⚠️ ' + vErr); return; }
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId){
     toast('⚠️ Connexion Firebase requise'); return;
   }
@@ -4012,7 +4224,7 @@ async function loadSharedDocs(){
     const snap = await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get();
     S_sharedDocs = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderSharedDocs();
-  } catch(e){ console.warn('loadSharedDocs:',e); }
+  } catch(e){ Logger.warn('Documents', 'Chargement docs partagés échoué', e?.message); }
 }
 
 function renderSharedDocs(){
@@ -4132,7 +4344,7 @@ function renderConsignes(){
     el.innerHTML=items.map((c,i)=>`
       <div class="consigne-item">
         <span class="consigne-num">${i+1}</span>
-        <span class="consigne-text">${c.text}</span>
+        <span class="consigne-text">${Validator.sanitize(c.text)}</span>
         <button class="del-btn" onclick="deleteConsigne('${c.id}')" style="margin-left:8px;flex-shrink:0">✕</button>
       </div>
     `).join('');
@@ -4142,7 +4354,11 @@ function renderConsignes(){
 async function addConsigne(){
   const text=document.getElementById('con-text').value.trim();
   const cat=document.getElementById('con-cat').value;
-  if(!text){toast('⚠️ Texte de la consigne requis');return}
+  const vErr = Validator.check([
+    { val: text, field: 'Texte de la consigne', checks: ['required', {maxLength: 2000}] },
+    { val: cat, field: 'Catégorie', checks: ['required'] }
+  ]);
+  if(vErr){toast('⚠️ ' + vErr);return}
   const c={id:uid(),cat,text};
   await db.put('consignes',c);
   S.consignes.push(c);
@@ -4506,12 +4722,12 @@ function doWordDocx(){
         setTimeout(() => URL.revokeObjectURL(url), 5000);
         toast('✅ Word (.docx) téléchargé !');
       }).catch(e => {
-        console.error('Packer.toBlob error:', e);
+        Logger.error('Export', 'Packer.toBlob error', e?.message);
         toast('⚠️ Erreur génération Word : ' + (e.message||e));
       });
 
     } catch(e){
-      console.error('doWordDocx error:', e);
+      Logger.error('Export', 'doWordDocx error', e?.message);
       toast('⚠️ Erreur export Word : ' + (e.message||e));
     }
   });
@@ -4560,7 +4776,7 @@ function doWord(){
       doc.setData(data);
       try { doc.render(); }
       catch(e){
-        console.error('Docxtemplater render error:', e);
+        Logger.error('Export', 'Docxtemplater render error', e?.message);
         toast('⚠️ Erreur template : ' + (e.message||e));
         return;
       }
@@ -4577,7 +4793,7 @@ function doWord(){
       setTimeout(()=>URL.revokeObjectURL(url), 5000);
       toast('✅ Word (.docx) téléchargé !');
     } catch(e){
-      console.error('doWord error:', e);
+      Logger.error('Export', 'Erreur export Word (legacy)', e?.message);
       toast('⚠️ Erreur export : ' + (e.message||e));
     }
   }
@@ -4624,6 +4840,8 @@ async function initNotifications(){
         }
       });
       if(document.getElementById('notif-panel')?.style.display !== 'none') renderNotifList();
+    }, err => {
+      Logger.error('Notifications', 'Erreur listener temps réel', err?.message);
     });
 }
 
@@ -4640,11 +4858,14 @@ async function renderNotifList(){
       const time = d.createdAt ? new Date(d.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
       return `<div class="notif-item ${d.read?'read':'unread'}" onclick="openNotifChantier('${doc.id}','${d.chantierId||''}')">
         <div class="notif-title">${d.type==='chantier_invite'?'📋 Invitation chantier':'🔔 Notification'}</div>
-        <div class="notif-body">${d.message||''}</div>
+        <div class="notif-body">${Validator.sanitize(d.message||'')}</div>
         <div class="notif-time">${time}</div>
       </div>`;
     }).join('');
-  } catch(e){ listEl.innerHTML='<div style="color:#ef4444;font-size:12px;padding:10px">Erreur chargement</div>'; }
+  } catch(e){
+    Logger.error('Notifications', 'Erreur chargement liste notifications', e?.message);
+    listEl.innerHTML='<div style="color:#ef4444;font-size:12px;padding:10px">Erreur chargement des notifications</div>';
+  }
 }
 
 function toggleNotifPanel(){
@@ -4657,24 +4878,33 @@ function toggleNotifPanel(){
 
 async function markAllNotifsRead(){
   if(!fdb || !currentUserProfile) return;
-  const snap = await fdb.collection('notifications')
-    .where('toUid','==',currentUserProfile.uid).where('read','==',false).get();
-  const batch = fdb.batch();
-  snap.docs.forEach(doc => batch.update(doc.ref,{read:true}));
-  await batch.commit();
-  const badge = document.getElementById('notif-badge');
-  if(badge) badge.style.display = 'none';
-  renderNotifList();
+  try {
+    const snap = await fdb.collection('notifications')
+      .where('toUid','==',currentUserProfile.uid).where('read','==',false).get();
+    const batch = fdb.batch();
+    snap.docs.forEach(doc => batch.update(doc.ref,{read:true}));
+    await batch.commit();
+    const badge = document.getElementById('notif-badge');
+    if(badge) badge.style.display = 'none';
+    renderNotifList();
+  } catch(e){
+    Logger.error('Notifications', 'Erreur marquage notifications lues', e?.message);
+    toast('⚠️ Erreur mise à jour des notifications');
+  }
 }
 
 async function openNotifChantier(notifId, chantierId){
-  if(notifId && fdb) await fdb.collection('notifications').doc(notifId).update({read:true});
-  if(chantierId){
-    const ch = S.chantiers.find(c=>c.id===chantierId);
-    if(ch) openChantier(chantierId);
-    else { toast('🔄 Synchronisation...'); await loadChantiersFromFirebase(); }
+  try {
+    if(notifId && fdb) await fdb.collection('notifications').doc(notifId).update({read:true});
+    if(chantierId){
+      const ch = S.chantiers.find(c=>c.id===chantierId);
+      if(ch) openChantier(chantierId);
+      else { toast('🔄 Synchronisation...'); await loadChantiersFromFirebase(); }
+    }
+    document.getElementById('notif-panel').style.display = 'none';
+  } catch(e){
+    Logger.error('Notifications', 'Erreur ouverture notification', e?.message);
   }
-  document.getElementById('notif-panel').style.display = 'none';
 }
 
 document.addEventListener('click', e => {
@@ -4689,14 +4919,14 @@ async function syncChantierToFirebase(c){
   const teamId = c._teamId || currentUserProfile.teamId;
   const data = {...c}; delete data._teamId;
   try { await fdb.collection('teams').doc(teamId).collection('chantiers').doc(c.id).set(data,{merge:true}); }
-  catch(e){ console.warn('syncChantierToFirebase:',e); }
+  catch(e){ Logger.warn('Sync', `syncChantier échoué pour ${c.id}`, e?.message); }
 }
 
 async function syncRapportToFirebase(r){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
   try { await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(r,{merge:true}); }
-  catch(e){ console.warn('syncRapportToFirebase:',e); }
+  catch(e){ Logger.warn('Sync', `syncRapport échoué pour ${r.id}`, e?.message); }
 }
 
 // ── Invitation collaborateurs sur un chantier ──────────────────
@@ -4783,7 +5013,7 @@ async function addCollaborateurChantier(chantierId, targetUid){
         read:       false,
         createdAt:  Date.now()
       });
-    } catch(e){ console.warn('Notif write error:', e); }
+    } catch(e){ Logger.warn('Notifications', 'Erreur écriture notification', e?.message); }
   }
 
   toast('✅ Collaborateur ajouté — il recevra une notification');
@@ -4925,7 +5155,7 @@ async function loadAdminData(){
     _adminData.users = usersSnap.docs.map(d=>({uid:d.id,...d.data()}));
     _adminData.loaded = true;
   } catch(e){
-    console.error('loadAdminData error:', e.message);
+    Logger.error('Admin', 'loadAdminData error', e?.message);
     _adminData.loaded = true; // avoid infinite "Chargement…"
     toast('⚠️ Erreur de chargement admin: ' + e.message);
   }
@@ -5023,38 +5253,46 @@ function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 
 // ── Actions de modification des listes ──
 async function dynListUpdateSimpleItem(key, idx, val){
-  const list = [...(DynLists.get(key) || [])];
-  list[idx] = val;
-  await DynLists.save(key, list);
-  DynLists.populateSelects();
-  toast('✅ Liste mise à jour');
+  try {
+    const list = [...(DynLists.get(key) || [])];
+    list[idx] = val;
+    await DynLists.save(key, list);
+    DynLists.populateSelects();
+    toast('✅ Liste mise à jour');
+  } catch(e){ Logger.error('Admin', `Erreur mise à jour ${key}[${idx}]`, e?.message); toast('❌ Erreur mise à jour'); }
 }
 
 async function dynListRemoveSimpleItem(key, idx){
-  const list = [...(DynLists.get(key) || [])];
-  list.splice(idx, 1);
-  await DynLists.save(key, list);
-  DynLists.populateSelects();
-  renderAdminParams();
-  toast('🗑️ Élément supprimé');
+  try {
+    const list = [...(DynLists.get(key) || [])];
+    list.splice(idx, 1);
+    await DynLists.save(key, list);
+    DynLists.populateSelects();
+    renderAdminParams();
+    toast('🗑️ Élément supprimé');
+  } catch(e){ Logger.error('Admin', `Erreur suppression ${key}[${idx}]`, e?.message); toast('❌ Erreur suppression'); }
 }
 
 async function dynListAddSimpleItem(key){
-  const list = [...(DynLists.get(key) || [])];
   const val = prompt('Nouvel élément :');
   if(!val || !val.trim()) return;
-  list.push(val.trim());
-  await DynLists.save(key, list);
-  DynLists.populateSelects();
-  renderAdminParams();
-  toast('✅ Élément ajouté');
+  try {
+    const list = [...(DynLists.get(key) || [])];
+    list.push(val.trim());
+    await DynLists.save(key, list);
+    DynLists.populateSelects();
+    renderAdminParams();
+    toast('✅ Élément ajouté');
+  } catch(e){ Logger.error('Admin', `Erreur ajout dans ${key}`, e?.message); toast('❌ Erreur ajout'); }
 }
 
 async function dynListUpdateObjectItem(key, idx, field, val){
-  const list = JSON.parse(JSON.stringify(DynLists.get(key) || []));
-  if(list[idx]) list[idx][field] = val;
-  await DynLists.save(key, list);
-  toast('✅ Liste mise à jour');
+  try {
+    const list = JSON.parse(JSON.stringify(DynLists.get(key) || []));
+    if(list[idx]) list[idx][field] = val;
+    await DynLists.save(key, list);
+    toast('✅ Liste mise à jour');
+  } catch(e){ Logger.error('Admin', `Erreur mise à jour ${key}[${idx}].${field}`, e?.message); toast('❌ Erreur mise à jour'); }
 }
 
 async function dynListAddObjectItem(key, fieldsStr){
@@ -5065,52 +5303,64 @@ async function dynListAddObjectItem(key, fieldsStr){
     if(val === null) return;
     obj[f] = val.trim();
   }
-  const list = JSON.parse(JSON.stringify(DynLists.get(key) || []));
-  list.push(obj);
-  await DynLists.save(key, list);
-  renderAdminParams();
-  toast('✅ Élément ajouté');
+  try {
+    const list = JSON.parse(JSON.stringify(DynLists.get(key) || []));
+    list.push(obj);
+    await DynLists.save(key, list);
+    renderAdminParams();
+    toast('✅ Élément ajouté');
+  } catch(e){ Logger.error('Admin', `Erreur ajout objet dans ${key}`, e?.message); toast('❌ Erreur ajout'); }
 }
 
 async function dynListUpdateNetMethod(name, field, val){
-  const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
-  if(methods[name]) methods[name][field] = val;
-  await DynLists.save('net_methods', methods);
-  DynLists.populateSelects();
-  toast('✅ Réseau mis à jour');
+  try {
+    const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
+    if(methods[name]) methods[name][field] = val;
+    await DynLists.save('net_methods', methods);
+    DynLists.populateSelects();
+    toast('✅ Réseau mis à jour');
+  } catch(e){ Logger.error('Admin', `Erreur mise à jour réseau ${name}`, e?.message); toast('❌ Erreur mise à jour réseau'); }
 }
 
 async function dynListRemoveNetMethod(name){
   if(!confirm('Supprimer le réseau "' + name + '" ?')) return;
-  const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
-  delete methods[name];
-  await DynLists.save('net_methods', methods);
-  DynLists.populateSelects();
-  renderAdminParams();
-  toast('🗑️ Réseau supprimé');
+  try {
+    const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
+    delete methods[name];
+    await DynLists.save('net_methods', methods);
+    DynLists.populateSelects();
+    renderAdminParams();
+    toast('🗑️ Réseau supprimé');
+  } catch(e){ Logger.error('Admin', `Erreur suppression réseau ${name}`, e?.message); toast('❌ Erreur suppression'); }
 }
 
 async function dynListAddNetMethod(){
   const inp = document.getElementById('new-net-name');
   const name = inp ? inp.value.trim() : '';
   if(!name){ toast('Saisissez un nom de réseau'); return; }
-  const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
-  if(methods[name]){ toast('Ce réseau existe déjà'); return; }
-  methods[name] = { methode:'', remarques:'' };
-  await DynLists.save('net_methods', methods);
-  DynLists.populateSelects();
-  renderAdminParams();
-  toast('✅ Réseau "' + name + '" ajouté');
+  try {
+    const methods = JSON.parse(JSON.stringify(DynLists.netMethods));
+    if(methods[name]){ toast('Ce réseau existe déjà'); return; }
+    methods[name] = { methode:'', remarques:'' };
+    await DynLists.save('net_methods', methods);
+    DynLists.populateSelects();
+    renderAdminParams();
+    toast('✅ Réseau "' + name + '" ajouté');
+  } catch(e){ Logger.error('Admin', 'Erreur ajout réseau', e?.message); toast('❌ Erreur ajout réseau'); }
 }
 
 async function dynListSaveTextarea(key, val){
-  await DynLists.save(key, val);
-  toast('✅ Texte sauvegardé');
+  try {
+    await DynLists.save(key, val);
+    toast('✅ Texte sauvegardé');
+  } catch(e){ Logger.error('Admin', `Erreur sauvegarde texte ${key}`, e?.message); toast('❌ Erreur sauvegarde'); }
 }
 
 async function dynListSeedFirestore(){
-  await DynLists.seedDefaults();
-  renderAdminParams();
+  try {
+    await DynLists.seedDefaults();
+    renderAdminParams();
+  } catch(e){ Logger.error('Admin', 'Erreur seed Firestore', e?.message); toast('❌ Erreur initialisation'); }
 }
 
 function renderAdminParams(){
@@ -5361,7 +5611,7 @@ async function adminChangeRole(uid){
     toast(`✅ Rôle de ${user.displayName||user.email} → ${newRole}`);
     if(_adminCurrentTab==='agencies') renderAdminAgencies();
     else renderAdminUsers();
-  } catch(e){ toast('⚠️ Erreur mise à jour rôle'); }
+  } catch(e){ Logger.error('Admin', `Erreur changement rôle pour ${uid}`, e?.message); toast('⚠️ Erreur mise à jour rôle'); }
 }
 
 async function adminMoveUser(uid){
@@ -5381,7 +5631,7 @@ async function adminMoveUser(uid){
     toast(`✅ ${user.displayName||user.email} déplacé vers ${target.name}`);
     if(_adminCurrentTab==='agencies') renderAdminAgencies();
     else renderAdminUsers();
-  } catch(e){ toast('⚠️ Erreur déplacement'); }
+  } catch(e){ Logger.error('Admin', `Erreur déplacement utilisateur ${uid}`, e?.message); toast('⚠️ Erreur déplacement'); }
 }
 
 async function adminDeleteUser(uid, displayName){
@@ -5392,7 +5642,7 @@ async function adminDeleteUser(uid, displayName){
     toast(`✅ Utilisateur "${displayName}" supprimé`);
     if(_adminCurrentTab==='agencies') renderAdminAgencies();
     else renderAdminUsers();
-  } catch(e){ toast('⚠️ Erreur suppression'); }
+  } catch(e){ Logger.error('Admin', `Erreur suppression utilisateur ${uid}`, e?.message); toast('⚠️ Erreur suppression'); }
 }
 
 // ════════════════════════════════════════════
@@ -5486,7 +5736,9 @@ async function saveProfileAgence(){
       await fdb.collection('users').doc(currentUserProfile.uid).update({teamName: newName});
       // Mettre à jour aussi le document de l'équipe si elle existe
       if(currentUserProfile.teamId){
-        await fdb.collection('teams').doc(currentUserProfile.teamId).update({name: newName}).catch(()=>{});
+        await fdb.collection('teams').doc(currentUserProfile.teamId).update({name: newName}).catch(e => {
+          Logger.warn('Profil', 'Mise à jour nom équipe échouée', e?.message);
+        });
       }
     }
     currentUserProfile.teamName = newName;
@@ -5498,15 +5750,22 @@ async function saveProfileAgence(){
 
 async function clearAllData(){
   if(!confirm('Effacer TOUTES les données ? Cette action est irréversible.')) return;
-  ['chantiers','rapports','photos','gps_points'].forEach(async s=>{
-    const all=await db.getAll(s);
-    for(const item of all) await db.del(s,item.id);
-  });
-  S.chantiers=[];S.photos=[];S.gpsPoints=[];S.currentChantier=null;S.currentRapport=null;
-  renderChantiers([]);
-  document.getElementById('nav-rapport').style.display='none';
-  showScreen('screen-home');
-  toast('🗑️ Données effacées');
+  try {
+    const stores = ['chantiers','rapports','photos','gps_points'];
+    for(const s of stores){
+      const all = await db.getAll(s);
+      for(const item of all) await db.del(s, item.id);
+    }
+    S.chantiers=[];S.photos=[];S.gpsPoints=[];S.currentChantier=null;S.currentRapport=null;
+    renderChantiers([]);
+    document.getElementById('nav-rapport').style.display='none';
+    showScreen('screen-home');
+    Logger.info('Data', 'Toutes les données locales effacées');
+    toast('🗑️ Données effacées');
+  } catch(e){
+    Logger.error('Data', 'Erreur suppression des données', e?.message);
+    toast('❌ Erreur lors de la suppression des données');
+  }
 }
 
 // ════════════════════════════════════════════
@@ -5680,7 +5939,8 @@ async function init(){
   });
 }
 
-init().catch(e=>console.error('Init error:',e));
+init().catch(e=>Logger.error('Init', 'Erreur initialisation application', e?.message));
+
 </script>
 </body>
 </html>
