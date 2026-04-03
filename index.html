@@ -584,10 +584,10 @@ body > *{position:relative;z-index:1}
 #file-input{display:none}
 
 /* ── RESPONSIVE MOBILE ────────────────── */
-@media screen and (max-width: 600px) {
-  body{max-width:100%}
+@media screen and (max-width: 900px) {
+  body{max-width:100%;width:100%}
   #main-wrapper{
-    flex-direction:column;
+    flex-direction:column !important;
     overflow:hidden;
   }
   #app{
@@ -597,8 +597,8 @@ body > *{position:relative;z-index:1}
     order:1;
   }
   #bottom-nav{
-    flex-direction:row;
-    width:100%;
+    flex-direction:row !important;
+    width:100% !important;
     flex-shrink:0;
     order:2;
     border-right:none;
@@ -614,7 +614,7 @@ body > *{position:relative;z-index:1}
     background:linear-gradient(90deg,transparent,rgba(0,229,255,.4),rgba(124,58,237,.4),transparent);
   }
   .nav-btn{
-    width:auto;flex:1;min-width:48px;
+    width:auto !important;flex:1 !important;min-width:48px;
     padding:6px 2px;
     font-size:7.5px;gap:2px;
     border-radius:8px;
