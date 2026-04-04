@@ -585,17 +585,22 @@ body > *{position:relative;z-index:1}
 
 /* ── RESPONSIVE MOBILE ────────────────── */
 @media screen and (max-width: 900px) {
-  body{max-width:100%;width:100%}
+  body{max-width:100%;width:100%;overflow:hidden;height:100%}
   #main-wrapper{
     flex-direction:column !important;
-    overflow:visible !important;
-    min-height:100vh;
+    overflow:hidden !important;
+    height:100vh;
+    height:100dvh;
   }
   #app{
     flex:1;
     min-height:0;
+    height:calc(100vh - 56px);
+    height:calc(100dvh - 56px);
     overflow-y:auto;
-    padding-bottom:64px;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:80px;
   }
   #bottom-nav{
     position:fixed !important;
