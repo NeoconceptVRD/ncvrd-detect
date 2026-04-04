@@ -1185,7 +1185,12 @@ body > *{position:relative;z-index:1}
         <span>✍️ 6. Signature</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Signez dans le cadre ci-dessous. La signature sera intégrée au rapport PDF.</div>
+        <!-- Rédacteur -->
+        <div style="margin-bottom:14px">
+          <label class="form-label">Rédacteur</label>
+          <div style="padding:10px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;color:var(--text)" id="sig-redacteur-display">—</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Signez dans le cadre ci-dessous. La signature sera intégrée au rapport Word.</div>
         <canvas id="sig-canvas" style="border:1.5px solid var(--border);border-radius:10px;background:#fff;width:100%;display:block;height:140px;touch-action:none"></canvas>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button onclick="clearSignature()" style="flex:1;background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">🗑️ Effacer</button>
@@ -3684,6 +3689,12 @@ let sigDrawing = false;
 let sigCtx = null;
 
 function initSignaturePad(){
+  // Afficher le nom du rédacteur
+  const redEl = document.getElementById('sig-redacteur-display');
+  if(redEl && currentUserProfile){
+    redEl.textContent = currentUserProfile.displayName || currentUserProfile.email || '—';
+  }
+
   const old = document.getElementById('sig-canvas');
   if(!old) return;
   // Si l'accordéon est encore fermé, la largeur est 0 — on reporte
