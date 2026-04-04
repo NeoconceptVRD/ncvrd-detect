@@ -4781,12 +4781,25 @@ async function doWordDocx(){
     for(const n of activeNets){
       const np=n.photos&&n.photos.length?n.photos:(n.photo?[n.photo]:[]);
       if(!np.length) continue;
-      children.push(subTitle(n.nature));
+      children.push(subTitle(n.nature||'—'));
       for(let i=0;i<np.length;i+=1){
-        const rows=await photoRow(np[i],'');
+        const rows=await photoRow(np[i],'Photo '+(i+1));
         rows.forEach(el=>children.push(el));
       }
-      children.push(sp(80));
+      // Méthodologie + Classe sous les photos
+      children.push(new Paragraph({
+        spacing:{before:40,after:40},
+        alignment:AlignmentType.CENTER,
+        children:[
+          mkRun('Méthode de détection : ',{bold:true,size:20,color:NAVY}),
+          mkRun(n.methode||'—',{size:20,color:DGRAY}),
+          mkRun('     |     ',{size:20,color:MGRAY}),
+          mkRun('Classe de précision : ',{bold:true,size:20,color:NAVY}),
+          mkRun(n.classe||'—',{size:20,color:DGRAY}),
+        ]
+      }));
+      if(n.remarques) children.push(para('Remarques : '+n.remarques,{size:18,color:'6B7280',italics:true,after:40,align:AlignmentType.CENTER}));
+      children.push(sp(120));
     }
     if(!rapPhotos.length&&!activeNets.some(n=>(n.photos&&n.photos.length)||n.photo))
       children.push(para('[Photos du chantier à insérer]',{italics:true,color:'9CA3AF',size:22}));
