@@ -1151,6 +1151,14 @@ body > *{position:relative;z-index:1}
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">Cochez les réseaux détectés et complétez les méthodes et remarques.</div>
         <div id="networks-list"></div>
         <button class="btn-big btn-card" style="margin:6px 0 0" onclick="openModal('m-add-network')">➕ Ajouter un réseau</button>
+        <!-- Mention LIMITES -->
+        <label style="display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:12px;background:rgba(232,98,10,.06);border:1px solid rgba(232,98,10,.2);border-radius:10px;cursor:pointer">
+          <input type="checkbox" id="r-limites" onchange="rapportChanged()" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:var(--orange,#E8620A)">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">⚠️ Inclure la mention LIMITES dans le rapport</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5;font-style:italic">« LIMITES : Cette méthode ne permet pas l'identification des réseaux détectés. Seule une analyse des plans de récolement et une ouverture de fouille pourra confirmer leur nature. »</div>
+          </div>
+        </label>
       </div>
     </div>
 
@@ -3207,6 +3215,7 @@ function renderRapportScreen(){
   document.getElementById('r-adresse').value=r.adresse||c.address||'';
   document.getElementById('r-date-debut').value=r.dateDebut||c.dateDebut||today();
   const rdatefin=document.getElementById('r-date-fin'); if(rdatefin) rdatefin.value=r.dateFin||c.dateFin||'';
+  const rlimites=document.getElementById('r-limites'); if(rlimites) rlimites.checked=r.includeLimites||false;
   const rclasse=document.getElementById('r-classe'); if(rclasse) rclasse.value=r.classePresicion||'';
   document.getElementById('r-conclusions').value=r.conclusions||'';
   document.getElementById('r-observations').value=r.observations||'';
@@ -3244,6 +3253,7 @@ function rapportChanged(){
   r.adresse=document.getElementById('r-adresse').value;
   r.dateDebut=document.getElementById('r-date-debut').value;
   const _rdatefin=document.getElementById('r-date-fin'); if(_rdatefin) r.dateFin=_rdatefin.value;
+  const _rlimites=document.getElementById('r-limites'); if(_rlimites) r.includeLimites=_rlimites.checked;
   r.dtDate=document.getElementById('r-dt-date').value;
   r.dtNum=document.getElementById('r-dt-num').value;
   r.respNom=document.getElementById('r-resp-nom').value;
@@ -5006,7 +5016,7 @@ async function doWordDocx(){
     if(!obsLines.length)obsLines.push('Sans objet.');
     children.push(makeObsBox(obsLines));
     children.push(sp(80));
-    children.push(para("LIMITES : Cette méthode ne permet pas l'identification des réseaux détectés. Seule une analyse des plans de récolement et une ouverture de fouille pourra confirmer leur nature.",{size:20,color:'6B7280',italics:true,after:80}));
+    if(r.includeLimites) children.push(para("LIMITES : Cette méthode ne permet pas l'identification des réseaux détectés. Seule une analyse des plans de récolement et une ouverture de fouille pourra confirmer leur nature.",{size:20,color:'6B7280',italics:true,after:80}));
     children.push(sp(200));
 
     // ─── SIGNATURE ───
