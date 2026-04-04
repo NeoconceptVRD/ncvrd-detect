@@ -4754,16 +4754,6 @@ async function doWordDocx(){
     children.push(para('COMPTE RENDU DE DÉTECTION',{align:AlignmentType.CENTER,bold:true,size:44,color:NAVY,before:0,after:60}));
     children.push(para('DES RÉSEAUX ENTERRÉS',{align:AlignmentType.CENTER,bold:true,size:44,color:NAVY,before:0,after:200}));
     children.push(new Paragraph({spacing:{before:0,after:0},alignment:AlignmentType.CENTER,shading:{type:ShadingType.CLEAR,fill:LGRAY},border:{top:brd(MGRAY),left:brd(ORANGE,20),bottom:brd(MGRAY),right:brd(ORANGE,20)},children:[mkRun(((c.name||r.adresse||c.address||'Chantier').toUpperCase()),{size:26,color:NAVY,bold:true})]}));
-    children.push(sp(400));
-    children.push(makeInfoTable([
-      ["Client / Donneur d'ordre",r.client||c.client||'—'],
-      ['Nature des opérations',r.natureOperations||'—'],
-      ['Classe de précision',r.classePresicion||'—'],
-      ["Date d'intervention",r.dateDebut||'—'],
-      ['Numéro DT',r.dtNum||'—'],
-      ['Date de rédaction',dateGen],
-      ['Rédacteur',currentUserProfile?(currentUserProfile.displayName||currentUserProfile.email):'—'],
-    ],[3800,5838]));
     children.push(sp(500));
     children.push(new Paragraph({spacing:{before:0,after:0},shading:{type:ShadingType.CLEAR,fill:ORANGE},children:[mkRun('  ',{size:10})]}));
     children.push(new Paragraph({spacing:{before:0,after:0},alignment:AlignmentType.CENTER,shading:{type:ShadingType.CLEAR,fill:NAVY},children:[mkRun('84/88 Bd de la Mission Marchand — 92400 Courbevoie   |   Tél : 01 46 67 75 58   |   contact@neoconceptvrd.com',{size:18,color:'A8C4E8'})]}));
@@ -4806,7 +4796,7 @@ async function doWordDocx(){
     children.push(sp(100));
     const mats=r.materiels||[];
     children.push(subTitle('Matériels utilisés'));
-    if(mats.length)children.push(makeTable(['TYPE DE MATÉRIEL','MARQUE','N° DE SÉRIE'],mats.map(m=>[m.type,m.marque||'—',m.serie||'—']),[4200,2800,2638]));
+    if(mats.length)children.push(makeTable(['TYPE DE MATÉRIEL'],mats.map(m=>[m.type]),[CW]));
     else children.push(para('Aucun matériel renseigné.',{color:DGRAY,size:22}));
     children.push(sp(120));
     const logs=r.logiciels||[];
@@ -4890,22 +4880,27 @@ async function doWordDocx(){
     children.push(sp(200));
 
     // ─── SIGNATURE ───
-    if(r.signature){
-      children.push(subTitle('Signature du responsable'));
-      children.push(sp(60));
-      const sigImg = parseImg(r.signature);
-      if(sigImg){
-        children.push(new Paragraph({
-          spacing:{before:40,after:40},
-          alignment:AlignmentType.LEFT,
-          children:[new ImageRun({type:sigImg.type,data:sigImg.data,transformation:{width:200,height:80},altText:{title:'Signature',description:'Signature',name:'Signature'}})]
-        }));
-      }
-      const redacteur = currentUserProfile?(currentUserProfile.displayName||currentUserProfile.email):'—';
-      children.push(para(redacteur,{size:20,color:DGRAY,bold:true,after:40}));
-      children.push(para(dateGen,{size:18,color:'9CA3AF',italics:true,after:80}));
-      children.push(sp(200));
+    children.push(subTitle('Signature du responsable'));
+    children.push(sp(40));
+    const sigImg = r.signature ? parseImg(r.signature) : null;
+    if(sigImg){
+      children.push(new Paragraph({
+        spacing:{before:40,after:40},
+        alignment:AlignmentType.LEFT,
+        children:[new ImageRun({type:sigImg.type,data:sigImg.data,transformation:{width:200,height:80},altText:{title:'Signature',description:'Signature',name:'Signature'}})]
+      }));
+    } else {
+      // Ligne pour signature manuscrite si pas encore enregistrée
+      children.push(new Paragraph({
+        spacing:{before:80,after:80},
+        border:{bottom:{style:BorderStyle.SINGLE,size:4,color:MGRAY}},
+        children:[mkRun('',{size:36})]
+      }));
     }
+    const redacteur = currentUserProfile?(currentUserProfile.displayName||currentUserProfile.email):'—';
+    children.push(para(redacteur,{size:20,color:DGRAY,bold:true,after:20}));
+    children.push(para(dateGen,{size:18,color:'9CA3AF',italics:true,after:80}));
+    children.push(sp(200));
 
     // ─── HEADER & FOOTER ───
     const header=new Header({children:[new Paragraph({
