@@ -3181,7 +3181,26 @@ function renderRapportScreen(){
   const rref=document.getElementById('r-reference'); if(rref) rref.value=r.reference||c.name||'';
   const rcli=document.getElementById('r-client'); if(rcli) rcli.value=r.client||c.client||'';
   document.getElementById('r-objet').value=r.objetEtude||'';
-  document.getElementById('r-nature').value=r.natureOperations||'';
+  // Nature des opérations : pré-sélectionner dans le dropdown ou afficher texte libre
+  const _natSel = document.getElementById('r-nature-select');
+  const _natInp = document.getElementById('r-nature');
+  if(_natSel && _natInp){
+    const val = r.natureOperations||'';
+    const optExists = val && Array.from(_natSel.options).some(o=>o.value===val);
+    if(optExists){
+      _natSel.value = val;
+      _natInp.style.display = 'none';
+      _natInp.value = val;
+    } else if(val){
+      _natSel.value = '__autre__';
+      _natInp.style.display = 'block';
+      _natInp.value = val;
+    } else {
+      _natSel.value = '';
+      _natInp.style.display = 'none';
+      _natInp.value = '';
+    }
+  }
   document.getElementById('r-adresse').value=r.adresse||c.address||'';
   document.getElementById('r-date-debut').value=r.dateDebut||c.dateDebut||today();
   document.getElementById('r-date-fin').value=r.dateFin||c.dateFin||'';
@@ -3212,7 +3231,13 @@ function rapportChanged(){
   const r=S.currentRapport; if(!r) return;
   const _rref=document.getElementById('r-reference'); if(_rref) r.reference=_rref.value;
   r.client=document.getElementById('r-client').value;
-  r.natureOperations=document.getElementById('r-nature').value;
+  const _nSel=document.getElementById('r-nature-select');
+  const _nInp=document.getElementById('r-nature');
+  if(_nSel && _nInp){
+    r.natureOperations = (_nSel.value==='__autre__'||_nSel.value==='') ? _nInp.value : _nSel.value;
+  } else {
+    r.natureOperations = _nInp ? _nInp.value : '';
+  }
   r.classePresicion=document.getElementById('r-classe')?.value||'';
   r.adresse=document.getElementById('r-adresse').value;
   r.dateDebut=document.getElementById('r-date-debut').value;
@@ -3230,6 +3255,21 @@ function rapportChanged(){
     syncRapportToFirebase(r);
     document.getElementById('autosave-bar').textContent='✓ Sauvegardé à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(S.isOffline?' · hors ligne':'');
   },800);
+}
+
+function onNatureSelectChange(){
+  const sel = document.getElementById('r-nature-select');
+  const inp = document.getElementById('r-nature');
+  if(!sel || !inp) return;
+  if(sel.value === '__autre__'){
+    inp.style.display = 'block';
+    inp.value = '';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = sel.value;
+  }
+  rapportChanged();
 }
 
 // Operateurs
@@ -4776,7 +4816,6 @@ async function doWordDocx(){
     children.push(makeInfoTable([
       ["Client / Donneur d'ordre",r.client||c.client||'—'],
       ['Nature des opérations',r.natureOperations||'—'],
-      ['Classe de précision',r.classePresicion||'—'],
       ['Adresse du chantier',r.adresse||c.address||'—'],
       ["Date d'intervention",r.dateDebut||'—'],
       ['Date déclaration DT',r.dtDate||'—'],
@@ -4784,7 +4823,31 @@ async function doWordDocx(){
       ['Date de rédaction',dateGen],
       ['Rédacteur',currentUserProfile?(currentUserProfile.displayName||currentUserProfile.email):'—'],
     ],[3800,5838]));
-    children.push(sp(200));
+    children.push(sp(160));
+
+    // ─── Plan de situation ───
+    if(r.planSituation){
+      children.push(subTitle('Plan de situation'));
+      const planImg = parseImg(r.planSituation);
+      if(planImg){
+        let pw=762,ph=540;
+        try{
+          const dims=await imgDims(r.planSituation);
+          if(dims.w&&dims.h){
+            const ratio=dims.w/dims.h;
+            pw=Math.min(762,dims.w);
+            ph=Math.round(pw/ratio);
+            if(ph>540){ph=540;pw=Math.round(ph*ratio);}
+          }
+        }catch(e){}
+        children.push(new Paragraph({
+          spacing:{before:60,after:60},
+          alignment:AlignmentType.CENTER,
+          children:[new ImageRun({type:planImg.type,data:planImg.data,transformation:{width:pw,height:ph},altText:{title:'Plan de situation',description:'Plan de situation',name:'plan'}})]
+        }));
+      }
+      children.push(sp(120));
+    }
 
     // ─── §2 MOYENS HUMAINS ───
     children.push(sectionTitle('02','Moyens Humains'));
