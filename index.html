@@ -4778,15 +4778,21 @@ async function doWordDocx(){
     async function imgDims(u){return new Promise(r=>{const i=new Image();i.onload=()=>r({w:i.naturalWidth,h:i.naturalHeight});i.onerror=()=>r({w:400,h:300});i.src=u;});}
     async function makeImgRun(dataUrl){
       const p=parseImg(dataUrl);if(!p)return null;
-      // Calcul des dimensions en respectant le ratio d'origine (max 408×320)
-      let w=408,h=284;
+      // Toujours respecter le ratio réel de la photo (portrait ou paysage)
+      let w=408,h=306; // ratio 4:3 paysage par défaut
       try{
         const dims=await imgDims(dataUrl);
         if(dims.w&&dims.h){
           const ratio=dims.w/dims.h;
-          w=Math.min(408,dims.w);
-          h=Math.round(w/ratio);
-          if(h>320){h=320;w=Math.round(h*ratio);}
+          if(ratio>=1){
+            // Photo paysage : largeur max 408
+            w=408; h=Math.round(408/ratio);
+          } else {
+            // Photo portrait : hauteur max 480, largeur calculée
+            h=480; w=Math.round(480*ratio);
+            // Ne pas dépasser 408 en largeur
+            if(w>408){w=408; h=Math.round(408/ratio);}
+          }
         }
       }catch(e){}
       return new ImageRun({type:p.type,data:p.data,transformation:{width:w,height:h},altText:{title:'Photo',description:'Photo',name:'Photo'}});
