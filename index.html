@@ -4906,20 +4906,10 @@ async function doWordDocx(){
       children.push(subTitle('Plan de situation'));
       const planImg = parseImg(r.planSituation);
       if(planImg){
-        let pw=762,ph=540;
-        try{
-          const dims=await imgDims(r.planSituation);
-          if(dims.w&&dims.h){
-            const ratio=dims.w/dims.h;
-            pw=Math.min(762,dims.w);
-            ph=Math.round(pw/ratio);
-            if(ph>540){ph=540;pw=Math.round(ph*ratio);}
-          }
-        }catch(e){}
         children.push(new Paragraph({
           spacing:{before:60,after:60},
           alignment:AlignmentType.CENTER,
-          children:[new ImageRun({type:planImg.type,data:planImg.data,transformation:{width:pw,height:ph},altText:{title:'Plan de situation',description:'Plan de situation',name:'plan'}})]
+          children:[new ImageRun({type:planImg.type,data:planImg.data,transformation:{width:376,height:667},altText:{title:'Plan de situation',description:'Plan de situation',name:'plan'}})]
         }));
       }
       children.push(sp(120));
