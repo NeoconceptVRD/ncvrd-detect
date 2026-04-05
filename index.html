@@ -4955,17 +4955,10 @@ async function doWordDocx(){
     else children.push(para('Aucun logiciel renseigné.',{color:DGRAY,size:22}));
     children.push(sp(200));
 
-    // ─── §4 RÉSEAUX DÉTECTÉS ───
-    children.push(sectionTitle('04','Réseaux Détectés'));
+    // ─── §4 DOCUMENTATION PHOTOGRAPHIQUE ───
+    children.push(sectionTitle('04','Documentation Photographique'));
     children.push(sp(100));
     const activeNets=(r.networks||[]).filter(n=>n.active);
-    if(activeNets.length)children.push(makeTable(['NATURE DU RÉSEAU','MÉTHODE DE DÉTECTION','CLASSE','OBSERVATIONS'],activeNets.map(n=>[n.nature,n.methode||'—',n.classe||'—',n.remarques||'—']),[1900,3000,1200,3538]));
-    else children.push(para('Aucun réseau actif renseigné.',{color:DGRAY,size:22}));
-    children.push(sp(200));
-
-    // ─── §5 DOCUMENTATION PHOTOGRAPHIQUE ───
-    children.push(sectionTitle('05','Documentation Photographique'));
-    children.push(sp(100));
     const rapPhotos=(S.photos||[]).filter(p=>p.rapportId===r.id);
     if(rapPhotos.length){
       const secMap={};
@@ -5006,8 +4999,8 @@ async function doWordDocx(){
       children.push(para('[Photos du chantier à insérer]',{italics:true,color:'9CA3AF',size:22}));
     children.push(sp(200));
 
-    // ─── §6 CONCLUSIONS ───
-    children.push(sectionTitle('06','Conclusions / Écart'));
+    // ─── §5 CONCLUSIONS ───
+    children.push(sectionTitle('05','Conclusions / Écart'));
     children.push(sp(100));
     const concl=r.conclusions||"L'ensemble des réseaux géolocalisés à l'aide du géoradar et de l'appareil de radiodétection ont été relevés par notre géomètre à l'aide d'une tablette Panasonic Toughbook FZ-G1, d'une station totale TS13 et/ou d'une antenne GPS GG04 Plus.\n\nCes données ont ensuite été reportées sous format AUTOCAD/COVADIS, dont le plan est joint au présent rapport.";
     concl.split('\n\n').filter(Boolean).forEach(blk=>children.push(para(blk,{size:22,after:80})));
@@ -5024,6 +5017,13 @@ async function doWordDocx(){
     if(r.observations)r.observations.split('\n').filter(l=>l.trim()).forEach(l=>obsLines.push(l.replace(/^[-–•]\s*/,'')));
     if(!obsLines.length)obsLines.push('Sans objet.');
     children.push(makeObsBox(obsLines));
+    children.push(sp(200));
+
+    // ─── §6 SYNTHÈSE DES RÉSEAUX DÉTECTÉS ───
+    children.push(sectionTitle('06','Synthèse des Réseaux Détectés'));
+    children.push(sp(100));
+    if(activeNets.length)children.push(makeTable(['NATURE DU RÉSEAU','MÉTHODE DE DÉTECTION','CLASSE','OBSERVATIONS'],activeNets.map(n=>[n.nature,n.methode||'—',n.classe||'—',n.remarques||'—']),[1900,3000,1200,3538]));
+    else children.push(para('Aucun réseau actif renseigné.',{color:DGRAY,size:22}));
     children.push(sp(200));
 
     // ─── SIGNATURE ───
