@@ -4416,18 +4416,18 @@ async function saveSharedLink(){
 
 async function loadSharedDocs(){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const seen = new Set();
+  S_sharedDocs = [];
+  const merge = docs => docs.forEach(d => { if(!seen.has(d.id)){ seen.add(d.id); S_sharedDocs.push({id:d.id,...d.data()}); } });
   try {
-    const [teamSnap, globalSnap] = await Promise.all([
-      fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get(),
-      fdb.collection('global_shared_docs').get()
-    ]);
-    const seen = new Set();
-    S_sharedDocs = [];
-    [...globalSnap.docs, ...teamSnap.docs].forEach(d => {
-      if(!seen.has(d.id)){ seen.add(d.id); S_sharedDocs.push({id:d.id,...d.data()}); }
-    });
-    renderSharedDocs();
-  } catch(e){ Logger.warn('Documents', 'Chargement docs partagés échoué', e?.message); }
+    const teamSnap = await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get();
+    merge(teamSnap.docs);
+  } catch(e){ Logger.warn('Documents', 'Chargement docs équipe échoué', e?.message); }
+  try {
+    const globalSnap = await fdb.collection('global_shared_docs').get();
+    merge(globalSnap.docs);
+  } catch(e){ Logger.warn('Documents', 'Chargement docs globaux échoué', e?.message); }
+  renderSharedDocs();
 }
 
 function renderSharedDocs(){
