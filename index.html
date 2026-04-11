@@ -5445,20 +5445,38 @@ function _wblock(lines,obsColor){
 function exportRapportWord(){
   const r=S.currentRapport;
   if(!r){toast('⚠️ Aucun rapport ouvert');return}
-  // Diagnostic : compter les photos disponibles
-  const nbGeneral = (S.photos||[]).filter(p=>p.rapportId===r.id).length;
+
+  // Diagnostic détaillé AVANT génération
+  const rapPhotos  = (S.photos||[]).filter(p=>p.rapportId===r.id);
+  const withData   = rapPhotos.filter(p=>p.dataUrl && p.dataUrl.startsWith('data:'));
+  const withNull   = rapPhotos.filter(p=>!p.dataUrl);
+  const withUrl    = rapPhotos.filter(p=>p.dataUrl && !p.dataUrl.startsWith('data:'));
+
+  // Log console pour débogage (F12)
+  console.log('[Word Diag] Photos générales pour ce rapport :', rapPhotos.length);
+  console.log('[Word Diag]  -> avec base64 dataUrl :', withData.length);
+  console.log('[Word Diag]  -> dataUrl null/vide    :', withNull.length);
+  console.log('[Word Diag]  -> URL distante (HTTPS) :', withUrl.length);
+  withData.forEach((p,i)=>console.log('  Photo '+(i+1)+': type='+p.dataUrl.substring(5,25)+', taille='+Math.round(p.dataUrl.length/1024)+'ko'));
+  withUrl.forEach((p,i) =>console.log('  Photo URL '+(i+1)+': '+p.dataUrl.substring(0,80)));
+  withNull.forEach((p,i)=>console.log('  Photo NULL '+(i+1)+': id='+p.id+', synced='+p.synced+', createdAt='+p.createdAt));
+
   const nbConclusion = (r.conclusionPhotos||[]).filter(Boolean).length;
   const nbReseaux = (r.networks||[]).filter(n=>n.active).reduce((s,n)=>{
     return s + ((n.photos&&n.photos.length) ? n.photos.length : (n.photo?1:0));
   },0);
-  const total = nbGeneral + nbConclusion + nbReseaux;
-  toast(`⏳ Génération Word… ${total} photo(s) détectée(s)`);
+
+  // Toast informatif
+  let info = '⏳ Génération Word… '+rapPhotos.length+' photo(s) générale(s)';
+  if(withNull.length) info += ' (⚠️ '+withNull.length+' sans données locales)';
+  if(withUrl.length)  info += ' + '+withUrl.length+' URL distante(s)';
+  toast(info);
+
   doWordDocx().catch(e=>{
     Logger.error('Export','exportRapportWord',e?.message);
     toast('⚠️ Erreur export Word : '+(e?.message||e));
   });
 }
-
 // ════════════════════════════════════════════
 //  EXPORT WORD — docx.js (rapport complet)
 // ════════════════════════════════════════════
@@ -5475,9 +5493,6 @@ async function doWordDocx(){
   const r = S.currentRapport;
   const c = S.currentChantier || S.chantiers.find(x=>x.id===S.activeChantier) || {};
   const dateGen = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
-
-  // Recharger les photos depuis IndexedDB pour s'assurer d'avoir les dataUrl à jour
-  try { S.photos = await db.getAll('photos'); } catch(e){ Logger.warn('Export','reload photos',e?.message); }
 
   await new Promise((resolve,reject)=>{
     if(window.docx) return resolve();
@@ -7926,15 +7941,19 @@ async function cleanOldLocalPhotos(){
   let cleaned = 0;
 
   for(const photo of photos){
-    if(photo.createdAt < thirtyDaysAgo && photo.synced){
+    // Nettoyer uniquement les photos synced de plus de 30 jours ET avec createdAt défini
+    if(photo.createdAt && photo.createdAt < thirtyDaysAgo && photo.synced){
       photo.dataUrl = null;
       await db.put('photos', photo);
+      // Mettre à jour aussi la copie en mémoire pour rester cohérent
+      const inMem = (S.photos||[]).find(p=>p.id===photo.id);
+      if(inMem) inMem.dataUrl = null;
       cleaned++;
     }
   }
 
   if(cleaned > 0){
-    toast(`🧹 ${cleaned} photos locales nettoyées`);
+    toast(`🧹 ${cleaned} photos locales nettoyées (> 30j)`);
   }
 }
 
