@@ -6372,6 +6372,7 @@ async function initApp(){
   const t=today();
   document.getElementById('nc-debut').value=t;
   await updateProfileScreen();
+  initNotifications(); // démarrer le listener notifications temps réel
   showScreen('screen-home');
 }
 
@@ -6398,8 +6399,9 @@ async function init(){
       try {
         const snap = await fdb.collection('users').doc(user.uid).get();
         currentUserProfile = snap.exists ? snap.data() : {displayName:user.displayName||user.email, email:user.email, teamId:null};
+        currentUserProfile.uid = user.uid; // toujours forcer l'uid
         if(currentUserProfile.teamId) db.setTeam(currentUserProfile.teamId);
-      } catch(e){ currentUserProfile = {displayName:user.displayName||user.email, email:user.email, teamId:null}; }
+      } catch(e){ currentUserProfile = {uid:user.uid, displayName:user.displayName||user.email, email:user.email, teamId:null}; }
       if(nav) nav.style.display='';
       if(topbar) topbar.style.display='';
       await initApp();
