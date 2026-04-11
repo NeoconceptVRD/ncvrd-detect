@@ -3170,8 +3170,11 @@ function chantierRefChanged(){
   const c=S.currentChantier; if(!c) return;
   const val=document.getElementById('r-reference').value;
   c.name=val||c.name;
+  c.updatedAt=Date.now();
   const tt=document.getElementById('topTitle');
   if(tt) tt.textContent='📋 '+(val||c.name);
+  db.put('chantiers',c).catch(()=>{});
+  syncChantierToFirebase(c);
   rapportChanged();
 }
 
@@ -3261,9 +3264,28 @@ function rapportChanged(){
   saveTimer=setTimeout(async()=>{
     await db.put('rapports',r);
     syncRapportToFirebase(r);
-    document.getElementById('autosave-bar').textContent='✓ Sauvegardé à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(S.isOffline?' · hors ligne':'');
-  },800);
+    const bar=document.getElementById('autosave-bar');
+    if(bar) bar.textContent='✓ Sauvegardé à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(S.isOffline?' · hors ligne':'');
+  },400);
 }
+
+// ── Sauvegarde d'urgence (fermeture / mise en arrière-plan) ──
+async function saveRapportNow(){
+  const r=S.currentRapport; if(!r) return;
+  clearTimeout(saveTimer);
+  r.updatedAt=Date.now();
+  try {
+    await db.put('rapports',r);
+    syncRapportToFirebase(r);
+    if(S.currentChantier){
+      await db.put('chantiers',S.currentChantier);
+      syncChantierToFirebase(S.currentChantier);
+    }
+  } catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveRapportNow(); });
+window.addEventListener('pagehide', ()=>saveRapportNow());
+window.addEventListener('beforeunload', ()=>saveRapportNow());
 
 function onNatureSelectChange(){
   const sel = document.getElementById('r-nature-select');
