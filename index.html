@@ -4399,12 +4399,7 @@ async function saveSharedLink(){
     addedBy: currentUserProfile.displayName || currentUserProfile.email || '—'
   };
   try {
-    const isGlobal = isGlobalAdmin(currentUserProfile.role);
-    if(isGlobal){
-      await fdb.collection('global_shared_docs').doc(docId).set(meta);
-    } else {
-      await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(docId).set(meta);
-    }
+    await fdb.collection('global_shared_docs').doc(docId).set(meta);
     S_sharedDocs.push(meta);
     renderSharedDocs();
     closeModal('m-add-link');
