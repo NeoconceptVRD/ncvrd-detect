@@ -2511,7 +2511,8 @@ async function registerUser(){
     if(isJoin){
       const code = document.getElementById('reg-invitecode').value.trim().toUpperCase();
       if(!code){ errEl.textContent="Entrez le code d'invitation."; errEl.style.display='block'; return; }
-      const snap = await fdb.collection('teams').where('inviteCode','==',code).limit(1).get();
+      let snap = await fdb.collection('teams').where('inviteCode','==',code).limit(1).get();
+      if(snap.empty) snap = await fdb.collection('teams').where('adminInviteCode','==',code).limit(1).get();
       if(snap.empty){ errEl.textContent="Code d'invitation invalide."; errEl.style.display='block'; return; }
       const teamDoc = snap.docs[0];
       teamId = teamDoc.id;
@@ -2802,7 +2803,7 @@ function showScreen(id){
   if(id==='s-photos'){renderAllPhotos()}
   if(id==='s-consignes'){renderConsignes()}
   if(id==='s-dossier'){loadDossier().then(()=>renderDossier()); loadSharedDocs();}
-  if(id==='s-profil'){updateProfile()}
+  if(id==='s-profil'){updateProfile(); if(FIREBASE_CONFIGURED && currentUserProfile) updateProfileScreen();}
   if(id==='s-camera'){initCamera()}
   if(id==='screen-home'){stopCamera()}
 }
@@ -4398,7 +4399,12 @@ async function saveSharedLink(){
     addedBy: currentUserProfile.displayName || currentUserProfile.email || '—'
   };
   try {
-    await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(docId).set(meta);
+    const isGlobal = isGlobalAdmin(currentUserProfile.role);
+    if(isGlobal){
+      await fdb.collection('global_shared_docs').doc(docId).set(meta);
+    } else {
+      await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(docId).set(meta);
+    }
     S_sharedDocs.push(meta);
     renderSharedDocs();
     closeModal('m-add-link');
@@ -4411,8 +4417,15 @@ async function saveSharedLink(){
 async function loadSharedDocs(){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   try {
-    const snap = await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get();
-    S_sharedDocs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const [teamSnap, globalSnap] = await Promise.all([
+      fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').get(),
+      fdb.collection('global_shared_docs').get()
+    ]);
+    const seen = new Set();
+    S_sharedDocs = [];
+    [...globalSnap.docs, ...teamSnap.docs].forEach(d => {
+      if(!seen.has(d.id)){ seen.add(d.id); S_sharedDocs.push({id:d.id,...d.data()}); }
+    });
     renderSharedDocs();
   } catch(e){ Logger.warn('Documents', 'Chargement docs partagés échoué', e?.message); }
 }
