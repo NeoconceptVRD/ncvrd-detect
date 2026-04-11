@@ -15,6 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <style>
 /* ═══════════════════════════════════════
    NCVRD DETECT — Design System v3 FUTURISTE
@@ -1923,7 +1924,7 @@ const FIREBASE_CONFIG = {
   measurementId:     "G-9Y5VQ3HL17"
 };
 
-let fauth = null, fdb = null, currentUser = null, currentUserProfile = null;
+let fauth = null, fdb = null, fstorage = null, currentUser = null, currentUserProfile = null;
 const FIREBASE_CONFIGURED = !FIREBASE_CONFIG.apiKey.includes('VOTRE');
 
 // ════════════════════════════════════════════
@@ -2041,8 +2042,9 @@ const Validator = {
 
 if (FIREBASE_CONFIGURED) {
   firebase.initializeApp(FIREBASE_CONFIG);
-  fauth = firebase.auth();
-  fdb   = firebase.firestore();
+  fauth    = firebase.auth();
+  fdb      = firebase.firestore();
+  fstorage = firebase.storage();
   fdb.enablePersistence().catch(err => {
     Logger.warn('Firebase', 'Persistence non disponible', err?.code || err?.message);
   });
@@ -2650,13 +2652,14 @@ async function deleteMyAccount(){
 
 async function logoutUser(){
   if(!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
+  // Stopper le listener notifications avant de déconnecter
+  if(_notifUnsubscribe){ _notifUnsubscribe(); _notifUnsubscribe = null; }
   try {
     if(fauth) await fauth.signOut();
     Logger.info('Auth', 'Déconnexion réussie');
   } catch(e){
     Logger.warn('Auth', 'signOut Firebase échoué, déconnexion forcée', e?.message);
   }
-  // Déconnexion forcée même si Firebase échoue
   currentUser = null;
   currentUserProfile = null;
   showScreen('s-login');
@@ -5398,12 +5401,16 @@ async function initNotifications(){
   const uid = currentUserProfile.uid;
   if(!uid) return;
   if(_notifUnsubscribe) _notifUnsubscribe();
+  // Filtre sur toUid uniquement (pas de filtre 'read' pour éviter l'index composite)
+  // Le filtrage des non-lues se fait côté client
   _notifUnsubscribe = fdb.collection('notifications')
     .where('toUid','==',uid)
-    .where('read','==',false)
+    .orderBy('createdAt','desc')
+    .limit(50)
     .onSnapshot(snap => {
-      const count = snap.docs.length;
-      const badge = document.getElementById('notif-badge');
+      const unread = snap.docs.filter(d => !d.data().read);
+      const count  = unread.length;
+      const badge  = document.getElementById('notif-badge');
       if(badge){
         badge.textContent = count > 9 ? '9+' : count;
         badge.style.display = count > 0 ? 'flex' : 'none';
@@ -5411,7 +5418,7 @@ async function initNotifications(){
       snap.docChanges().forEach(change => {
         if(change.type==='added'){
           const d = change.doc.data();
-          if(Date.now() - d.createdAt < 10000) toast('🔔 ' + d.message);
+          if(!d.read && Date.now() - d.createdAt < 10000) toast('🔔 ' + d.message);
         }
       });
       if(document.getElementById('notif-panel')?.style.display !== 'none') renderNotifList();
@@ -5457,9 +5464,9 @@ async function markAllNotifsRead(){
   if(!fdb || !currentUserProfile) return;
   try {
     const snap = await fdb.collection('notifications')
-      .where('toUid','==',currentUserProfile.uid).where('read','==',false).get();
+      .where('toUid','==',currentUserProfile.uid).limit(50).get();
     const batch = fdb.batch();
-    snap.docs.forEach(doc => batch.update(doc.ref,{read:true}));
+    snap.docs.filter(d=>!d.data().read).forEach(doc => batch.update(doc.ref,{read:true}));
     await batch.commit();
     const badge = document.getElementById('notif-badge');
     if(badge) badge.style.display = 'none';
@@ -5507,19 +5514,87 @@ async function syncChantierToFirebase(c){
   catch(e){ Logger.warn('Sync', `syncChantier échoué pour ${c.id}`, e?.message); }
 }
 
+// ── Upload base64 → Firebase Storage → retourne l'URL publique ──
+async function uploadPhotoToStorage(base64DataUrl, path){
+  if(!fstorage || !base64DataUrl || !base64DataUrl.startsWith('data:')) return null;
+  try {
+    const [meta, data] = base64DataUrl.split(',');
+    const mime = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+    const ref = fstorage.ref(path);
+    await ref.put(bytes, { contentType: mime });
+    return await ref.getDownloadURL();
+  } catch(e){
+    Logger.warn('Storage', 'Upload photo échoué', e?.message);
+    return null;
+  }
+}
+
+// ── Upload toutes les photos base64 d'un rapport et remplace par URL ──
+async function uploadRapportPhotos(r){
+  if(!fstorage || !FIREBASE_CONFIGURED) return;
+  const uid  = currentUserProfile?.uid || 'unknown';
+  const base = `rapports/${r.id}`;
+
+  // Photos de conclusion
+  if(r.conclusionPhotos?.length){
+    for(let i=0; i<r.conclusionPhotos.length; i++){
+      const src = r.conclusionPhotos[i];
+      if(src && src.startsWith('data:')){
+        const url = await uploadPhotoToStorage(src, `${base}/conclusion_${i}.jpg`);
+        if(url){ r.conclusionPhotos[i] = url; }
+      }
+    }
+  }
+  // Photos des réseaux
+  if(r.networks?.length){
+    for(const n of r.networks){
+      if(n.photos?.length){
+        for(let i=0; i<n.photos.length; i++){
+          const src = n.photos[i];
+          if(src && src.startsWith('data:')){
+            const url = await uploadPhotoToStorage(src, `${base}/reseau_${n.id}_${i}.jpg`);
+            if(url){ n.photos[i] = url; }
+          }
+        }
+      }
+    }
+  }
+  // Plan de situation
+  if(r.planSituation?.startsWith('data:')){
+    const url = await uploadPhotoToStorage(r.planSituation, `${base}/plan_situation.jpg`);
+    if(url){ r.planSituation = url; }
+  }
+}
+
 async function syncRapportToFirebase(r){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
+
+  // Uploader les photos base64 vers Storage (en arrière-plan, sans bloquer)
+  uploadRapportPhotos(r).then(() => {
+    // Après upload, re-sauvegarder localement avec les URLs
+    db.put('rapports', r).catch(()=>{});
+  });
+
   const firestoreData = {...r};
-  // Exclure les données base64 volumineuses (limite 1MB Firestore)
+  // Exclure les données base64 restantes (trop volumineuses pour Firestore)
   delete firestoreData.planSituation;
   delete firestoreData.signature;
   delete firestoreData.signatureVeri;
-  delete firestoreData.conclusionPhotos;
+  // Remplacer conclusionPhotos : garder uniquement les URLs (pas les base64)
+  firestoreData.conclusionPhotos = (r.conclusionPhotos||[]).filter(s => s && !s.startsWith('data:'));
+  // Pareil pour les photos des réseaux
+  if(firestoreData.networks){
+    firestoreData.networks = firestoreData.networks.map(n => ({
+      ...n,
+      photos: (n.photos||[]).filter(s => s && !s.startsWith('data:'))
+    }));
+  }
   // Traçabilité : qui a modifié en dernier
-  firestoreData.lastModifiedBy    = currentUserProfile.uid;
-  firestoreData.lastModifiedName  = currentUserProfile.displayName || currentUserProfile.email || '—';
-  firestoreData.lastModifiedAt    = Date.now();
+  firestoreData.lastModifiedBy   = currentUserProfile.uid;
+  firestoreData.lastModifiedName = currentUserProfile.displayName || currentUserProfile.email || '—';
+  firestoreData.lastModifiedAt   = Date.now();
   try { await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(firestoreData,{merge:true}); }
   catch(e){ Logger.warn('Sync', `syncRapport échoué pour ${r.id}`, e?.message); }
 }
