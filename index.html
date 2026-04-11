@@ -1002,7 +1002,22 @@ body > *{position:relative;z-index:1}
       <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,120,255,.6) 40%,rgba(0,200,255,.5) 60%,transparent);opacity:.8"></div>
     </div>
     <div class="search-box">
-      <input class="search-inp" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
+      <input class="search-inp" id="search-chantier" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
+    </div>
+    <!-- Barre de filtres avancés -->
+    <div style="display:flex;gap:6px;padding:6px 14px 0;flex-wrap:wrap;align-items:center">
+      <select id="filter-sort" onchange="applyFilters()" style="flex:1;min-width:120px;padding:7px 10px;background:var(--input);border:1px solid var(--inputborder);border-radius:9px;color:var(--text);font-size:12px;font-family:inherit;font-weight:600;outline:none;cursor:pointer">
+        <option value="recent">🕐 Plus récent</option>
+        <option value="ancien">📅 Plus ancien</option>
+        <option value="az">🔤 A → Z</option>
+      </select>
+      <select id="filter-period" onchange="applyFilters()" style="flex:1;min-width:120px;padding:7px 10px;background:var(--input);border:1px solid var(--inputborder);border-radius:9px;color:var(--text);font-size:12px;font-family:inherit;font-weight:600;outline:none;cursor:pointer">
+        <option value="all">📋 Toutes périodes</option>
+        <option value="week">📆 Cette semaine</option>
+        <option value="month">🗓️ Ce mois</option>
+        <option value="year">📅 Cette année</option>
+      </select>
+      <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 12px;background:rgba(232,98,10,.12);border:1px solid rgba(232,98,10,.3);color:#E8620A;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">✕ Réinitialiser</button>
     </div>
     <!-- Onglets En cours / Terminés / Partagés -->
     <div style="display:flex;gap:0;margin:8px 14px 0;background:rgba(10,16,36,.6);border-radius:13px;padding:4px;border:1px solid rgba(0,229,255,.12)">
@@ -1033,6 +1048,10 @@ body > *{position:relative;z-index:1}
     <!-- Banner rapport -->
     <div style="background:linear-gradient(90deg,#00b4ff,#a855f7,#00d4aa);height:3px;margin:0 0 4px;opacity:.8"></div>
     <div class="autosave-bar" id="autosave-bar">✓ Sauvegardé automatiquement</div>
+    <div id="conflict-bar" style="display:none;padding:9px 14px;background:rgba(234,179,8,.1);border-bottom:1px solid rgba(234,179,8,.35);font-size:12px;font-weight:600;color:#b45309;line-height:1.4">
+      <span id="conflict-msg"></span>
+      <button onclick="document.getElementById('conflict-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;color:#b45309;font-size:14px;line-height:1;padding:0 0 0 8px">✕</button>
+    </div>
 
     <!-- Référence chantier (identifiant principal) -->
     <div style="padding:10px 14px 0">
@@ -1500,6 +1519,28 @@ body > *{position:relative;z-index:1}
     <button class="btn-big btn-card" onclick="clearAllData()">🗑️ Effacer les données locales</button>
     <div class="sec-hdr">Session</div>
     <button class="btn-big" style="background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.3);border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;margin:0 14px 8px;display:block;width:calc(100% - 28px)" onclick="logoutUser()">🚪 Se déconnecter</button>
+    <div class="sec-hdr">Confidentialité (RGPD)</div>
+    <button class="btn-big btn-card" style="border-left:4px solid rgba(220,38,38,.5);color:rgba(220,38,38,.85);font-size:13px" onclick="openModal('m-delete-account')">🗑️ Supprimer mon compte et mes données</button>
+  </div>
+
+  <!-- Modal : Suppression compte RGPD -->
+  <div class="modal" id="m-delete-account">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <span class="modal-title">⚠️ Supprimer mon compte</span>
+        <button class="modal-close" onclick="closeModal('m-delete-account')">✕</button>
+      </div>
+      <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#dc2626;line-height:1.6">
+        <strong>⚠️ Cette action est irréversible.</strong><br>
+        Votre compte sera définitivement supprimé. Vos chantiers et rapports créés resteront accessibles à votre équipe.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmez en tapant votre email</label>
+        <input class="form-input" id="delete-confirm-email" type="email" placeholder="votre@email.com">
+      </div>
+      <div id="delete-account-error" style="color:#dc2626;font-size:12px;margin-bottom:10px;display:none"></div>
+      <button onclick="deleteMyAccount()" style="width:100%;padding:13px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit">🗑️ Supprimer définitivement mon compte</button>
+    </div>
   </div>
 
 
@@ -2573,6 +2614,40 @@ async function registerUser(){
   }
 }
 
+async function deleteMyAccount(){
+  const input = document.getElementById('delete-confirm-email');
+  const errEl = document.getElementById('delete-account-error');
+  const email = (input?.value||'').trim().toLowerCase();
+  const myEmail = (currentUserProfile?.email||currentUser?.email||'').toLowerCase();
+  errEl.style.display='none';
+  if(!email){ errEl.textContent="Veuillez saisir votre email."; errEl.style.display='block'; return; }
+  if(email !== myEmail){ errEl.textContent="L'email ne correspond pas à votre compte."; errEl.style.display='block'; return; }
+  try {
+    // 1. Supprimer le profil Firestore
+    if(FIREBASE_CONFIGURED && fdb && currentUserProfile?.uid){
+      await fdb.collection('users').doc(currentUserProfile.uid).delete().catch(()=>{});
+    }
+    // 2. Nettoyer l'IndexedDB local
+    await db._idb.clear('chantiers').catch(()=>{});
+    await db._idb.clear('rapports').catch(()=>{});
+    await db._idb.clear('photos').catch(()=>{});
+    // 3. Supprimer le compte Firebase Auth
+    if(currentUser){
+      await currentUser.delete();
+    }
+    closeModal('m-delete-account');
+    toast('✅ Compte supprimé. Au revoir !');
+    setTimeout(()=>location.reload(), 1500);
+  } catch(e){
+    if(e.code === 'auth/requires-recent-login'){
+      errEl.textContent = "Pour supprimer votre compte, veuillez vous déconnecter puis vous reconnecter avant de recommencer.";
+    } else {
+      errEl.textContent = "Erreur : " + (e.message||e.code||'Erreur inconnue');
+    }
+    errEl.style.display='block';
+  }
+}
+
 async function logoutUser(){
   if(!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
   try {
@@ -3100,21 +3175,74 @@ function chantierDragEnd(){
 
 async function deleteChantier(id){
   if(!confirm('Supprimer ce chantier et son rapport ? Cette action est irréversible.')) return;
+  // 1. Suppression locale (IndexedDB)
   await db.del('chantiers', id);
   await db.del('rapports', id);
+  // 2. Suppression Firestore
+  if(FIREBASE_CONFIGURED && fdb && currentUserProfile?.teamId){
+    const teamId = currentUserProfile.teamId;
+    try {
+      await fdb.collection('teams').doc(teamId).collection('chantiers').doc(id).delete();
+    } catch(e){ Logger.warn('Delete', 'Suppression chantier Firestore échouée', e?.message); }
+    try {
+      await fdb.collection('teams').doc(teamId).collection('rapports').doc(id).delete();
+    } catch(e){ Logger.warn('Delete', 'Suppression rapport Firestore échouée', e?.message); }
+  }
   S.chantiers = S.chantiers.filter(c => c.id !== id);
   renderChantiers(S.chantiers);
   toast('🗑️ Chantier supprimé');
 }
 
 function filterChantiers(q){
-  const f=q.toLowerCase();
-  renderChantiers(S.chantiers.filter(c=>
-    c.name.toLowerCase().includes(f)||
-    (c.client||'').toLowerCase().includes(f)||
-    (c.reference||'').toLowerCase().includes(f)||
-    (c.address||'').toLowerCase().includes(f)
-  ));
+  applyFilters();
+}
+
+function applyFilters(){
+  const q       = (document.getElementById('search-chantier')?.value||'').toLowerCase().trim();
+  const sort    = document.getElementById('filter-sort')?.value    || 'recent';
+  const period  = document.getElementById('filter-period')?.value  || 'all';
+  const resetBtn= document.getElementById('filter-reset-btn');
+
+  // Indicateur filtres actifs
+  const filtersActive = sort !== 'recent' || period !== 'all' || q !== '';
+  if(resetBtn) resetBtn.style.display = filtersActive ? 'block' : 'none';
+
+  // Période
+  const now = Date.now();
+  const periodMs = { week: 7*86400000, month: 30*86400000, year: 365*86400000 };
+
+  let list = S.chantiers.filter(c => {
+    // Recherche texte
+    if(q && !( (c.name||'').toLowerCase().includes(q) ||
+               (c.client||'').toLowerCase().includes(q) ||
+               (c.reference||'').toLowerCase().includes(q) ||
+               (c.address||'').toLowerCase().includes(q) )) return false;
+    // Filtre période sur createdAt
+    if(period !== 'all'){
+      const created = c.createdAt || 0;
+      if(now - created > periodMs[period]) return false;
+    }
+    return true;
+  });
+
+  // Tri
+  if(sort === 'recent') list = list.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  else if(sort === 'ancien') list = list.slice().sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  else if(sort === 'az') list = list.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','fr'));
+
+  renderChantiers(list);
+}
+
+function resetFilters(){
+  const s = document.getElementById('search-chantier');
+  const so = document.getElementById('filter-sort');
+  const p = document.getElementById('filter-period');
+  const rb = document.getElementById('filter-reset-btn');
+  if(s) s.value='';
+  if(so) so.value='recent';
+  if(p) p.value='all';
+  if(rb) rb.style.display='none';
+  renderChantiers(S.chantiers);
 }
 
 async function openChantier(id){
@@ -3275,6 +3403,10 @@ function renderRapportScreen(){
   }
   // Init signature pad (delayed to let DOM settle)
   setTimeout(()=>initSignaturePad(), 100);
+  // Vérifier si un collègue a modifié ce rapport pendant qu'on était absent
+  const conflictBar = document.getElementById('conflict-bar');
+  if(conflictBar) conflictBar.style.display='none'; // reset
+  checkRapportConflict(r);
 }
 
 let saveTimer;
@@ -5378,14 +5510,39 @@ async function syncChantierToFirebase(c){
 async function syncRapportToFirebase(r){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
-  // Exclure les données base64 volumineuses du document Firestore (limite 1MB/doc)
-  // Les images restent stockées localement dans IndexedDB
   const firestoreData = {...r};
+  // Exclure les données base64 volumineuses (limite 1MB Firestore)
   delete firestoreData.planSituation;
   delete firestoreData.signature;
+  delete firestoreData.signatureVeri;
   delete firestoreData.conclusionPhotos;
+  // Traçabilité : qui a modifié en dernier
+  firestoreData.lastModifiedBy    = currentUserProfile.uid;
+  firestoreData.lastModifiedName  = currentUserProfile.displayName || currentUserProfile.email || '—';
+  firestoreData.lastModifiedAt    = Date.now();
   try { await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(firestoreData,{merge:true}); }
   catch(e){ Logger.warn('Sync', `syncRapport échoué pour ${r.id}`, e?.message); }
+}
+
+// ── Vérification conflit à l'ouverture d'un rapport ──
+async function checkRapportConflict(r){
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
+  try {
+    const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).get();
+    if(!snap.exists) return;
+    const remote = snap.data();
+    if(!remote.lastModifiedAt || !remote.lastModifiedBy) return;
+    // Conflit : modifié par quelqu'un d'autre APRÈS notre dernière sauvegarde locale
+    if(remote.lastModifiedBy !== currentUserProfile.uid && remote.lastModifiedAt > (r.updatedAt||0)){
+      const bar = document.getElementById('conflict-bar');
+      const msg = document.getElementById('conflict-msg');
+      const diff = Math.round((Date.now() - remote.lastModifiedAt) / 60000);
+      const timeStr = diff < 1 ? 'à l\'instant' : `il y a ${diff} min`;
+      if(msg) msg.textContent = `⚠️ ${remote.lastModifiedName||'Un collègue'} a modifié ce rapport ${timeStr}. Vos modifications peuvent être en conflit.`;
+      if(bar) bar.style.display = 'block';
+    }
+  } catch(e){ /* silencieux */ }
 }
 
 // ── Invitation collaborateurs sur un chantier ──────────────────
