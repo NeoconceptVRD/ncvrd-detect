@@ -3319,12 +3319,21 @@ async function openChantier(id){
   // Si le chantier vient d'une autre équipe (DG multi-team), on switche temporairement
   if(S.currentChantier && S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
   let rapport=await db.get('rapports',id);
-  // Si non trouvé localement, essayer Firebase (chantier partagé)
-  if(!rapport && FIREBASE_CONFIGURED && S.currentChantier){
+
+  // Toujours essayer Firestore quand on est en ligne — pour que les collaborateurs
+  // voient les données fraîches (texte + photos) et non une version locale périmée
+  if(FIREBASE_CONFIGURED && S.currentChantier && navigator.onLine){
     try{
       const teamId = S.currentChantier._teamId || currentUserProfile?.teamId;
       const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(id).get();
-      if(snap.exists){ rapport={id,...snap.data()}; await db.put('rapports',rapport); }
+      if(snap.exists){
+        const remote = {id, ...snap.data()};
+        // Utiliser Firestore si : pas de version locale OU Firestore est plus récent
+        if(!rapport || (remote.lastModifiedAt||0) >= (rapport.updatedAt||0)){
+          rapport = remote;
+          await db.put('rapports', rapport);
+        }
+      }
     }catch(e){ Logger.warn('Chantiers', `openChantier: rapport Firebase introuvable pour ${id}`, e?.message); }
   }
   if(!rapport){
@@ -5722,40 +5731,41 @@ async function uploadRapportPhotos(r){
   }
 }
 
-async function syncRapportToFirebase(r){
-  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
-  const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
-
-  // Uploader les photos base64 vers Storage (en arrière-plan, sans bloquer)
-  uploadRapportPhotos(r).then(() => {
-    // Après upload, re-sauvegarder localement avec les URLs
-    db.put('rapports', r).catch(()=>{});
-  });
-
+// ── Écriture Firestore (texte + URLs déjà disponibles) ──
+async function _writeRapportToFirestore(r, teamId){
   const firestoreData = {...r};
-  // Exclure les données base64 restantes (trop volumineuses pour Firestore)
   delete firestoreData.planSituation;
   delete firestoreData.signature;
   delete firestoreData.signatureVeri;
-  // Remplacer conclusionPhotos : garder uniquement les URLs (pas les base64)
+  // Garder uniquement les URLs (exclure les base64 encore en attente d'upload)
   firestoreData.conclusionPhotos = (r.conclusionPhotos||[]).filter(s => s && !s.startsWith('data:'));
-  // Pareil pour les photos des réseaux
   if(firestoreData.networks){
     firestoreData.networks = firestoreData.networks.map(n => ({
       ...n,
       photos: (n.photos||[]).filter(s => s && !s.startsWith('data:'))
     }));
   }
-  // Traçabilité : qui a modifié en dernier
   firestoreData.lastModifiedBy   = currentUserProfile.uid;
   firestoreData.lastModifiedName = currentUserProfile.displayName || currentUserProfile.email || '—';
   firestoreData.lastModifiedAt   = Date.now();
+  firestoreData.modifHistory     = r.modifHistory || [];
+  try {
+    await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(firestoreData,{merge:true});
+  } catch(e){
+    Logger.warn('Sync', `_writeRapportToFirestore échoué pour ${r.id}`, e?.message);
+    addToSyncQueue('rapport', r.id);
+    showSyncError();
+  }
+}
 
-  // Historique des modifications (max 30 entrées)
+async function syncRapportToFirebase(r){
+  if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
+
+  // Mettre à jour l'historique des modifications
   if(!r.modifHistory) r.modifHistory = [];
   const lastEntry = r.modifHistory[r.modifHistory.length - 1];
   const now = Date.now();
-  // Ne pas créer deux entrées à moins d'une minute d'intervalle pour le même auteur
   if(!lastEntry || lastEntry.uid !== currentUserProfile.uid || (now - lastEntry.at) > 60000){
     r.modifHistory.push({
       uid:  currentUserProfile.uid,
@@ -5763,16 +5773,27 @@ async function syncRapportToFirebase(r){
       at:   now
     });
     if(r.modifHistory.length > 30) r.modifHistory = r.modifHistory.slice(-30);
-    db.put('rapports', r).catch(()=>{});
   }
-  firestoreData.modifHistory = r.modifHistory;
 
   if(!navigator.onLine){ addToSyncQueue('rapport', r.id); return; }
-  try { await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(firestoreData,{merge:true}); }
-  catch(e){
-    Logger.warn('Sync', `syncRapport échoué pour ${r.id}`, e?.message);
-    addToSyncQueue('rapport', r.id);
-    showSyncError();
+
+  // 1. Écriture immédiate → le collaborateur voit les champs texte tout de suite
+  await _writeRapportToFirestore(r, teamId);
+
+  // 2. Upload des photos base64 vers Storage (peut prendre quelques secondes)
+  if(fstorage){
+    uploadRapportPhotos(r).then(async () => {
+      // Sauvegarder localement avec les nouvelles URLs
+      await db.put('rapports', r).catch(()=>{});
+      // 3. Re-écriture Firestore avec les vraies URLs → le collaborateur voit les photos
+      await _writeRapportToFirestore(r, teamId);
+      // 4. Rafraîchir les badges d'upload dans l'UI si le rapport est encore ouvert
+      if(S.currentRapport?.id === r.id){
+        renderConclusionPhotos();
+        renderNetworks();
+        renderRapportPhotos();
+      }
+    });
   }
 }
 
