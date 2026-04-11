@@ -1698,7 +1698,7 @@ body > *{position:relative;z-index:1}
       </button>
       <input type="file" id="net-photo-input" accept="image/*" style="display:none" onchange="handleNetModalPhoto(this)">
     </div>
-    <div class="form-group"><label class="form-label">Méthode de détection</label>
+    <div class="form-group"><label class="form-label">Appareil de détection</label>
       <input class="form-input" id="net-methode" placeholder="Ex: Radiodétection en 50Hz et GEORADAR…" autocomplete="off"></div>
     <div class="form-group"><label class="form-label">Classe de précision</label>
       <select class="form-select" id="net-classe" autocomplete="off">
@@ -3623,7 +3623,7 @@ function renderNetworks(){
       <!-- Méthode + Classe sur la même ligne -->
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;align-items:end">
         <div>
-          <span class="mini-lbl">Méthode de détection</span>
+          <span class="mini-lbl">Appareil de détection</span>
           <input class="mini-inp" style="width:100%" value="${n.methode||''}"
             oninput="updateNet('${n.id}','methode',this.value)" placeholder="Méthode utilisée…" autocomplete="off">
         </div>
@@ -5057,7 +5057,7 @@ async function doWordDocx(){
         spacing:{before:40,after:40},
         alignment:AlignmentType.CENTER,
         children:[
-          mkRun('Méthode de détection : ',{bold:true,size:20,color:NAVY}),
+          mkRun('Appareil de détection : ',{bold:true,size:20,color:NAVY}),
           mkRun(n.methode||'—',{size:20,color:DGRAY}),
           mkRun('     |     ',{size:20,color:MGRAY}),
           mkRun('Classe de précision : ',{bold:true,size:20,color:NAVY}),
@@ -5095,7 +5095,7 @@ async function doWordDocx(){
     // ─── §6 SYNTHÈSE DES RÉSEAUX DÉTECTÉS ───
     children.push(sectionTitle('06','Synthèse des Réseaux Détectés'));
     children.push(sp(100));
-    if(activeNets.length)children.push(makeTable(['NATURE DU RÉSEAU','MÉTHODE DE DÉTECTION','CLASSE','OBSERVATIONS'],activeNets.map(n=>[n.nature,n.methode||'—',n.classe||'—',n.remarques||'—']),[1900,3000,1200,3538]));
+    if(activeNets.length)children.push(makeTable(['NATURE DU RÉSEAU','APPAREIL DE DÉTECTION','CLASSE','OBSERVATIONS'],activeNets.map(n=>[n.nature,n.methode||'—',n.classe||'—',n.remarques||'—']),[1900,3000,1200,3538]));
     else children.push(para('Aucun réseau actif renseigné.',{color:DGRAY,size:22}));
     children.push(sp(200));
 
