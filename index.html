@@ -1009,9 +1009,47 @@ html[data-terrain="1"] {
 [data-terrain="1"] #app {
   font-size: 15px !important;
 }
+/* ── SVG SECTION ICONS ─────────────────── */
+.acc-svg-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;vertical-align:middle;margin-right:6px;flex-shrink:0}
+.acc-svg-icon svg{width:20px;height:20px;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+/* ── NETWORK TYPE SVG ICONS ──────────── */
+.net-svg-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;vertical-align:middle;margin-right:4px;flex-shrink:0}
+.net-svg-icon svg{width:16px;height:16px;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+/* ── PROFILE GRADIENT RING ───────────── */
+@keyframes profileRingSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.profile-ring-svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);animation:profileRingSpin 6s linear infinite;pointer-events:none}
+
+/* ── SPLASH RADAR SWEEP ──────────────── */
+@keyframes radarSweep{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+/* ── BACKGROUND DECORATIVE ELEMENTS ──── */
+#app::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
+  background-image:linear-gradient(rgba(59,130,246,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.5) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+#app::after{
+  content:'';position:fixed;top:0;left:0;width:60px;height:60px;z-index:0;pointer-events:none;
+  border-top:2px solid rgba(59,130,246,.12);border-left:2px solid rgba(59,130,246,.12);
+}
+.corner-accent-br{
+  position:fixed;bottom:60px;right:0;width:60px;height:60px;z-index:0;pointer-events:none;
+  border-bottom:2px solid rgba(139,92,246,.12);border-right:2px solid rgba(139,92,246,.12);
+}
+
+/* ── LOGIN ILLUSTRATION ──────────────── */
+.login-illustration{width:100%;max-width:320px;height:200px;margin:0 auto 24px}
+.login-illustration svg{width:100%;height:100%}
+
+/* ── EMPTY STATE SVG ─────────────────── */
+.empty-state-svg{width:120px;height:120px;margin:0 auto 12px;opacity:.7}
+.empty-state-svg svg{width:100%;height:100%}
 </style>
 </head>
 <body>
+<div class="corner-accent-br"></div>
 
 <!-- ─── TOP BAR ─────────────────────────── -->
 <div id="topbar" style="display:none">
@@ -1155,9 +1193,10 @@ html[data-terrain="1"] {
         <div style="display:flex;align-items:flex-start;justify-content:space-between">
           <div style="flex:1;min-width:0;padding-right:8px">
             <div style="font-size:9px;font-weight:700;color:rgba(0,160,255,.65);letter-spacing:3.5px;text-transform:uppercase;margin-bottom:9px;font-family:'Rajdhani','Inter',sans-serif">NEOCONCEPT VRD</div>
-            <div style="font-size:30px;font-weight:900;color:#e8f4ff;letter-spacing:-.8px;line-height:1.05;font-family:'Rajdhani','Inter',sans-serif">
-              Détection<br>
-              <span style="background:linear-gradient(90deg,#00aaff 0%,#60d0ff 40%,#00aaff 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite">de Réseaux</span>
+            <div style="font-size:30px;font-weight:900;color:#e8f4ff;letter-spacing:-.8px;line-height:1.05;font-family:'Rajdhani','Inter',sans-serif;display:flex;align-items:flex-start;gap:8px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00aaff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:4px;opacity:.7;filter:drop-shadow(0 0 4px rgba(0,170,255,.5))"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
+              <div>Détection<br>
+              <span style="background:linear-gradient(90deg,#00aaff 0%,#60d0ff 40%,#00aaff 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite">de Réseaux</span></div>
             </div>
             <div style="font-size:10px;color:rgba(160,210,255,.45);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:6px;font-family:'Rajdhani','Inter',sans-serif;letter-spacing:1px;text-transform:uppercase">
               <span style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 10px rgba(0,255,136,.9)"></span>
@@ -1272,7 +1311,7 @@ html[data-terrain="1"] {
     <!-- § Infos générales -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>📋 1. Informations générales</span><span class="acc-chevron open">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#3b82f6"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>1. Informations générales</span><span class="acc-chevron open">▼</span>
       </button>
       <div class="acc-body open">
         <div class="form-group">
@@ -1329,7 +1368,7 @@ html[data-terrain="1"] {
     <!-- § Moyens humains -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>👷 2. Moyens humains</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#8b5cf6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>2. Moyens humains</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -1359,7 +1398,7 @@ html[data-terrain="1"] {
     <!-- § Matériels -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>🔧 3. Moyens matériels</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#2dd4bf"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>3. Moyens matériels</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Matériels de détection</div>
@@ -1374,7 +1413,7 @@ html[data-terrain="1"] {
     <!-- § Réseaux détectés -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>⚡ Tableau des réseaux détectés</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#f97316"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>Tableau des réseaux détectés</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">Cochez les réseaux détectés et complétez les méthodes et remarques.</div>
@@ -1386,7 +1425,7 @@ html[data-terrain="1"] {
     <!-- § Conclusions -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>✅ 5. Conclusions / Écart</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#22c55e"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>5. Conclusions / Écart</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="form-group">
@@ -1415,7 +1454,7 @@ html[data-terrain="1"] {
     <!-- § Signature -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this);setTimeout(initSignaturePad,120)">
-        <span>✍️ 6. Signature</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#ec4899"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>6. Signature</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <!-- Rédacteur -->
@@ -1460,7 +1499,7 @@ html[data-terrain="1"] {
     <!-- § Historique des modifications -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>📜 7. Historique des modifications</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#3b82f6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>7. Historique des modifications</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Trace de toutes les modifications apportées à ce rapport, du plus récent au plus ancien.</div>
@@ -1471,7 +1510,7 @@ html[data-terrain="1"] {
     <!-- § Chat messages — Feature 8 -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span>💬 8. Messages</span><span class="acc-chevron">▼</span>
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#8b5cf6"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>8. Messages</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end">
@@ -1709,6 +1748,10 @@ html[data-terrain="1"] {
     <div style="padding:24px 16px 10px;text-align:center">
       <!-- Avatar cliquable -->
       <div class="profile-avatar-wrap" onclick="openProfilePhotoEdit()">
+        <svg class="profile-ring-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="profRingGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>
+          <circle cx="50" cy="50" r="46" stroke="url(#profRingGrad)" stroke-width="2.5" stroke-dasharray="12 6" opacity=".6"/>
+        </svg>
         <div class="profile-avatar" id="prof-avatar">👤</div>
         <div class="avatar-cam-overlay">📷</div>
       </div>
@@ -1819,6 +1862,45 @@ html[data-terrain="1"] {
   <!-- ─── LOGIN SCREEN ──────────────────── -->
   <div class="screen" id="s-login" style="display:none;min-height:100vh;background:linear-gradient(135deg,#1e3a6e 0%,#1d4ed8 100%);padding:0;overflow-y:auto">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 20px">
+      <!-- Login illustration -->
+      <div class="login-illustration">
+        <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg-water" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient>
+            <linearGradient id="lg-elec" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient>
+            <linearGradient id="lg-gas" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+            <linearGradient id="lg-radar" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.6"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient>
+            <filter id="lg-glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- Ground line -->
+          <line x1="20" y1="120" x2="300" y2="120" stroke="rgba(255,255,255,.25)" stroke-width="1.5" stroke-dasharray="6 4"/>
+          <!-- Underground pipes -->
+          <path d="M30,145 L120,145 L120,165 L200,165" stroke="url(#lg-water)" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#lg-glow)"/>
+          <circle cx="120" cy="145" r="3" fill="#38bdf8" opacity=".8"/>
+          <circle cx="200" cy="165" r="2.5" fill="#38bdf8" opacity=".7"/>
+          <path d="M50,160 L150,160 L210,150 L290,150" stroke="url(#lg-elec)" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#lg-glow)"/>
+          <circle cx="150" cy="160" r="3" fill="#a78bfa" opacity=".8"/>
+          <circle cx="210" cy="150" r="2.5" fill="#a78bfa" opacity=".7"/>
+          <path d="M70,178 L160,178 L220,175 L270,175" stroke="url(#lg-gas)" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#lg-glow)"/>
+          <circle cx="160" cy="178" r="3" fill="#fbbf24" opacity=".8"/>
+          <circle cx="270" cy="175" r="2.5" fill="#fbbf24" opacity=".7"/>
+          <!-- Radar sweep from above -->
+          <path d="M160,30 L120,120 L200,120 Z" fill="url(#lg-radar)" opacity=".3"/>
+          <circle cx="160" cy="30" r="5" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity=".7"/>
+          <circle cx="160" cy="30" r="10" fill="none" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+          <circle cx="160" cy="30" r="18" fill="none" stroke="#3b82f6" stroke-width=".7" opacity=".25"/>
+          <!-- Radar dish -->
+          <path d="M152,25 Q160,15 168,25" stroke="#60a5fa" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <line x1="160" y1="25" x2="160" y2="35" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- Detection markers on ground -->
+          <circle cx="120" cy="120" r="4" fill="none" stroke="#22c55e" stroke-width="1.5" opacity=".6"><animate attributeName="r" values="3;6;3" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;.2;.6" dur="2s" repeatCount="indefinite"/></circle>
+          <circle cx="200" cy="120" r="4" fill="none" stroke="#22c55e" stroke-width="1.5" opacity=".6"><animate attributeName="r" values="3;6;3" dur="2s" begin=".7s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;.2;.6" dur="2s" begin=".7s" repeatCount="indefinite"/></circle>
+          <!-- Labels -->
+          <text x="35" y="141" fill="#38bdf8" font-size="7" font-family="Rajdhani,Inter,sans-serif" font-weight="600" opacity=".7">AEP</text>
+          <text x="55" y="156" fill="#a78bfa" font-size="7" font-family="Rajdhani,Inter,sans-serif" font-weight="600" opacity=".7">ELEC</text>
+          <text x="75" y="174" fill="#fbbf24" font-size="7" font-family="Rajdhani,Inter,sans-serif" font-weight="600" opacity=".7">GAZ</text>
+        </svg>
+      </div>
       <!-- Logo -->
       <div style="text-align:center;margin-bottom:32px">
         <div style="width:72px;height:72px;background:rgba(255,255,255,0.15);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:36px">🔍</div>
@@ -2153,8 +2235,17 @@ html[data-terrain="1"] {
      SPLASH SCREEN — Feature 5
      ══════════════════════════════════════════════════════════════════ -->
 <div id="splash-screen" style="position:fixed;inset:0;background:linear-gradient(180deg,#010810 0%,#050b18 50%,#010810 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
-  <div style="text-align:center">
-    <div style="font-size:48px;font-weight:900;color:#00aaff;font-family:'Rajdhani','Inter',sans-serif;letter-spacing:2px;margin-bottom:16px;text-shadow:0 0 20px rgba(0,170,255,.4)">NCVRD DETECT</div>
+  <div style="text-align:center;position:relative">
+    <!-- Radar sweep animation -->
+    <svg width="160" height="160" viewBox="0 0 160 160" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-20px;opacity:.25;pointer-events:none">
+      <circle cx="80" cy="80" r="70" fill="none" stroke="#00aaff" stroke-width=".5" opacity=".3"/>
+      <circle cx="80" cy="80" r="50" fill="none" stroke="#00aaff" stroke-width=".5" opacity=".4"/>
+      <circle cx="80" cy="80" r="30" fill="none" stroke="#00aaff" stroke-width=".5" opacity=".5"/>
+      <circle cx="80" cy="80" r="10" fill="none" stroke="#00aaff" stroke-width=".5" opacity=".6"/>
+      <line x1="80" y1="80" x2="80" y2="10" stroke="#00aaff" stroke-width="1" opacity=".7" style="transform-origin:80px 80px;animation:radarSweep 3s linear infinite"/>
+      <circle cx="80" cy="80" r="2" fill="#00aaff" opacity=".8"/>
+    </svg>
+    <div style="font-size:48px;font-weight:900;color:#00aaff;font-family:'Rajdhani','Inter',sans-serif;letter-spacing:2px;margin-bottom:16px;text-shadow:0 0 20px rgba(0,170,255,.4);position:relative">NCVRD DETECT</div>
     <div style="width:200px;height:4px;background:rgba(0,170,255,.3);border-radius:20px;margin-bottom:12px;overflow:hidden">
       <div style="height:100%;background:linear-gradient(90deg,#00aaff,#60d0ff,#00aaff);background-size:200% 100%;animation:slideLoader 1.5s ease-in-out forwards;border-radius:20px"></div>
     </div>
@@ -3415,9 +3506,9 @@ function renderChantiers(list){
 
   if(!filtered.length){
     const msgs = {
-      termine: '<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Aucun chantier terminé.</div></div>',
-      partage: '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Aucun chantier partagé avec vous.</div></div>',
-      encours: '<div class="empty"><div class="empty-icon">🏗️</div><div class="empty-text">Aucun chantier en cours.<br>Créez votre premier chantier ci-dessous.</div></div>'
+      termine: '<div class="empty"><div class="empty-state-svg"><svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="40" stroke="#22c55e" stroke-width="1.5" opacity=".3"/><path d="M45 60l10 10 20-20" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="28" stroke="#22c55e" stroke-width="1" opacity=".2" stroke-dasharray="4 3"/></svg></div><div class="empty-icon">✅</div><div class="empty-text">Aucun chantier terminé.</div></div>',
+      partage: '<div class="empty"><div class="empty-state-svg"><svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="42" cy="50" r="14" stroke="#8b5cf6" stroke-width="1.5" opacity=".4"/><circle cx="78" cy="50" r="14" stroke="#8b5cf6" stroke-width="1.5" opacity=".4"/><path d="M28 85c0-12 10-18 22-18h20c12 0 22 6 22 18" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><circle cx="42" cy="48" r="6" stroke="#8b5cf6" stroke-width="1.5" opacity=".5"/><circle cx="78" cy="48" r="6" stroke="#8b5cf6" stroke-width="1.5" opacity=".5"/></svg></div><div class="empty-icon">👥</div><div class="empty-text">Aucun chantier partagé avec vous.</div></div>',
+      encours: '<div class="empty"><div class="empty-state-svg"><svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 85h40" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><path d="M50 85V55l10-20 10 20v30" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/><path d="M50 55h20" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><line x1="45" y1="65" x2="45" y2="85" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><line x1="75" y1="65" x2="75" y2="85" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><circle cx="60" cy="42" r="8" stroke="#3b82f6" stroke-width="1.5" opacity=".4"/><path d="M56 42h8M60 38v8" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div><div class="empty-icon">🏗️</div><div class="empty-text">Aucun chantier en cours.<br>Créez votre premier chantier ci-dessous.</div></div>'
     };
     el.innerHTML = msgs[activeTab] || msgs.encours;
     return;
@@ -4170,6 +4261,19 @@ function removeLogiciel(i){
 // ════════════════════════════════════════════
 //  RÉSEAUX
 // ════════════════════════════════════════════
+function getNetworkSvgIcon(nature){
+  const n=(nature||'').toLowerCase();
+  const s='width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
+  if(n.includes('eau')||n.includes('aep')||n.includes('water'))return `<span class="net-svg-icon"><svg ${s} stroke="#38bdf8"><path d="M12 2c-4 6-8 10-8 14a8 8 0 0016 0c0-4-4-8-8-14z"/></svg></span>`;
+  if(n.includes('gaz'))return `<span class="net-svg-icon"><svg ${s} stroke="#fbbf24"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.15.5-2.22 1.5-3"/></svg></span>`;
+  if(n.includes('elec')||n.includes('enedis')||n.includes('bt')||n.includes('ht'))return `<span class="net-svg-icon"><svg ${s} stroke="#a78bfa"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>`;
+  if(n.includes('telec')||n.includes('telecom')||n.includes('orange')||n.includes('sfr'))return `<span class="net-svg-icon"><svg ${s} stroke="#2dd4bf"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg></span>`;
+  if(n.includes('assain')||n.includes('eu')||n.includes('ep'))return `<span class="net-svg-icon"><svg ${s} stroke="#fb923c"><circle cx="12" cy="12" r="9"/><path d="M7 12h10"/><path d="M12 7v10"/></svg></span>`;
+  if(n.includes('fibre'))return `<span class="net-svg-icon"><svg ${s} stroke="#34d399"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></span>`;
+  if(n.includes('chauf')||n.includes('chaleur'))return `<span class="net-svg-icon"><svg ${s} stroke="#f87171"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></span>`;
+  return `<span class="net-svg-icon"><svg ${s} stroke="#94a3b8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span>`;
+}
+
 function renderNetworks(){
   const el=document.getElementById('networks-list');
   const nets=S.currentRapport.networks||[];
@@ -4184,7 +4288,7 @@ function renderNetworks(){
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
           <input type="checkbox" ${n.active?'checked':''} onchange="toggleNetwork('${n.id}',this.checked)"
             style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)">
-          <span style="font-weight:800;font-size:14px">${n.nature}</span>
+          <span style="font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:4px">${getNetworkSvgIcon(n.nature)}${n.nature}</span>
         </label>
         <button class="del-btn" onclick="removeNetwork('${n.id}')">✕</button>
       </div>
