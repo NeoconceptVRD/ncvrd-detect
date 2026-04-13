@@ -3251,6 +3251,7 @@ class AppDB {
   get(s,id){return new Promise((res,rej)=>{const r=this._tx(s).get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
   put(s,data){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').put(data);r.onsuccess=()=>res(data);r.onerror=()=>rej(r.error)})}
   del(s,id){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+  clear(s){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 }
 const db=new CloudDB();
 
