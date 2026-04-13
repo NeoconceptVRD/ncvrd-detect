@@ -5486,8 +5486,8 @@ async function doWordDocx(){
       s.onload=resolve; s.onerror=resolve; // non bloquant
       document.head.appendChild(s);
     })
-  ]).catch(e=>{toast('⚠️ '+e.message);});
-  if(!window.docx) return;
+  ]).catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
+  if(!window.docx){ toast('❌ Impossible de charger la librairie docx.js — vérifiez votre connexion'); return; }
 
   try {
     const {
@@ -5607,59 +5607,64 @@ async function doWordDocx(){
         reader.readAsDataURL(blob);
       });
 
-      // Essai 1 : fetch avec CORS (Firebase Storage supporte CORS si configuré)
+      // ── Firebase Storage URL : utiliser le SDK pour obtenir les bytes directement ──
+      if(src.includes('firebasestorage.googleapis.com') && fstorage){
+        // Essai A : Firebase Storage SDK getDownloadURL() → fetch no-cors via proxy ou direct
+        try {
+          const ref = fstorage.refFromURL(src);
+          // Récupérer les bytes directement via le SDK (ne dépend pas du CORS)
+          try {
+            const freshUrl = await ref.getDownloadURL();
+            const r1 = await fetch(freshUrl, {mode:'cors'});
+            if(r1.ok) return await blobToDataUrl(await r1.blob());
+          } catch(_){}
+          // Essai B : API REST Firebase avec token Bearer (standard OAuth2)
+          if(fauth && fauth.currentUser){
+            try {
+              const idToken = await fauth.currentUser.getIdToken(true);
+              const freshUrl = await ref.getDownloadURL();
+              // Extraire bucket et path de l'URL
+              const m = freshUrl.match(/\/b\/([^/]+)\/o\/([^?]+)/);
+              if(m){
+                const restUrl = `https://firebasestorage.googleapis.com/v0/b/${m[1]}/o/${m[2]}?alt=media`;
+                // Tenter avec Bearer (OAuth2 standard)
+                const r2 = await fetch(restUrl, {headers:{'Authorization':'Bearer '+idToken}});
+                if(r2.ok) return await blobToDataUrl(await r2.blob());
+                // Tenter avec Firebase (schéma custom)
+                const r3 = await fetch(restUrl, {headers:{'Authorization':'Firebase '+idToken}});
+                if(r3.ok) return await blobToDataUrl(await r3.blob());
+              }
+            } catch(_){}
+          }
+        } catch(e) {
+          console.warn('[Word] Firebase Storage SDK échoué:', e?.message);
+        }
+      }
+
+      // ── URL standard : fetch avec CORS ──
       try {
         const res = await fetch(src, {mode:'cors'});
         if(res.ok){
           return await blobToDataUrl(await res.blob());
         }
       } catch(e) {
-        Logger.warn('Export', 'fetch CORS échoué', e?.message);
+        console.warn('[Word] fetch CORS échoué:', e?.message);
       }
 
-      // Essai 2 : Firebase Storage SDK — pour les anciens rapports dont les photos
-      // sont déjà des URLs Firebase (avant le correctif). On tente plusieurs méthodes.
-      if(src.includes('firebasestorage.googleapis.com') && fstorage){
-        try {
-          const ref = fstorage.refFromURL(src);
-          const freshUrl = await ref.getDownloadURL();
-          // 2a : URL fraîche simple (Firebase Storage download URLs supportent CORS)
-          try {
-            const r1 = await fetch(freshUrl);
-            if(r1.ok) return await blobToDataUrl(await r1.blob());
-          } catch(_){}
-          // 2b : API REST Firebase avec token d'authentification (schéma "Firebase")
-          if(fauth && fauth.currentUser){
-            try {
-              const idToken = await fauth.currentUser.getIdToken();
-              const m = freshUrl.match(/\/b\/([^/]+)\/o\/([^?]+)/);
-              if(m){
-                const restUrl = `https://firebasestorage.googleapis.com/v0/b/${m[1]}/o/${m[2]}?alt=media`;
-                const r2 = await fetch(restUrl, {headers:{'Authorization':'Firebase '+idToken}});
-                if(r2.ok) return await blobToDataUrl(await r2.blob());
-              }
-            } catch(_){}
-          }
-        } catch(e) {
-          Logger.warn('Export', 'Firebase Storage fetch échoué', e?.message);
-        }
-      }
-
-      // Essai 3 : <img> sans crossOrigin (l'image s'affiche dans le DOM → canvas)
+      // ── Fallback : charger via <img> + canvas (fonctionne si l'image est accessible) ──
       return new Promise((resolve) => {
         const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
           try {
             const c = document.createElement('canvas');
             c.width = img.naturalWidth || 800;
             c.height = img.naturalHeight || 600;
             c.getContext('2d').drawImage(img, 0, 0);
-            // Peut lever "tainted canvas" si CORS non configuré, mais on capture l'erreur
             resolve(c.toDataURL('image/jpeg', 0.85));
           } catch(e2) {
-            // Canvas tainté → on tente avec crossOrigin
+            // Canvas tainté → retenter sans crossOrigin
             const img2 = new Image();
-            img2.crossOrigin = 'anonymous';
             img2.onload = () => {
               try {
                 const c2 = document.createElement('canvas');
@@ -5667,13 +5672,19 @@ async function doWordDocx(){
                 c2.height = img2.naturalHeight || 600;
                 c2.getContext('2d').drawImage(img2, 0, 0);
                 resolve(c2.toDataURL('image/jpeg', 0.85));
-              } catch(e3) { resolve(null); }
+              } catch(e3) {
+                console.warn('[Word] Canvas tainté pour:', src.substring(0,60));
+                resolve(null);
+              }
             };
-            img2.onerror = () => resolve(null);
+            img2.onerror = () => { console.warn('[Word] Image inaccessible:', src.substring(0,60)); resolve(null); };
             img2.src = src + (src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
           }
         };
-        img.onerror = () => resolve(null);
+        img.onerror = () => {
+          console.warn('[Word] Image non chargée:', src.substring(0,60));
+          resolve(null);
+        };
         img.src = src;
       });
     }
@@ -5734,7 +5745,7 @@ async function doWordDocx(){
       return new ImageRun({type:p.type,data:p.data,transformation:{width:w,height:h},altText:{title:'Photo',description:'Photo',name:'Photo'}});
     }
     async function makeImgRunHalf(dataUrl){
-      // Même logique que makeImgRun mais pour une largeur max de 190px (2 colonnes)
+      // Photo réseau 7cm × 4cm (199pt × 113pt) — 2 colonnes
       const originalSrc = typeof dataUrl === 'string' ? dataUrl.substring(0,80) : '(null)';
       dataUrl = await ensureDataUrl(dataUrl);
       if(!dataUrl){ console.warn('[Word] ensureDataUrl (half) → null pour:', originalSrc); return null; }
@@ -5742,13 +5753,13 @@ async function doWordDocx(){
       if(!dataUrl){ console.warn('[Word] toJpegForDocx (half) → null pour:', originalSrc); return null; }
       const p=parseImg(dataUrl);
       if(!p){ console.warn('[Word] parseImg (half) → null, type:', dataUrl.substring(0,40)); return null; }
-      let w=190,h=143;
+      let w=199,h=113;
       try{
         const dims=await imgDims(dataUrl);
         if(dims.w&&dims.h){
           const ratio=dims.w/dims.h;
-          if(ratio>=1){ w=190; h=Math.round(190/ratio); }
-          else { h=240; w=Math.round(240*ratio); if(w>190){w=190;h=Math.round(190/ratio);} }
+          if(ratio>=1){ w=199; h=Math.round(199/ratio); }
+          else { h=160; w=Math.round(160*ratio); if(w>199){w=199;h=Math.round(199/ratio);} }
         }
       }catch(e){}
       return new ImageRun({type:p.type,data:p.data,transformation:{width:w,height:h},altText:{title:'Photo',description:'Photo',name:'Photo'}});
@@ -5815,17 +5826,15 @@ async function doWordDocx(){
         const right=photoItems[i+1]||null;
         const makeCell=async(item)=>{
           if(!item) return new TableCell({width:{size:4500,type:WidthType.DXA},borders:noBorders,children:[new Paragraph({})]});
-          _imgTotal++;
           const imgRun=await makeImgRunHalf(item.url);
-          if(imgRun) _imgOk++;
-          const cellChildren=[new Paragraph({spacing:{before:40,after:8},alignment:AlignmentType.CENTER,children:imgRun?[imgRun]:[]})];
-          if(item.caption) cellChildren.push(new Paragraph({spacing:{before:0,after:40},alignment:AlignmentType.CENTER,children:[mkRun(item.caption,{size:17,color:'888888',italics:true})]}));
+          const cellChildren=[new Paragraph({spacing:{before:20,after:4},alignment:AlignmentType.CENTER,children:imgRun?[imgRun]:[]})];
+          if(item.caption) cellChildren.push(new Paragraph({spacing:{before:0,after:10},alignment:AlignmentType.CENTER,children:[mkRun(item.caption,{size:16,color:'888888',italics:true})]}));
           return new TableCell({width:{size:4500,type:WidthType.DXA},borders:noBorders,children:cellChildren});
         };
         const lc=await makeCell(left);
         const rc=await makeCell(right);
         els.push(new Table({width:{size:9000,type:WidthType.DXA},borders:noBorders,rows:[new TableRow({children:[lc,rc]})]}));
-        els.push(sp(40));
+        els.push(sp(10));
       }
       return els;
     }
@@ -5888,7 +5897,7 @@ async function doWordDocx(){
         children.push(new Paragraph({
           spacing:{before:60,after:60},
           alignment:AlignmentType.CENTER,
-          children:[new ImageRun({type:planImg.type,data:planImg.data,transformation:{width:376,height:667},altText:{title:'Plan de situation',description:'Plan de situation',name:'plan'}})]
+          children:[new ImageRun({type:planImg.type,data:planImg.data,transformation:{width:454,height:284},altText:{title:'Plan de situation',description:'Plan de situation',name:'plan'}})]
         }));
       }
       children.push(sp(120));
@@ -5940,7 +5949,7 @@ async function doWordDocx(){
         children.push(sp(80));
       }
     }
-    // Photos réseaux
+    // Photos réseaux — layout compact : 4 photos (2×2) + metadata par réseau
     for(const n of activeNets){
       const np=n.photos&&n.photos.length?n.photos:(n.photo?[n.photo]:[]);
       if(!np.length) continue;
@@ -5948,21 +5957,21 @@ async function doWordDocx(){
       const items=np.map((src,i)=>({url:src,caption:'Photo '+(i+1)}));
       const tbl=await photoTable(items);
       tbl.forEach(el=>children.push(el));
-      // Méthodologie + Classe sous les photos
+      // Méthodologie + Classe + Observations — compact
       children.push(new Paragraph({
-        spacing:{before:40,after:40},
+        spacing:{before:20,after:10},
         alignment:AlignmentType.CENTER,
         children:[
-          mkRun('Appareil de détection : ',{bold:true,size:20,color:NAVY}),
-          mkRun(n.methode||'—',{size:20,color:DGRAY}),
-          mkRun('     |     ',{size:20,color:MGRAY}),
-          mkRun('Classe de précision : ',{bold:true,size:20,color:NAVY}),
-          mkRun(n.classe||'—',{size:20,color:DGRAY}),
+          mkRun('Appareil : ',{bold:true,size:18,color:NAVY}),
+          mkRun(n.methode||'—',{size:18,color:DGRAY}),
+          mkRun('   |   ',{size:18,color:MGRAY}),
+          mkRun('Classe : ',{bold:true,size:18,color:NAVY}),
+          mkRun(n.classe||'—',{size:18,color:DGRAY}),
         ]
       }));
-      if(n.remarques) children.push(para('Observations : '+n.remarques,{size:18,color:'6B7280',italics:true,after:40,align:AlignmentType.CENTER}));
-      if(n.includeLimites) children.push(para('LIMITES : Cette méthode ne permet pas l\'identification des réseaux détectés. Seule une analyse des plans de récolement et une ouverture de fouille pourra confirmer leur nature.',{size:18,color:'E8620A',italics:true,after:40,align:AlignmentType.CENTER}));
-      children.push(sp(120));
+      if(n.remarques) children.push(para('Obs : '+n.remarques,{size:16,color:'6B7280',italics:true,before:0,after:10,align:AlignmentType.CENTER}));
+      if(n.includeLimites) children.push(para('LIMITES : Cette méthode ne permet pas l\'identification des réseaux détectés. Seule une analyse des plans de récolement et une ouverture de fouille pourra confirmer leur nature.',{size:16,color:'E8620A',italics:true,before:0,after:10,align:AlignmentType.CENTER}));
+      children.push(sp(40));
     }
     if(!rapPhotos.length&&!activeNets.some(n=>(n.photos&&n.photos.length)||n.photo))
       children.push(para('[Photos du chantier à insérer]',{italics:true,color:'9CA3AF',size:22}));
@@ -6065,11 +6074,12 @@ async function doWordDocx(){
     const a=document.createElement('a');
     a.href=url; a.download='CR_'+fname+'.docx';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    setTimeout(()=>URL.revokeObjectURL(url),500);
     const imgMsg = _imgTotal > 0 ? ` — ${_imgOk}/${_imgTotal} photo(s)` : '';
     toast(`✅ Word (.docx) téléchargé !${imgMsg}`);
     if(_imgTotal > 0 && _imgOk < _imgTotal){
-      setTimeout(()=>toast(`⚠️ ${_imgTotal-_imgOk} photo(s) non intégrée(s) — vérifiez la console (F12)`), 1500);
+      const missing = _imgTotal - _imgOk;
+      setTimeout(()=>toast(`⚠️ ${missing} photo(s) non intégrée(s) — ces photos sont stockées en ligne et inaccessibles depuis cette page. Recréez le rapport avec de nouvelles photos.`), 1500);
     }
   } catch(e){
     Logger.error('Export','doWordDocx',e?.message);
@@ -8012,24 +8022,32 @@ function showSyncQueueModal(){
 //  FEATURE 13: NETTOYAGE PHOTOS LOCALES
 // ════════════════════════════════════════════
 async function cleanOldLocalPhotos(){
-  const photos = await db.getAll('photos');
-  const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-  let cleaned = 0;
+  try {
+    const photos = await db.getAll('photos');
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    let cleaned = 0;
 
-  for(const photo of photos){
-    // Nettoyer uniquement les photos synced de plus de 30 jours ET avec createdAt défini
-    if(photo.createdAt && photo.createdAt < thirtyDaysAgo && photo.synced){
-      photo.dataUrl = null;
-      await db.put('photos', photo);
-      // Mettre à jour aussi la copie en mémoire pour rester cohérent
-      const inMem = (S.photos||[]).find(p=>p.id===photo.id);
-      if(inMem) inMem.dataUrl = null;
-      cleaned++;
+    for(const photo of photos){
+      // Nettoyer uniquement les photos synced de plus de 30 jours ET avec createdAt défini
+      if(photo.createdAt && photo.createdAt < thirtyDaysAgo && photo.synced){
+        photo.dataUrl = null;
+        try {
+          await db.put('photos', photo);
+          // Mettre à jour aussi la copie en mémoire pour rester cohérent
+          const inMem = (S.photos||[]).find(p=>p.id===photo.id);
+          if(inMem) inMem.dataUrl = null;
+          cleaned++;
+        } catch(e){
+          Logger.warn('Cleanup', 'Erreur nettoyage photo '+photo.id, e?.message);
+        }
+      }
     }
-  }
 
-  if(cleaned > 0){
-    toast(`🧹 ${cleaned} photos locales nettoyées (> 30j)`);
+    if(cleaned > 0){
+      toast(`🧹 ${cleaned} photos locales nettoyées (> 30j)`);
+    }
+  } catch(e){
+    Logger.error('Cleanup', 'cleanOldLocalPhotos échoué', e?.message);
   }
 }
 
