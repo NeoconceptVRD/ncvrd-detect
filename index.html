@@ -80,7 +80,7 @@
 
 /* ── Reset & Base ────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%;background:var(--bg)}
+html{height:100%;background:var(--bg);color-scheme:dark}
 body{
   height:100%;overflow:hidden;
   font-family:'Inter',system-ui,-apple-system,sans-serif;
@@ -296,7 +296,13 @@ body > *{position:relative;z-index:1}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%233b82f6' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;
   padding-right:36px;appearance:none;
+  color-scheme:dark;
 }
+.form-select option,.form-input[list] option{
+  background:#1a1f2e;color:#f1f5f9;padding:8px 12px;
+}
+select{color-scheme:dark}
+select option{background:#1a1f2e;color:#f1f5f9}
 .fg-inline{display:grid;gap:10px}
 
 /* ── ACCORDION ───────────────────────── */
@@ -625,6 +631,7 @@ body > *{position:relative;z-index:1}
   0%   { background-position: 0% center; }
   100% { background-position: 200% center; }
 }
+@keyframes spin { to { transform:rotate(360deg); } }
 @keyframes meshFloat {
   0%   { transform:scale(1) rotate(0deg); }
   50%  { transform:scale(1.05) rotate(1deg); }
@@ -1096,7 +1103,7 @@ html[data-terrain="1"] {
 <div id="main-wrapper">
 
 <!-- ─── SYNC QUEUE BADGE — Feature 12 ─────────────────────────── -->
-<div id="sync-queue-badge" style="position:fixed;bottom:70px;right:14px;background:rgba(234,179,8,.15);border:1.5px solid rgba(234,179,8,.4);color:#b45309;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;z-index:100;display:none;cursor:pointer;transition:all .2s" onclick="showSyncQueueModal()">⬆️ <span id="sync-queue-count">0</span> en attente</div>
+<div id="sync-queue-badge" style="position:fixed;bottom:70px;right:14px;background:rgba(234,179,8,.15);border:1.5px solid rgba(234,179,8,.4);color:#fbbf24;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;z-index:100;display:none;cursor:pointer;transition:all .2s" onclick="showSyncQueueModal()">⬆️ <span id="sync-queue-count">0</span> en attente</div>
 
 <!-- ─── LEFT NAV ──────────────────────────── -->
 <div id="bottom-nav" style="display:none">
@@ -1297,9 +1304,9 @@ html[data-terrain="1"] {
     <!-- Banner rapport -->
     <div style="background:linear-gradient(90deg,#00b4ff,#a855f7,#00d4aa);height:3px;margin:0 0 4px;opacity:.8"></div>
     <div class="autosave-bar" id="autosave-bar">✓ Sauvegardé automatiquement</div>
-    <div id="conflict-bar" style="display:none;padding:9px 14px;background:rgba(234,179,8,.1);border-bottom:1px solid rgba(234,179,8,.35);font-size:12px;font-weight:600;color:#b45309;line-height:1.4">
+    <div id="conflict-bar" style="display:none;padding:9px 14px;background:rgba(234,179,8,.12);border-bottom:1px solid rgba(234,179,8,.35);font-size:12px;font-weight:600;color:#fbbf24;line-height:1.4">
       <span id="conflict-msg"></span>
-      <button onclick="document.getElementById('conflict-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;color:#b45309;font-size:14px;line-height:1;padding:0 0 0 8px">✕</button>
+      <button onclick="document.getElementById('conflict-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;color:#fbbf24;font-size:14px;line-height:1;padding:0 0 0 8px">✕</button>
     </div>
 
     <!-- Référence chantier (identifiant principal) -->
@@ -1950,7 +1957,7 @@ html[data-terrain="1"] {
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:700;color:#3d4a5e;margin-bottom:6px;display:block" id="reg-role-label">👷 MON RÔLE</label>
-            <select id="reg-role" style="width:100%;padding:12px 14px;border:1.5px solid #dde1ea;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;box-sizing:border-box;outline:none;background:#fff;color:#3d4a5e;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%237a8499%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;background-size:20px;padding-right:40px">
+            <select id="reg-role" style="width:100%;padding:12px 14px;border:1.5px solid #dde1ea;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;box-sizing:border-box;outline:none;background:#fff;color:#3d4a5e;color-scheme:light;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%237a8499%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;background-size:20px;padding-right:40px">
               <option value="" disabled selected>-- Choisissez votre rôle --</option>
               <option value="Technicien Détection - Topographe">Technicien Détection - Topographe</option>
               <option value="Technicien Détection">Technicien Détection</option>
@@ -1962,7 +1969,7 @@ html[data-terrain="1"] {
           <div style="margin-bottom:6px">
             <label style="font-size:12px;font-weight:700;color:#3d4a5e;margin-bottom:6px;display:block">🏢 AGENCE</label>
             <div style="display:flex;gap:8px;margin-bottom:8px">
-              <button id="opt-create" onclick="switchTeamOpt('create')" style="flex:1;padding:8px;border:2px solid #1d4ed8;border-radius:9px;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Créer ma région</button>
+              <button id="opt-create" onclick="switchTeamOpt('create')" style="flex:1;padding:8px;border:2px solid rgba(59,130,246,.4);border-radius:9px;background:rgba(59,130,246,.1);color:#60a5fa;font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Créer ma région</button>
               <button id="opt-join" onclick="switchTeamOpt('join')" style="flex:1;padding:8px;border:2px solid #dde1ea;border-radius:9px;background:#fff;color:#7a8499;font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Rejoindre une région</button>
             </div>
             <div id="field-create-team">
@@ -2742,15 +2749,15 @@ const DynLists = {
       }
     },
     role_colors: {
-      'Directeur Général':                 {bg:'rgba(124,58,237,.1)',color:'#6d28d9',border:'rgba(124,58,237,.25)'},
-      "Directeur d'agence":                {bg:'rgba(37,99,235,.1)',color:'#1d4ed8',border:'rgba(37,99,235,.25)'},
-      'Responsable Opérationnel':          {bg:'rgba(5,150,105,.1)',color:'#065f46',border:'rgba(5,150,105,.25)'},
-      'QHSE':                              {bg:'rgba(239,68,68,.1)',color:'#b91c1c',border:'rgba(239,68,68,.25)'},
-      'Technicien Géomètre - Topographe':  {bg:'rgba(217,119,6,.1)',color:'#92400e',border:'rgba(217,119,6,.25)'},
-      'Technicien Détection - Topographe': {bg:'rgba(14,116,144,.1)',color:'#164e63',border:'rgba(14,116,144,.25)'},
-      'Technicien Détection':              {bg:'rgba(234,88,12,.08)',color:'#c2410c',border:'rgba(234,88,12,.2)'},
-      'Référent Détection':                {bg:'rgba(59,130,246,.1)',color:'#1e40af',border:'rgba(59,130,246,.25)'},
-      'Assistant opérationnel':           {bg:'rgba(100,116,139,.1)',color:'#475569',border:'rgba(100,116,139,.25)'}
+      'Directeur Général':                 {bg:'rgba(124,58,237,.15)',color:'#a78bfa',border:'rgba(124,58,237,.3)'},
+      "Directeur d'agence":                {bg:'rgba(37,99,235,.15)',color:'#60a5fa',border:'rgba(37,99,235,.3)'},
+      'Responsable Opérationnel':          {bg:'rgba(5,150,105,.15)',color:'#34d399',border:'rgba(5,150,105,.3)'},
+      'QHSE':                              {bg:'rgba(239,68,68,.15)',color:'#f87171',border:'rgba(239,68,68,.3)'},
+      'Technicien Géomètre - Topographe':  {bg:'rgba(217,119,6,.15)',color:'#fbbf24',border:'rgba(217,119,6,.3)'},
+      'Technicien Détection - Topographe': {bg:'rgba(14,116,144,.15)',color:'#22d3ee',border:'rgba(14,116,144,.3)'},
+      'Technicien Détection':              {bg:'rgba(234,88,12,.12)',color:'#fb923c',border:'rgba(234,88,12,.25)'},
+      'Référent Détection':                {bg:'rgba(59,130,246,.15)',color:'#60a5fa',border:'rgba(59,130,246,.3)'},
+      'Assistant opérationnel':           {bg:'rgba(100,116,139,.15)',color:'#94a3b8',border:'rgba(100,116,139,.3)'}
     }
   },
 
@@ -3453,8 +3460,10 @@ async function loadChantiers(){
 
 let activeTab = 'encours';
 const PAGE_SIZE = 20;
+const VIRTUAL_BATCH = 8; // nb cartes chargées par intersection
 let _chantierPage = 1;
 let _lastFilteredList = [];
+let _virtualObserver = null; // IntersectionObserver pour virtual scroll
 
 function switchTab(tab){
   activeTab = tab;
@@ -3511,18 +3520,73 @@ function renderChantiers(list){
       encours: '<div class="empty"><div class="empty-state-svg"><svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 85h40" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><path d="M50 85V55l10-20 10 20v30" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/><path d="M50 55h20" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><line x1="45" y1="65" x2="45" y2="85" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><line x1="75" y1="65" x2="75" y2="85" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" opacity=".3"/><circle cx="60" cy="42" r="8" stroke="#3b82f6" stroke-width="1.5" opacity=".4"/><path d="M56 42h8M60 38v8" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div><div class="empty-icon">🏗️</div><div class="empty-text">Aucun chantier en cours.<br>Créez votre premier chantier ci-dessous.</div></div>'
     };
     el.innerHTML = msgs[activeTab] || msgs.encours;
+    // Nettoyer l'ancien observer
+    if(_virtualObserver){ _virtualObserver.disconnect(); _virtualObserver = null; }
     return;
   }
 
-  _chantierPage = 1;
   _lastFilteredList = filtered;
-  const paged = filtered.slice(0, PAGE_SIZE);
+
+  // ── VIRTUAL SCROLL : charger par lots avec IntersectionObserver ──
+  _virtualRender(el, filtered);
+}
+
+/** Virtual scroll : affiche un premier lot puis charge la suite au scroll */
+function _virtualRender(container, items){
+  // Nettoyage
+  if(_virtualObserver){ _virtualObserver.disconnect(); _virtualObserver = null; }
+  container.innerHTML = '';
+
+  let _rendered = 0;
+  const total = items.length;
+  const BATCH = VIRTUAL_BATCH;
+
+  // Compteur
   const wrap = document.getElementById('load-more-wrap');
   const cnt  = document.getElementById('load-more-count');
-  if(wrap){ wrap.style.display = filtered.length > PAGE_SIZE ? 'block' : 'none'; }
-  if(cnt)  cnt.textContent = `${Math.min(PAGE_SIZE, filtered.length)} / ${filtered.length} chantiers affichés`;
 
-  el.innerHTML = paged.map(c => chantierCardHTML(c)).join('');
+  function _updateCounter(){
+    if(wrap) wrap.style.display = _rendered < total ? 'block' : 'none';
+    if(cnt)  cnt.textContent = `${_rendered} / ${total} chantiers affichés`;
+  }
+
+  // Sentinelle (élément invisible en bas qui déclenche le chargement)
+  const sentinel = document.createElement('div');
+  sentinel.className = 'virtual-sentinel';
+  sentinel.style.cssText = 'height:1px;width:100%';
+
+  function _appendBatch(){
+    const end = Math.min(_rendered + BATCH, total);
+    const frag = document.createDocumentFragment();
+    for(let i = _rendered; i < end; i++){
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = chantierCardHTML(items[i]);
+      frag.appendChild(wrapper.firstElementChild);
+    }
+    // Insérer AVANT la sentinelle
+    container.insertBefore(frag, sentinel);
+    _rendered = end;
+    _updateCounter();
+
+    // Plus rien à charger → déconnecter
+    if(_rendered >= total && _virtualObserver){
+      _virtualObserver.disconnect();
+      _virtualObserver = null;
+      if(wrap) wrap.style.display = 'none';
+    }
+  }
+
+  // Premier lot
+  _appendBatch();
+  container.appendChild(sentinel);
+
+  // Observer la sentinelle pour charger la suite automatiquement
+  if(_rendered < total){
+    _virtualObserver = new IntersectionObserver(entries => {
+      if(entries[0].isIntersecting) _appendBatch();
+    }, { root: container.closest('.screen-content') || null, rootMargin: '200px' });
+    _virtualObserver.observe(sentinel);
+  }
 }
 
 // ── Helper : génère le HTML d'une carte chantier (réutilisé par renderChantiers ET loadMoreChantiers) ──
@@ -3544,7 +3608,7 @@ function chantierCardHTML(c){
     : '<span class="badge badge-blue">🟢 En cours</span>';
   const actionBtn = isTermine
     ? `<button onclick="event.stopPropagation();rouvrir('${c.id}')" style="background:rgba(29,78,216,.1);border:1px solid rgba(29,78,216,.25);color:var(--blue);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">↩ Rouvrir</button>`
-    : `<button onclick="event.stopPropagation();terminerChantier('${c.id}')" style="background:rgba(21,128,61,.1);border:1px solid rgba(21,128,61,.25);color:#15803d;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">✅ Terminer</button>`;
+    : `<button onclick="event.stopPropagation();terminerChantier('${c.id}')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit">✅ Terminer</button>`;
   const inviteBtn = canInvite
     ? `<button onclick="event.stopPropagation();openInviteChantierModal('${c.id}')" style="background:rgba(29,78,216,.08);border:1px solid rgba(29,78,216,.2);color:var(--accent);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,inherit" title="Partager avec un collaborateur">👥 Partager</button>`
     : '';
@@ -3585,15 +3649,9 @@ function chantierCardHTML(c){
 }
 
 function loadMoreChantiers(){
-  _chantierPage++;
-  const el   = document.getElementById('chantier-list');
-  const more = _lastFilteredList.slice(0, _chantierPage * PAGE_SIZE);
-  const remaining = _lastFilteredList.length - more.length;
-  const wrap = document.getElementById('load-more-wrap');
-  const cnt  = document.getElementById('load-more-count');
-  if(wrap) wrap.style.display = remaining > 0 ? 'block' : 'none';
-  if(cnt)  cnt.textContent = `${more.length} / ${_lastFilteredList.length} chantiers affichés`;
-  el.innerHTML = more.map(c => chantierCardHTML(c)).join('');
+  // Compat legacy — le virtual scroll gère automatiquement le chargement
+  // Si appelé manuellement, on re-render la liste complète
+  renderChantiers(S.chantiers);
 }
 
 async function terminerChantier(id){
@@ -5482,12 +5540,51 @@ function exportRapportWord(){
   const r=S.currentRapport;
   if(!r){toast('⚠️ Aucun rapport ouvert');return}
 
-  toast('⏳ Génération du rapport Word…');
+  // ── Overlay de progression non-bloquante ──
+  _showExportOverlay();
 
-  doWordDocx().catch(e=>{
-    Logger.error('Export','exportRapportWord',e?.message);
-    toast('⚠️ Erreur export Word : '+(e?.message||e));
-  });
+  // Lancer l'export dans un setTimeout pour libérer le thread UI
+  setTimeout(()=>{
+    doWordDocx().then(()=>{
+      _hideExportOverlay();
+    }).catch(e=>{
+      _hideExportOverlay();
+      Logger.error('Export','exportRapportWord',e?.message);
+      toast('⚠️ Erreur export Word : '+(e?.message||e));
+    });
+  }, 50);
+}
+
+function _showExportOverlay(){
+  let ov = document.getElementById('export-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'export-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .3s';
+    ov.innerHTML = `
+      <div style="width:64px;height:64px;border:3px solid rgba(255,255,255,.15);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div>
+      <div style="color:#f1f5f9;font-weight:700;font-size:16px;font-family:Inter,sans-serif">Génération du rapport Word…</div>
+      <div id="export-progress-text" style="color:#94a3b8;font-size:13px;font-family:Inter,sans-serif">Préparation des données</div>
+      <div style="width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
+        <div id="export-progress-bar" style="height:100%;width:10%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:4px;transition:width .4s ease"></div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+  ov.style.opacity = '1';
+}
+
+function _hideExportOverlay(){
+  const ov = document.getElementById('export-overlay');
+  if(ov){ ov.style.opacity='0'; setTimeout(()=>{ if(ov) ov.style.display='none'; },300); }
+}
+
+function _updateExportProgress(text, pct){
+  const t = document.getElementById('export-progress-text');
+  const b = document.getElementById('export-progress-bar');
+  if(t) t.textContent = text;
+  if(b) b.style.width = pct + '%';
 }
 // ════════════════════════════════════════════
 //  EXPORT WORD — docx.js (rapport complet)
@@ -5525,6 +5622,7 @@ async function doWordDocx(){
   ]).catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
   if(!window.docx){ toast('❌ Impossible de charger la librairie docx.js — vérifiez votre connexion'); return; }
 
+  _updateExportProgress('Chargement des librairies…', 15);
   try {
     const {
       Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
@@ -5910,6 +6008,8 @@ async function doWordDocx(){
     children.push(new Paragraph({children:[new PageBreak()]}));
 
     // ─── §1 INFORMATIONS GÉNÉRALES ───
+    _updateExportProgress('Section 1 — Informations…', 25);
+    await new Promise(r=>setTimeout(r,0)); // libérer le thread UI
     children.push(sectionTitle('01','Informations Générales'));
     children.push(sp(100));
     children.push(makeInfoTable([
@@ -5940,6 +6040,8 @@ async function doWordDocx(){
     }
 
     // ─── §2 MOYENS HUMAINS ───
+    _updateExportProgress('Section 2 — Moyens humains…', 35);
+    await new Promise(r=>setTimeout(r,0));
     children.push(sectionTitle('02','Moyens Humains'));
     children.push(sp(100));
     const opDet=r.opDetection||[],opGeo=r.opGeo||[];
@@ -5956,6 +6058,8 @@ async function doWordDocx(){
     children.push(sp(200));
 
     // ─── §3 MOYENS MATÉRIELS ───
+    _updateExportProgress('Section 3 — Matériels…', 42);
+    await new Promise(r=>setTimeout(r,0));
     children.push(sectionTitle('03','Moyens Matériels'));
     children.push(sp(100));
     const mats=r.materiels||[];
@@ -5970,6 +6074,8 @@ async function doWordDocx(){
     children.push(sp(200));
 
     // ─── §4 DOCUMENTATION PHOTOGRAPHIQUE ───
+    _updateExportProgress('Section 4 — Photos (peut prendre du temps)…', 50);
+    await new Promise(r=>setTimeout(r,0));
     children.push(sectionTitle('04','Documentation Photographique'));
     children.push(sp(100));
     const activeNets=(r.networks||[]).filter(n=>n.active);
@@ -6014,6 +6120,8 @@ async function doWordDocx(){
     children.push(sp(200));
 
     // ─── §5 CONCLUSIONS ───
+    _updateExportProgress('Section 5 — Conclusions…', 70);
+    await new Promise(r=>setTimeout(r,0));
     children.push(sectionTitle('05','Conclusions / Écart'));
     children.push(sp(100));
     const concl=r.conclusions||"L'ensemble des réseaux géolocalisés à l'aide du géoradar et de l'appareil de radiodétection ont été relevés par notre géomètre à l'aide d'une tablette Panasonic Toughbook FZ-G1, d'une station totale TS13 et/ou d'une antenne GPS GG04 Plus.\n\nCes données ont ensuite été reportées sous format AUTOCAD/COVADIS, dont le plan est joint au présent rapport.";
@@ -6034,6 +6142,8 @@ async function doWordDocx(){
     children.push(sp(200));
 
     // ─── §6 SYNTHÈSE DES RÉSEAUX DÉTECTÉS ───
+    _updateExportProgress('Section 6 — Synthèse…', 78);
+    await new Promise(r=>setTimeout(r,0));
     children.push(sectionTitle('06','Synthèse des Réseaux Détectés'));
     children.push(sp(100));
     if(activeNets.length)children.push(makeTable(['NATURE DU RÉSEAU','APPAREIL DE DÉTECTION','CLASSE','OBSERVATIONS'],activeNets.map(n=>[n.nature,n.methode||'—',n.classe||'—',n.remarques||'—']),[1900,3000,1200,3538]));
@@ -6103,7 +6213,11 @@ async function doWordDocx(){
       }]
     });
 
+    _updateExportProgress('Compilation du document…', 88);
+    await new Promise(r=>setTimeout(r,0));
     const _rawBlob=await Packer.toBlob(doc);
+    _updateExportProgress('Correction des images…', 94);
+    await new Promise(r=>setTimeout(r,0));
     const blob=await fixDocxJpeg(_rawBlob); // corrige les JPEG stockés en .png par docx.js v8
     const fname=((c.name||r.id||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase());
     const url=URL.createObjectURL(blob);
@@ -6287,7 +6401,7 @@ async function renderNotifList(){
       .sort((a,b) => (b.data().createdAt||0) - (a.data().createdAt||0));
 
     if(!docs.length){
-      listEl.innerHTML='<div style="text-align:center;color:#5a6c8a;font-size:12px;padding:20px">Aucune notification</div>';
+      listEl.innerHTML='<div style="text-align:center;color:#94a3b8;font-size:12px;padding:20px">Aucune notification</div>';
       return;
     }
     listEl.innerHTML = docs.map(doc => {
@@ -6401,6 +6515,8 @@ async function syncChantierToFirebase(c){
   let data = {...c}; delete data._teamId;
   data = sanitizeForFirestore(data);
   try {
+    // Backup automatique avant sync
+    await _backupBeforeSync('chantier', c.id);
     await fdb.collection('teams').doc(teamId).collection('chantiers').doc(c.id).set(data,{merge:true});
   } catch(e){
     Logger.warn('Sync', `syncChantier échoué pour ${c.id}`, e?.message);
@@ -6533,6 +6649,9 @@ async function syncRapportToFirebase(r){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
 
+  // Backup automatique avant sync
+  await _backupBeforeSync('rapport', r.id);
+
   // Mettre à jour l'historique des modifications
   if(!r.modifHistory) r.modifHistory = [];
   const lastEntry = r.modifHistory[r.modifHistory.length - 1];
@@ -6638,7 +6757,7 @@ async function refreshInviteChantierList(){
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
         <div>
           <div style="font-weight:700;font-size:13px">👤 ${u.displayName||u.email||'—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${u.role||'Technicien'}${isCollab?' · <span style="color:#15803d;font-weight:700">✅ Invité</span>':''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${u.role||'Technicien'}${isCollab?' · <span style="color:#4ade80;font-weight:700">✅ Invité</span>':''}</div>
         </div>
         ${isCollab ? btnRm : btnAdd}
       </div>`;
@@ -7084,8 +7203,8 @@ function renderAdminParams(){
         </div>
       </div>
       <div style="display:flex;gap:5px;margin-left:8px">
-        <button onclick="adminChangeRole('${u.uid}')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit" title="Changer le rôle">✏️</button>
-        <button onclick="adminMoveUser('${u.uid}')" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit" title="Changer de région">↗️</button>
+        <button onclick="adminChangeRole('${u.uid}')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit" title="Changer le rôle">✏️</button>
+        <button onclick="adminMoveUser('${u.uid}')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit" title="Changer de région">↗️</button>
       </div>
     </div>`;
   }).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0">Aucun utilisateur.</div>';
@@ -7130,8 +7249,8 @@ function renderAdminParams(){
         const members = teamMatch ? _adminData.users.filter(u=>u.teamId===teamMatch.id) : [];
         return `<div style="background:linear-gradient(135deg,rgba(30,58,110,.05),rgba(29,78,216,.08));border:1px solid rgba(29,78,216,.15);border-radius:12px;padding:14px;margin-bottom:10px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:14px;font-weight:800;color:#1d4ed8">${reg.emoji} ${rd.label}</div>
-            <span style="font-size:11px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:2px 9px;font-weight:700">${members.length} membre${members.length!==1?'s':''}</span>
+            <div style="font-size:14px;font-weight:800;color:#60a5fa">${reg.emoji} ${rd.label}</div>
+            <span style="font-size:11px;background:rgba(59,130,246,.1);color:#60a5fa;border:1px solid rgba(59,130,246,.25);border-radius:20px;padding:2px 9px;font-weight:700">${members.length} membre${members.length!==1?'s':''}</span>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Chef de projet</div>
           ${rd.chefProjet.map(p=>`<div style="font-size:12px;color:var(--text);padding:3px 0">👤 <strong>${p.nom}</strong> · ${p.poste} · ${p.contact}</div>`).join('')}
@@ -7224,8 +7343,8 @@ function renderAdminAgencies(filter=''){
             <div style="margin-top:3px">${roleBadgeHTML(u.role)}</div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
-            <button onclick="adminChangeRole('${u.uid}')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Rôle</button>
-            <button onclick="adminMoveUser('${u.uid}')" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↗️ Région</button>
+            <button onclick="adminChangeRole('${u.uid}')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Rôle</button>
+            <button onclick="adminMoveUser('${u.uid}')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↗️ Région</button>
             <button onclick="adminDeleteUser('${u.uid}','${(u.displayName||u.email||'').replace(/'/g,'\u2019')}')" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🗑️</button>
           </div>
         </div>`).join(''):'<div style="font-size:12px;color:var(--muted);padding:6px 0">Aucun membre.</div>'}
@@ -7252,8 +7371,8 @@ function renderAdminUsers(filter=''){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-          <button onclick="adminChangeRole('${u.uid}')" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Changer rôle</button>
-          <button onclick="adminMoveUser('${u.uid}')" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">↗️ Changer région</button>
+          <button onclick="adminChangeRole('${u.uid}')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Changer rôle</button>
+          <button onclick="adminMoveUser('${u.uid}')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">↗️ Changer région</button>
           <button onclick="adminDeleteUser('${u.uid}','${(u.displayName||u.email||'').replace(/'/g,'\u2019')}')" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🗑️ Supprimer</button>
         </div>
       </div>
@@ -7314,23 +7433,113 @@ async function adminDeleteUser(uid, displayName){
 //  OFFLINE MODE — Détection réelle + file de sync
 // ════════════════════════════════════════════
 const SYNC_QUEUE_KEY = 'ncvrd_sync_queue';
+const SYNC_BACKUP_KEY = 'ncvrd_sync_backups';
+const SYNC_MAX_RETRIES = 5;
+let _syncRetryTimer = null;
+let _syncFlushInProgress = false;
 
 function getSyncQueue(){ try{ return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)||'[]'); }catch{ return []; } }
 function saveSyncQueue(q){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
 
 function addToSyncQueue(type, id){
   const q = getSyncQueue();
-  if(!q.find(x=>x.type===type && x.id===id)) q.push({type, id, at: Date.now()});
+  const existing = q.find(x=>x.type===type && x.id===id);
+  if(existing){
+    existing.at = Date.now(); // mettre à jour le timestamp
+  } else {
+    q.push({type, id, at: Date.now(), retries: 0});
+  }
   saveSyncQueue(q);
+  renderSyncQueueBadge();
+  // Planifier un retry automatique avec backoff
+  _scheduleSyncRetry();
+}
+
+/** Backoff exponentiel : 5s, 15s, 45s, 2min, 5min */
+function _getBackoffDelay(retries){
+  const base = 5000;
+  return Math.min(base * Math.pow(3, retries), 5 * 60 * 1000); // max 5 min
+}
+
+/** Planifie le prochain retry automatique */
+function _scheduleSyncRetry(){
+  if(_syncRetryTimer) return; // déjà planifié
+  if(!navigator.onLine) return; // pas de retry hors ligne
+  const q = getSyncQueue();
+  if(!q.length) return;
+
+  // Trouver le plus petit délai de backoff parmi les items
+  const minDelay = Math.min(...q.map(item => _getBackoffDelay(item.retries || 0)));
+
+  _syncRetryTimer = setTimeout(()=>{
+    _syncRetryTimer = null;
+    Logger.info('Sync', `Retry automatique (${q.length} éléments en attente)`);
+    flushSyncQueue();
+  }, minDelay);
+  Logger.info('Sync', `Prochain retry dans ${Math.round(minDelay/1000)}s`);
+}
+
+// ── FEATURE 21 : Backup automatique avant sync ──
+async function _backupBeforeSync(type, id){
+  try {
+    const store = type === 'chantier' ? 'chantiers' : 'rapports';
+    const data = await db.get(store, id);
+    if(!data) return;
+
+    // Stocker le backup dans IndexedDB (store dédié si possible) ou localStorage
+    const backups = _getBackups();
+    const key = `${type}_${id}`;
+    backups[key] = {
+      type, id,
+      data: JSON.parse(JSON.stringify(data)), // deep clone
+      backedUpAt: Date.now()
+    };
+
+    // Garder max 50 backups (supprimer les plus anciens)
+    const keys = Object.keys(backups);
+    if(keys.length > 50){
+      const sorted = keys.sort((a,b) => backups[a].backedUpAt - backups[b].backedUpAt);
+      for(let i = 0; i < keys.length - 50; i++) delete backups[sorted[i]];
+    }
+
+    _saveBackups(backups);
+  } catch(e){
+    Logger.warn('Backup', `Backup échoué pour ${type}/${id}`, e?.message);
+  }
+}
+
+function _getBackups(){ try{ return JSON.parse(localStorage.getItem(SYNC_BACKUP_KEY)||'{}'); }catch{ return {}; } }
+function _saveBackups(b){ try{ localStorage.setItem(SYNC_BACKUP_KEY, JSON.stringify(b)); }catch(e){ Logger.warn('Backup','Stockage backup échoué (quota?)',e?.message); } }
+
+/** Restaure un backup si la sync a corrompu les données */
+async function restoreBackup(type, id){
+  const backups = _getBackups();
+  const key = `${type}_${id}`;
+  const backup = backups[key];
+  if(!backup){ toast('⚠️ Aucun backup disponible'); return false; }
+
+  const store = type === 'chantier' ? 'chantiers' : 'rapports';
+  await db.put(store, backup.data);
+  toast(`✅ Backup restauré (${new Date(backup.backedUpAt).toLocaleTimeString('fr-FR')})`);
+  return true;
 }
 
 async function flushSyncQueue(){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  if(_syncFlushInProgress) return; // éviter les exécutions concurrentes
+  _syncFlushInProgress = true;
+
   const q = getSyncQueue();
-  if(!q.length) return;
+  if(!q.length){ _syncFlushInProgress = false; return; }
+
   const remaining = [];
+  let synced = 0;
+
   for(const item of q){
     try {
+      // ── Backup avant chaque sync ──
+      await _backupBeforeSync(item.type, item.id);
+
       if(item.type==='chantier'){
         const c = await db.get('chantiers', item.id);
         if(c) await syncChantierToFirebase(c);
@@ -7338,13 +7547,30 @@ async function flushSyncQueue(){
         const r = await db.get('rapports', item.id);
         if(r) await syncRapportToFirebase(r);
       }
-    } catch(e){ remaining.push(item); }
+      synced++;
+    } catch(e){
+      item.retries = (item.retries || 0) + 1;
+      if(item.retries < SYNC_MAX_RETRIES){
+        remaining.push(item);
+        Logger.warn('Sync', `Retry ${item.retries}/${SYNC_MAX_RETRIES} pour ${item.type}/${item.id}`, e?.message);
+      } else {
+        Logger.error('Sync', `Abandon après ${SYNC_MAX_RETRIES} tentatives : ${item.type}/${item.id}`, e?.message);
+        toast(`❌ Sync échouée définitivement : ${item.type} ${item.id.substring(0,8)}…`);
+      }
+    }
   }
+
   saveSyncQueue(remaining);
+  _syncFlushInProgress = false;
+
   // Feature 12: Update sync queue badge
   renderSyncQueueBadge();
-  if(q.length > remaining.length)
-    toast(`🔄 ${q.length - remaining.length} élément(s) synchronisé(s) au retour en ligne`);
+
+  if(synced > 0)
+    toast(`🔄 ${synced} élément(s) synchronisé(s)`);
+
+  // Replanifier si il reste des items
+  if(remaining.length > 0) _scheduleSyncRetry();
 }
 
 function updateConnectivityUI(){
@@ -7364,11 +7590,23 @@ function updateConnectivityUI(){
 
 window.addEventListener('online', ()=>{
   updateConnectivityUI();
-  toast('🔄 Connexion rétablie — synchronisation en cours…');
-  flushSyncQueue();
+  // Annuler tout timer de retry en cours
+  if(_syncRetryTimer){ clearTimeout(_syncRetryTimer); _syncRetryTimer = null; }
+  // Réinitialiser les compteurs de retry (on a une connexion fraîche)
+  const q = getSyncQueue();
+  if(q.length){
+    q.forEach(item => item.retries = 0);
+    saveSyncQueue(q);
+    toast('🔄 Connexion rétablie — synchronisation en cours…');
+    flushSyncQueue();
+  } else {
+    toast('🟢 Connexion rétablie');
+  }
 });
 window.addEventListener('offline', ()=>{
   updateConnectivityUI();
+  // Annuler tout timer de retry
+  if(_syncRetryTimer){ clearTimeout(_syncRetryTimer); _syncRetryTimer = null; }
   toast('📴 Hors ligne — modifications sauvegardées localement');
 });
 
@@ -8037,19 +8275,37 @@ function renderSyncQueueBadge(){
 }
 
 function showSyncQueueModal(){
-  const queue = getSyncQueue();   // utilise SYNC_QUEUE_KEY = 'ncvrd_sync_queue'
+  const queue = getSyncQueue();
   const listEl = document.getElementById('sync-queue-list');
   if(!listEl) return;
 
   if(queue.length === 0){
     listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">✅ Tout est synchronisé</div>';
   } else {
-    listEl.innerHTML = queue.map(item => `
-      <div style="padding:10px;background:var(--input);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--accent)">
-        <div style="font-size:12px;font-weight:700;color:var(--text)">${item.type.replace(/_/g,' ').toUpperCase()}</div>
+    listEl.innerHTML = queue.map(item => {
+      const retries = item.retries || 0;
+      const delay = Math.round(_getBackoffDelay(retries) / 1000);
+      const statusColor = retries === 0 ? 'var(--accent)' : retries < 3 ? 'var(--orange)' : 'var(--red)';
+      const statusText = retries === 0 ? '⏳ En attente' : `🔄 Retry ${retries}/${SYNC_MAX_RETRIES} (${delay}s)`;
+      const age = Date.now() - (item.at || Date.now());
+      const ageText = age < 60000 ? 'il y a quelques secondes' : age < 3600000 ? `il y a ${Math.round(age/60000)} min` : `il y a ${Math.round(age/3600000)}h`;
+      return `
+      <div style="padding:10px;background:var(--input);border-radius:8px;margin-bottom:6px;border-left:3px solid ${statusColor}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:700;color:var(--text)">${item.type === 'chantier' ? '🏗️' : '📋'} ${item.type.toUpperCase()}</div>
+          <div style="font-size:10px;color:var(--muted)">${ageText}</div>
+        </div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">${item.id.substring(0,12)}…</div>
-      </div>
-    `).join('');
+        <div style="font-size:10px;color:${statusColor};margin-top:4px;font-weight:600">${statusText}</div>
+      </div>`;
+    }).join('');
+
+    // Bouton retry manuel
+    listEl.innerHTML += `
+      <button onclick="if(_syncRetryTimer){clearTimeout(_syncRetryTimer);_syncRetryTimer=null;}flushSyncQueue();closeModal('m-sync-queue')"
+        style="width:100%;margin-top:8px;padding:10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+        🔄 Forcer la synchronisation maintenant
+      </button>`;
   }
   openModal('m-sync-queue');
 }
@@ -8209,8 +8465,9 @@ async function initApp(){
 
   // Feature 11: Init PWA
 
-  // Feature 12: Render sync queue badge
+  // Feature 12: Render sync queue badge + lancer retry si items en attente
   renderSyncQueueBadge();
+  if(navigator.onLine) _scheduleSyncRetry();
 
   // Feature 13: Clean old photos
   await cleanOldLocalPhotos();
