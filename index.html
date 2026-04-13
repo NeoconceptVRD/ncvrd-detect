@@ -8228,7 +8228,11 @@ async function init(){
   });
 }
 
-init().catch(e=>Logger.error('Init', 'Erreur initialisation application', e?.message));
+init().catch(e=>{
+  Logger.error('Init', 'Erreur initialisation application', e?.message);
+  hideSplashScreen();
+  showScreen('s-login');
+});
 
 </script>
 </body>
