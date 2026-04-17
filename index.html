@@ -1305,8 +1305,9 @@ html[data-terrain="1"] {
     <div style="background:linear-gradient(90deg,#00b4ff,#a855f7,#00d4aa);height:3px;margin:0 0 4px;opacity:.8"></div>
     <div class="autosave-bar" id="autosave-bar">✓ Sauvegardé automatiquement</div>
     <div id="conflict-bar" style="display:none;padding:9px 14px;background:rgba(234,179,8,.12);border-bottom:1px solid rgba(234,179,8,.35);font-size:12px;font-weight:600;color:#fbbf24;line-height:1.4">
-      <span id="conflict-msg"></span>
       <button onclick="document.getElementById('conflict-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;color:#fbbf24;font-size:14px;line-height:1;padding:0 0 0 8px">✕</button>
+      <button onclick="reloadRapportFromCloud()" style="float:right;background:rgba(234,179,8,.2);border:1px solid rgba(234,179,8,.4);cursor:pointer;color:#fbbf24;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-left:6px">🔄 Recharger</button>
+      <span id="conflict-msg"></span>
     </div>
 
     <!-- Référence chantier (identifiant principal) -->
@@ -2532,11 +2533,13 @@ class CloudDB {
   }
   async del(store, id){
     if(!FIREBASE_CONFIGURED || !this._teamId) return this._idb.del(store,id);
-    try {
-      await this._col(store).doc(String(id)).delete();
-    } catch(e){
-      Logger.warn('CloudDB', `del('${store}', '${id}') Firestore échoué, fallback IDB`, e?.message);
-      return this._idb.del(store,id);
+    // Supprimer toujours en local ET en Firestore (les deux en parallèle)
+    const results = await Promise.allSettled([
+      this._col(store).doc(String(id)).delete(),
+      this._idb.del(store, id)
+    ]);
+    if(results[0].status === 'rejected'){
+      Logger.warn('CloudDB', `del('${store}', '${id}') Firestore échoué`, results[0].reason?.message);
     }
   }
 }
@@ -2946,10 +2949,11 @@ function isGlobalAdmin(role){ return DynLists.globalRolesSet.has(role); }
 
 function getRegionData(teamName){
   if(!teamName) return null;
-  const tn = teamName.toLowerCase();
-  if(tn.includes('grand est') || tn.includes('grand-est') || tn.includes('grandest')) return REGION_DATA['Grand EST'];
-  if(tn.includes('paris est') || tn.includes('paris-est') || tn.includes('noisy'))    return REGION_DATA['Paris EST'];
-  if(tn.includes('paris ouest') || tn.includes('paris-ouest') || tn.includes('courbevoie') || tn.includes('idf')) return REGION_DATA['Paris OUEST'];
+  // Normaliser : minuscules + remplacer tirets/underscores par espace pour matcher toutes les variantes
+  const tn = teamName.toLowerCase().replace(/[-_]/g,' ').replace(/\s+/g,' ').trim();
+  if(tn.includes('grand est') || tn.includes('grandest')) return REGION_DATA['Grand EST'];
+  if(tn.includes('paris est') || tn.includes('parisest') || tn.includes('noisy'))    return REGION_DATA['Paris EST'];
+  if(tn.includes('paris ouest') || tn.includes('parisoues') || tn.includes('courbevoie') || tn.includes('idf')) return REGION_DATA['Paris OUEST'];
   return null;
 }
 
@@ -3222,7 +3226,10 @@ async function updateProfileScreen(){
   // Photo de profil
   const av = document.getElementById('prof-avatar');
   if(av){
-    const photoURL = p.photoURL || localStorage.getItem('profilePhoto_'+(p.uid||'user'));
+    // Photo : Firestore en priorité, puis IndexedDB (fallback offline), puis localStorage (legacy)
+    let idbPhoto = null;
+    try { const rec = await db._idb.get('photos', 'profile_'+(p.uid||'user')); idbPhoto = rec?.dataUrl||null; } catch(_){}
+    const photoURL = p.photoURL || idbPhoto || localStorage.getItem('profilePhoto_'+(p.uid||'user'));
     if(photoURL) av.innerHTML = `<img src="${photoURL}" alt="Photo">`;
     else av.innerHTML = '👤';
   }
@@ -3376,6 +3383,19 @@ function showRapportIfAny(){
 
 // ════════════════════════════════════════════
 //  TOAST
+// ════════════════════════════════════════════
+//  UTILITAIRE : Échappement HTML (anti-XSS)
+// ════════════════════════════════════════════
+function escHtml(str){
+  if(!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 // ════════════════════════════════════════════
 let toastTimer;
 function toast(msg){
@@ -4896,18 +4916,32 @@ async function compressImage(file, maxW=1024, maxSizeKB=300){
           // Toujours JPEG — le WebP est rejeté par docx.js (export Word) et certains serveurs
           const fmt = 'image/jpeg';
           const maxBytes = maxSizeKB * 1024;
-
-          // Essayer différentes qualités jusqu'à obtenir la taille cible
-          let quality = 0.82;
-          let dataUrl = canvas.toDataURL(fmt, quality);
-          // Taille approximative en octets du base64
           const b64Size = s => Math.round(s.length * 3 / 4);
-          // Réduire la qualité par paliers jusqu'à atteindre la taille cible
+
+          // Étape 1 : réduire la qualité par paliers
           const steps = [0.82, 0.70, 0.58, 0.45, 0.32];
+          let dataUrl = canvas.toDataURL(fmt, steps[0]);
           for(const q of steps){
             dataUrl = canvas.toDataURL(fmt, q);
             if(b64Size(dataUrl) <= maxBytes) break;
           }
+
+          // Étape 2 : si toujours trop lourd, réduire aussi les dimensions (récursif par paliers)
+          if(b64Size(dataUrl) > maxBytes){
+            const scaleSteps = [0.75, 0.60, 0.50, 0.40];
+            for(const sc of scaleSteps){
+              const c2 = document.createElement('canvas');
+              c2.width  = Math.round(canvas.width  * sc);
+              c2.height = Math.round(canvas.height * sc);
+              const ctx2 = c2.getContext('2d');
+              ctx2.fillStyle = '#ffffff';
+              ctx2.fillRect(0, 0, c2.width, c2.height);
+              ctx2.drawImage(canvas, 0, 0, c2.width, c2.height);
+              dataUrl = c2.toDataURL(fmt, 0.70);
+              if(b64Size(dataUrl) <= maxBytes) break;
+            }
+          }
+
           res(dataUrl);
         } catch(err){ rej(err); }
       };
@@ -6690,6 +6724,9 @@ async function syncRapportToFirebase(r){
         renderNetworks();
         renderRapportPhotos();
       }
+    }).catch(e => {
+      Logger.warn('Sync', 'uploadRapportPhotos échoué — photos non synchronisées', e?.message);
+      addToSyncQueue('rapport', r.id);
     });
   }
 }
@@ -6709,10 +6746,35 @@ async function checkRapportConflict(r){
       const msg = document.getElementById('conflict-msg');
       const diff = Math.round((Date.now() - remote.lastModifiedAt) / 60000);
       const timeStr = diff < 1 ? 'à l\'instant' : `il y a ${diff} min`;
-      if(msg) msg.textContent = `⚠️ ${remote.lastModifiedName||'Un collègue'} a modifié ce rapport ${timeStr}. Vos modifications peuvent être en conflit.`;
+      if(msg) msg.textContent = `⚠️ ${escHtml(remote.lastModifiedName||'Un collègue')} a modifié ce rapport ${timeStr}. Vos modifications peuvent être en conflit.`;
       if(bar) bar.style.display = 'block';
     }
-  } catch(e){ /* silencieux */ }
+  } catch(e){ Logger.debug('Conflict', 'Vérification conflit échouée', e?.message); }
+}
+
+// ── Recharger le rapport depuis Firestore (résolution de conflit) ──
+async function reloadRapportFromCloud(){
+  if(!S.currentRapport || !FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  const teamId = (S.currentChantier?._teamId) || currentUserProfile.teamId;
+  if(!confirm('🔄 Recharger le rapport depuis le cloud ?\n\nVos modifications non sauvegardées seront perdues.')) return;
+  try {
+    const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(S.currentRapport.id).get();
+    if(!snap.exists){ toast('❌ Rapport introuvable dans le cloud'); return; }
+    const remote = snap.data();
+    // Sauvegarder en local
+    await db._idb.put('rapports', remote);
+    S.currentRapport = remote;
+    // Rafraîchir toute l'interface du rapport
+    renderNetworks();
+    renderRapportPhotos();
+    renderConclusionPhotos();
+    renderModifHistory();
+    document.getElementById('conflict-bar').style.display = 'none';
+    toast('✅ Rapport rechargé depuis le cloud');
+  } catch(e){
+    Logger.warn('Conflict', 'Rechargement cloud échoué', e?.message);
+    toast('❌ Erreur rechargement : ' + (e?.message||e));
+  }
 }
 
 // ── Invitation collaborateurs sur un chantier ──────────────────
@@ -6763,8 +6825,8 @@ async function refreshInviteChantierList(){
       const btnRm   = `<button onclick="removeCollaborateurChantier('${chantierId}','${u.uid}')" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#dc2626;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Retirer</button>`;
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
         <div>
-          <div style="font-weight:700;font-size:13px">👤 ${u.displayName||u.email||'—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${u.role||'Technicien'}${isCollab?' · <span style="color:#4ade80;font-weight:700">✅ Invité</span>':''}</div>
+          <div style="font-weight:700;font-size:13px">👤 ${escHtml(u.displayName||u.email||'—')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escHtml(u.role||'Technicien')}${isCollab?' · <span style="color:#4ade80;font-weight:700">✅ Invité</span>':''}</div>
         </div>
         ${isCollab ? btnRm : btnAdd}
       </div>`;
@@ -6777,6 +6839,13 @@ async function refreshInviteChantierList(){
 async function addCollaborateurChantier(chantierId, targetUid){
   const chantier = S.chantiers.find(c=>c.id===chantierId);
   if(!chantier) return;
+  // Seul le créateur du chantier ou un admin peut inviter des collaborateurs
+  const isCreator = chantier.createdBy === currentUserProfile?.uid;
+  const isAdmin   = isAdminRole(currentUserProfile?.role);
+  if(!isCreator && !isAdmin){
+    toast('⛔ Seul le créateur du chantier peut inviter des collaborateurs');
+    return;
+  }
   if(!chantier.collaborators) chantier.collaborators=[];
   if(chantier.collaborators.includes(targetUid)) return;
   chantier.collaborators.push(targetUid);
@@ -6845,8 +6914,8 @@ async function openCollabModal(){
       listEl.innerHTML = users.map(u=>`
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
           <div>
-            <div style="font-weight:700;font-size:13px">👤 ${u.displayName||u.email}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">${u.email||''}${u.uid===currentUser.uid?' · <strong>Vous</strong>':''}</div>
+            <div style="font-weight:700;font-size:13px">👤 ${escHtml(u.displayName||u.email)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">${escHtml(u.email||'')}${u.uid===currentUser.uid?' · <strong>Vous</strong>':''}</div>
             <div style="margin-top:5px">${roleBadgeHTML(u.role||'Technicien')}</div>
           </div>
         </div>`).join('');
@@ -7203,7 +7272,7 @@ function renderAdminParams(){
     const c = roleColor(u.role);
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.displayName||u.email||'—'}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(u.displayName||u.email||'—')}</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
           <span style="display:inline-block;background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">${u.role||'—'}</span>
           <span style="font-size:11px;color:var(--muted)">🗺️ ${regionLabel}</span>
@@ -7346,7 +7415,7 @@ function renderAdminAgencies(filter=''){
       <div>${members.length?members.map(u=>`
         <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid var(--border)">
           <div style="min-width:0">
-            <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👤 ${u.displayName||u.email}</div>
+            <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👤 ${escHtml(u.displayName||u.email)}</div>
             <div style="margin-top:3px">${roleBadgeHTML(u.role)}</div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
@@ -7664,7 +7733,12 @@ function handleProfilePhotoChange(event){
           toast('✅ Photo de profil mise à jour');
         }catch(err){ toast('❌ Erreur sauvegarde photo'); }
       } else {
-        localStorage.setItem('profilePhoto_'+( currentUserProfile&&currentUserProfile.uid||'user'), dataURL);
+        // Stocker dans IndexedDB (pas localStorage) pour éviter la saturation du quota 5MB
+        try {
+          await db._idb.put('photos', {id:'profile_'+(currentUserProfile?.uid||'user'), dataUrl: dataURL, type:'profile'});
+        } catch(_) {
+          localStorage.setItem('profilePhoto_'+(currentUserProfile?.uid||'user'), dataURL); // fallback legacy
+        }
         toast('✅ Photo enregistrée localement');
       }
     };
@@ -8436,8 +8510,10 @@ async function monthlyCleanup(manual = false){
   localStorage.setItem('ncvrd_last_monthly_cleanup', currentKey);
 
   // ── Étape 6 : Rafraîchir l'interface ──
+  renderChantiers([]); // vider immédiatement le DOM avant rechargement
   await loadChantiers().catch(()=>{});
   await updateProfileScreen().catch(()=>{});
+  showScreen('screen-home'); // retourner à l'accueil si on était dans un rapport
 
   if(erreurs.length === 0){
     toast(manual
