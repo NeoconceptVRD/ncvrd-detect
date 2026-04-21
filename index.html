@@ -8470,7 +8470,8 @@ async function monthlyCleanup(manual = false){
   // ── Étape 2 : Firestore ──
   if(FIREBASE_CONFIGURED && fdb && currentUserProfile?.teamId){
     const teamId = currentUserProfile.teamId;
-    for(const store of ['rapports','chantiers','gps_points']){
+    // Note : gps_points n'est pas synchronisé sur Firestore (local-only) — on l'exclut
+    for(const store of ['rapports','chantiers']){
       try {
         const snap = await fdb.collection('teams').doc(teamId).collection(store).get();
         if(snap.docs.length > 0){
