@@ -135,7 +135,10 @@ body > *{position:relative;z-index:1}
 }
 .sync-pill.online{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.25)}
 .sync-pill.offline{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.sync-pill.syncing{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3);cursor:pointer}
+.sync-pill.syncing:hover{background:rgba(245,158,11,.2)}
 .sync-dot{width:6px;height:6px;border-radius:50%}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* ── SCREENS ─────────────────────────── */
 #app{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .screen{display:none;min-height:100%}
@@ -3697,6 +3700,50 @@ const Validator = {
   }
 };
 
+// ════════════════════════════════════════════
+//  Validation métier — vérifie qu'un livrable est complet avant export/envoi
+// ════════════════════════════════════════════
+
+// Retourne un array d'erreurs (string[]) pour un rapport de détection
+function _validateRapportForExport(r){
+  if(!r) return ['Aucun rapport ouvert'];
+  const e = [];
+  const isEmpty = v => !v || (typeof v === 'string' && !v.trim());
+  if(isEmpty(r.client))           e.push('Client / Donneur d\'ordre');
+  if(isEmpty(r.natureOperations)) e.push('Nature des opérations');
+  if(isEmpty(r.adresse))          e.push('Adresse du chantier');
+  if(isEmpty(r.dateDebut))        e.push('Date d\'intervention');
+  if(isEmpty(r.dtNum))            e.push('Numéro de DT');
+  if(isEmpty(r.dtDate))           e.push('Date de déclaration DT');
+  if(isEmpty(r.respNom))          e.push('Responsable de projet');
+  const activeNets = (r.networks||[]).filter(n => n && n.active);
+  if(activeNets.length === 0)     e.push('Aucun réseau actif');
+  if(isEmpty(r.conclusions))      e.push('Conclusions vides');
+  return e;
+}
+
+// Retourne un array d'erreurs pour une fiche ouvrage
+function _validateOuvrageForExport(o){
+  if(!o) return ['Aucun ouvrage ouvert'];
+  const e = [];
+  const isEmpty = v => !v || (typeof v === 'string' && !v.trim());
+  if(isEmpty(o.numeroOuvrage)) e.push('Numéro d\'ouvrage');
+  if(isEmpty(o.typeOuvrage))   e.push('Type d\'ouvrage');
+  if(isEmpty(o.natureReseau))  e.push('Nature du réseau');
+  return e;
+}
+
+// Modal de validation : si des champs manquent, demande confirmation avant export.
+// Retourne true si OK pour continuer (pas d'erreur ou utilisateur a confirmé), false sinon.
+function _confirmIfIncomplete(errors, contextLabel){
+  if(!errors || !errors.length) return true;
+  const msg = '⚠️  ' + contextLabel + ' incomplet :\n\n' +
+              errors.map(x => '   •  ' + x).join('\n') +
+              '\n\nGénérer quand même ?\n' +
+              '(Cliquez OK pour exporter malgré tout, Annuler pour compléter d\'abord)';
+  return window.confirm(msg);
+}
+
 if (FIREBASE_CONFIGURED) {
   firebase.initializeApp(FIREBASE_CONFIG);
   fauth    = firebase.auth();
@@ -3713,6 +3760,136 @@ if (FIREBASE_CONFIGURED) {
 // ════════════════════════════════════════════
 //  CLOUD DB WRAPPER (remplace IndexedDB)
 // ════════════════════════════════════════════
+// ── Migration automatique : télécharge en base64 local les photos Storage d'un rapport ──
+// Garantit qu'un rapport ouvert sur un appareil sera consultable et exportable en Word même
+// hors ligne, et que tous les exports Word fonctionneront sans dépendre du CORS Firebase.
+// Asynchrone non-bloquant : appelé en fire-and-forget depuis openChantier.
+async function _cacheStoragePhotosLocally(r){
+  if(!r) return;
+  if(!navigator.onLine) return; // pas de migration possible en offline
+  const isB64 = s => typeof s === 'string' && s.startsWith('data:');
+  const isStorageUrl = s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://'));
+
+  // Fetch + conversion en data URL (base64) — gère le CORS et les Firebase Storage URLs
+  const tryFetch = async (url) => {
+    try {
+      let res = await fetch(url, {mode:'cors'});
+      if(!res.ok && url.includes('firebasestorage.googleapis.com') && typeof fstorage !== 'undefined' && fstorage){
+        // Fallback SDK Firebase pour les URLs avec token expiré
+        try {
+          const ref = fstorage.refFromURL(url);
+          const fresh = await ref.getDownloadURL();
+          res = await fetch(fresh, {mode:'cors'});
+        } catch(_){ return null; }
+      }
+      if(!res.ok) return null;
+      const blob = await res.blob();
+      return await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch(_){ return null; }
+  };
+
+  let cached = 0, total = 0;
+
+  // Plan de situation
+  if(isStorageUrl(r.planSituation) && !isB64(r.planSituation)){
+    total++;
+    const b64 = await tryFetch(r.planSituation);
+    if(b64){
+      if(!r._planUrl) r._planUrl = r.planSituation; // mémoriser l'URL Storage pour la sync
+      r.planSituation = b64;
+      cached++;
+    }
+  }
+
+  // Photos réseaux
+  if(Array.isArray(r.networks)){
+    for(const n of r.networks){
+      if(!Array.isArray(n.photos)) continue;
+      if(!Array.isArray(n._photosUrls)) n._photosUrls = [];
+      for(let i = 0; i < n.photos.length; i++){
+        const p = n.photos[i];
+        if(isStorageUrl(p) && !isB64(p)){
+          total++;
+          const b64 = await tryFetch(p);
+          if(b64){
+            // Mémoriser l'URL Storage (utile pour la sync ultérieure)
+            if(!n._photosUrls.includes(p)) n._photosUrls.push(p);
+            n.photos[i] = b64;
+            cached++;
+          }
+        }
+      }
+    }
+  }
+
+  // Photos de conclusion
+  if(Array.isArray(r.conclusionPhotos)){
+    if(!Array.isArray(r._conclusionUrls)) r._conclusionUrls = [];
+    for(let i = 0; i < r.conclusionPhotos.length; i++){
+      const p = r.conclusionPhotos[i];
+      if(isStorageUrl(p) && !isB64(p)){
+        total++;
+        const b64 = await tryFetch(p);
+        if(b64){
+          if(!r._conclusionUrls.includes(p)) r._conclusionUrls.push(p);
+          r.conclusionPhotos[i] = b64;
+          cached++;
+        }
+      }
+    }
+  }
+
+  // Sauvegarder en IDB local seulement (pas de re-sync Firestore : photos déjà uploadées)
+  if(cached > 0){
+    try { await db._idb.put('rapports', r); } catch(_){}
+    Logger.info('Photos', `Cache local : ${cached}/${total} photo(s) Storage téléchargée(s)`);
+  }
+}
+
+// ── Strip "léger" d'un rapport pour Firestore (vire les base64 lourds) ──
+// Préserve les URLs Storage déjà uploadées (champs ._photosUrls, ._planUrl, ._conclusionUrls).
+// Utilisé par CloudDB.put pour éviter le rejet Firestore (limite 1 MB / document).
+// Distinct de _writeRapportToFirestore qui fait un strip plus complet + upload Storage.
+function _stripRapportForFirestore(r){
+  const d = {...r};
+  const isB64 = s => typeof s === 'string' && s.startsWith('data:');
+  // Plan de situation : base64 → vire, garde URL Storage si présente
+  if(isB64(d.planSituation)) delete d.planSituation;
+  if(r._planUrl && !d.planSituation) d.planSituation = r._planUrl;
+  // Signatures : toujours locales (jamais partagées)
+  delete d.signature;
+  delete d.signatureVeri;
+  // Photos conclusion : vire base64, ajoute URLs Storage si dispo
+  if(Array.isArray(d.conclusionPhotos)){
+    const storageOnly = d.conclusionPhotos.filter(p => p && !isB64(p));
+    if(Array.isArray(r._conclusionUrls)){
+      r._conclusionUrls.forEach(u => { if(u && !isB64(u) && !storageOnly.includes(u)) storageOnly.push(u); });
+    }
+    d.conclusionPhotos = storageOnly;
+  }
+  delete d._conclusionUrls;
+  delete d._planUrl;
+  // Photos réseaux : vire base64 dans n.photos et n.photo (legacy)
+  if(Array.isArray(d.networks)){
+    d.networks = d.networks.map(n => {
+      const nClean = {...n};
+      const storageUrls = (n._photosUrls||[]).filter(u => u && !isB64(u));
+      const photosKeep  = (n.photos||[]).filter(p => p && !isB64(p));
+      // Préfère les URLs Storage si dispo, sinon ce qui n'est pas base64 dans n.photos
+      nClean.photos = storageUrls.length ? storageUrls : photosKeep;
+      if(isB64(nClean.photo)) delete nClean.photo;
+      delete nClean._photosUrls;
+      return nClean;
+    });
+  }
+  return d;
+}
+
 class CloudDB {
   constructor(){ this._teamId = null; this._idb = new AppDB(); }
   async open(){ await this._idb.open(); return this; }
@@ -3753,9 +3930,18 @@ class CloudDB {
     await this._idb.put(store, data);
     // ── 2. Si store local-only ou Firebase indispo, terminé ──
     if(!FIREBASE_CONFIGURED || !this._teamId || this._isLocalOnly(store)) return data;
-    // ── 3. Sync Firestore en best-effort (l'IDB est déjà sécurisé) ──
+    // ── 3. Strip photos base64 lourdes avant Firestore (limite 1 MB/doc) ──
+    //    Préserve les URLs Storage qui sont les vraies données partagées entre collaborateurs.
+    //    syncRapportToFirebase fait un strip complet en parallèle quand il est appelé.
+    let d;
     try {
-      const d = {...data};
+      d = (store === 'rapports') ? _stripRapportForFirestore(data) : {...data};
+    } catch(e){
+      Logger.warn('CloudDB', `strip échoué pour ${store}/${data?.id}, envoi brut`, e?.message);
+      d = {...data};
+    }
+    // ── 4. Sync Firestore en best-effort (l'IDB est déjà sécurisé) ──
+    try {
       await this._col(store).doc(String(d.id)).set(d,{merge:true});
     } catch(e){
       Logger.warn('CloudDB', `put('${store}', '${data?.id}') Firestore échoué (IDB OK)`, e?.message);
@@ -5317,6 +5503,11 @@ async function openChantier(id){
   S.photos=await db.getAll('photos');
   S.gpsPoints=await db.getAll('gps_points');
   showScreen('screen-rapport');
+  // ── Migration auto des photos Storage en base64 local (fire-and-forget) ──
+  // Garantit la dispo offline + exports Word même sans réseau. Idempotent.
+  _cacheStoragePhotosLocally(rapport).catch(e =>
+    Logger.warn('Photos', 'Cache local échoué', e?.message)
+  );
 }
 
 async function createChantier(){
@@ -7104,6 +7295,20 @@ async function exportAllOuvrages(){
 }
 
 async function _generateOuvragesWord(ouvrages, filename){
+  // ── Validation : champs critiques par ouvrage (agrège les erreurs uniques) ──
+  if(Array.isArray(ouvrages) && ouvrages.length){
+    const seen = new Set();
+    const errs = [];
+    ouvrages.forEach((o,i) => {
+      const oErr = _validateOuvrageForExport(o);
+      oErr.forEach(msg => {
+        const key = ouvrages.length === 1 ? msg : 'Ouvrage '+(i+1)+' — '+msg;
+        if(!seen.has(key)){ seen.add(key); errs.push(key); }
+      });
+    });
+    const label = ouvrages.length === 1 ? 'La fiche ouvrage est' : 'L\'export ouvrages est';
+    if(!_confirmIfIncomplete(errs, label)) return;
+  }
   // ── Chargement docx.js ──
   await new Promise((resolve, reject)=>{
     if(window.docx) return resolve();
@@ -7839,6 +8044,9 @@ function _imgToBytes(src){ return Promise.resolve(null); }
 
 async function doWordDocx(){
   const r = S.currentRapport;
+  // ── Validation : champs critiques pour un livrable client ──
+  const _vErr = _validateRapportForExport(r);
+  if(!_confirmIfIncomplete(_vErr, 'Le rapport de détection est')) return;
   const c = S.currentChantier || S.chantiers.find(x=>x.id===S.activeChantier) || {};
   const dateGen = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
 
@@ -10452,7 +10660,11 @@ let _syncRetryTimer = null;
 let _syncFlushInProgress = false;
 
 function getSyncQueue(){ try{ return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)||'[]'); }catch{ return []; } }
-function saveSyncQueue(q){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+function saveSyncQueue(q){
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q));
+  // Mettre à jour le pill + banner pour refléter le nouveau compteur
+  if(typeof updateConnectivityUI === 'function') updateConnectivityUI();
+}
 
 function addToSyncQueue(type, id){
   const q = getSyncQueue();
@@ -10593,16 +10805,53 @@ async function flushSyncQueue(){
 function updateConnectivityUI(){
   const online = navigator.onLine;
   S.isOffline = !online;
+  const queueCount = (typeof getSyncQueue === 'function') ? getSyncQueue().length : 0;
+  // ── Pill topbar : 3 états (online / syncing / offline) ──
   const pill = document.getElementById('syncPill');
   if(pill){
-    if(online){
+    pill.setAttribute('role','status');
+    pill.setAttribute('aria-live','polite');
+    if(online && queueCount === 0){
       pill.className='sync-pill online';
+      pill.setAttribute('aria-label','En ligne');
       pill.innerHTML='<div class="sync-dot" style="background:var(--green)"></div><span>En ligne</span>';
+    } else if(online && queueCount > 0){
+      pill.className='sync-pill syncing';
+      pill.setAttribute('aria-label', queueCount+' modification'+(queueCount>1?'s':'')+' en cours de synchronisation');
+      pill.innerHTML='<div class="sync-dot" style="background:#f59e0b;animation:pulse 1.2s infinite"></div><span>'+queueCount+' à sync</span>';
     } else {
       pill.className='sync-pill offline';
-      pill.innerHTML='<div class="sync-dot" style="background:var(--red)"></div><span>Hors ligne</span>';
+      pill.setAttribute('aria-label','Hors ligne'+(queueCount?', '+queueCount+' en attente':''));
+      pill.innerHTML='<div class="sync-dot" style="background:var(--red)"></div><span>Hors ligne'+(queueCount?' · '+queueCount:'')+'</span>';
     }
   }
+  // ── Banner persistant top quand offline ──
+  _updateOfflineBanner(!online, queueCount);
+}
+
+// ── Banner offline persistant (au-dessus de la topbar, plein largeur) ──
+function _updateOfflineBanner(offline, queueCount){
+  const id = 'offline-banner';
+  let banner = document.getElementById(id);
+  if(!offline){
+    if(banner) banner.remove();
+    document.body.style.paddingTop = ''; // reset
+    return;
+  }
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = id;
+    banner.setAttribute('role','status');
+    banner.setAttribute('aria-live','polite');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(90deg,#dc2626 0%,#b91c1c 100%);color:#fff;padding:7px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(220,38,38,.4);font-family:Inter,sans-serif;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:8px';
+    document.body.appendChild(banner);
+    // Décaler le contenu pour ne pas être caché sous le banner
+    document.body.style.paddingTop = '32px';
+  }
+  banner.innerHTML = '📡 <strong>Hors ligne</strong>' +
+    (queueCount > 0
+      ? ' — '+queueCount+' modification'+(queueCount>1?'s':'')+' en attente'
+      : ' — modifications sauvegardées localement');
 }
 
 window.addEventListener('online', ()=>{
@@ -11921,6 +12170,9 @@ const _blobRapportSRESST    = ()=> _captureBlob(doSRESSTWordDocx);
 
 // ── Raccourcis UI ──
 function emailRapportDetection(){
+  // ── Validation : on bloque l'envoi mail si rapport incomplet (livrable client) ──
+  const _vErr = _validateRapportForExport(S.currentRapport);
+  if(!_confirmIfIncomplete(_vErr, 'Le rapport à envoyer est')) return;
   const c = S.currentChantier || S.chantiers.find(x=>x.id===S.activeChantier) || {};
   const fname = 'CR_'+(c.name||'rapport').replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.docx';
   openEmailSendModal(
@@ -11941,6 +12193,9 @@ function emailRapportOuvrages(){
 function emailSingleOuvrage(){
   const o = _currentOuvrage;
   if(!o){ toast('❌ Aucun ouvrage ouvert'); return; }
+  // ── Validation : champs critiques de la fiche ouvrage ──
+  const _vErr = _validateOuvrageForExport(o);
+  if(!_confirmIfIncomplete(_vErr, 'La fiche ouvrage à envoyer est')) return;
   const num = o.numeroOuvrage || 'Ouvrage';
   const fname = 'Ouvrage_'+num.replace(/[^a-zA-Z0-9_-]/g,'_')+'.docx';
   openEmailSendModal(
