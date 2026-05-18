@@ -3747,15 +3747,20 @@ class CloudDB {
     }
   }
   async put(store, data){
-    if(!FIREBASE_CONFIGURED || !this._teamId || this._isLocalOnly(store)) return this._idb.put(store,data);
+    // ── 1. TOUJOURS écrire en IDB d'abord (source de vérité locale + mode offline) ──
+    //    Critique pour persister photos/plan/signatures qui ne vont pas en Firestore.
+    //    Sans ça, F5 ou navigation perd les données ajoutées en mémoire.
+    await this._idb.put(store, data);
+    // ── 2. Si store local-only ou Firebase indispo, terminé ──
+    if(!FIREBASE_CONFIGURED || !this._teamId || this._isLocalOnly(store)) return data;
+    // ── 3. Sync Firestore en best-effort (l'IDB est déjà sécurisé) ──
     try {
       const d = {...data};
       await this._col(store).doc(String(d.id)).set(d,{merge:true});
-      return data;
     } catch(e){
-      Logger.warn('CloudDB', `put('${store}', '${data?.id}') Firestore échoué, fallback IDB`, e?.message);
-      return this._idb.put(store,data);
+      Logger.warn('CloudDB', `put('${store}', '${data?.id}') Firestore échoué (IDB OK)`, e?.message);
     }
+    return data;
   }
   async del(store, id){
     if(!FIREBASE_CONFIGURED || !this._teamId || this._isLocalOnly(store)) return this._idb.del(store,id);
@@ -4639,8 +4644,78 @@ function toast(msg){
 // ════════════════════════════════════════════
 //  MODAL
 // ════════════════════════════════════════════
-function openModal(id){document.getElementById(id).classList.add('show')}
-function closeModal(id){document.getElementById(id).classList.remove('show')}
+function openModal(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('show');
+  // ARIA : annonce le rôle dialog pour les lecteurs d'écran
+  if(!el.hasAttribute('role')) el.setAttribute('role','dialog');
+  if(!el.hasAttribute('aria-modal')) el.setAttribute('aria-modal','true');
+}
+function closeModal(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('show');
+}
+// ── Escape global : ferme la dernière modal ouverte ──
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  const openModals = document.querySelectorAll('.modal.show');
+  if(!openModals.length) return;
+  const last = openModals[openModals.length - 1];
+  if(last.id) closeModal(last.id);
+});
+
+// ── Auto-ARIA : ajoute aria-label sur les boutons icône sans texte (accessibilité) ──
+const _ARIA_EMOJI_MAP = {
+  '🗑️':'Supprimer', '🗑':'Supprimer',
+  '✕':'Fermer', '×':'Fermer', '❌':'Fermer',
+  '🔄':'Actualiser', '🔃':'Actualiser',
+  '✉️':'Envoyer par e-mail', '✉':'Envoyer par e-mail', '📧':'Envoyer par e-mail',
+  '📝':'Exporter en Word', '📄':'Exporter',
+  '✏️':'Modifier', '✏':'Modifier',
+  '⚙️':'Paramètres', '⚙':'Paramètres',
+  '←':'Retour', '⟵':'Retour', '◀':'Retour', '◁':'Retour',
+  '+':'Ajouter', '➕':'Ajouter',
+  '👁':'Voir', '👁️':'Voir',
+  '📷':'Prendre une photo', '📸':'Prendre une photo',
+  '🌙':'Mode terrain', '☀️':'Mode nuit',
+  '🔍':'Rechercher',
+  '⋮':'Menu', '⋯':'Menu', '☰':'Menu',
+  '🦺':'SRESST',
+  '🏗️':'Chantiers', '📂':'Dossier', '📋':'Rapport', '🔩':'Ouvrages', '👤':'Profil',
+};
+function _applyAriaLabels(root){
+  if(!root) root = document;
+  // Le node racine peut être un bouton lui-même
+  const collect = [];
+  if(root.tagName === 'BUTTON' || root.getAttribute?.('role') === 'button') collect.push(root);
+  if(root.querySelectorAll) collect.push(...root.querySelectorAll('button, [role="button"]'));
+  for(const btn of collect){
+    if(btn.hasAttribute('aria-label')) continue;
+    // Modal close → toujours "Fermer"
+    if(btn.classList?.contains('modal-close')){ btn.setAttribute('aria-label','Fermer'); continue; }
+    const txt = (btn.textContent || '').trim();
+    // Bouton sans texte du tout
+    if(!txt){ continue; }
+    // Bouton avec uniquement un emoji court (≤ 3 chars unicode)
+    if(txt.length <= 3 && _ARIA_EMOJI_MAP[txt]){
+      btn.setAttribute('aria-label', _ARIA_EMOJI_MAP[txt]);
+    }
+  }
+}
+// Boot : patche le DOM statique
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => _applyAriaLabels());
+} else {
+  _applyAriaLabels();
+}
+// Observer : couvre le DOM dynamique (cards de chantier, ouvrages, etc.)
+try {
+  new MutationObserver(muts => {
+    for(const m of muts) for(const node of m.addedNodes) if(node.nodeType === 1) _applyAriaLabels(node);
+  }).observe(document.body, {childList:true, subtree:true});
+} catch(_){}
 function togglePwd(inputId,btn){
   const inp=document.getElementById(inputId);if(!inp)return;
   const show=inp.type==='password';
@@ -5142,9 +5217,23 @@ async function refreshChantierNow(){
 }
 
 async function openChantier(id){
+  if(!id){ toast('❌ Identifiant chantier manquant'); return; }
   S.currentChantier=S.chantiers.find(c=>c.id===id);
+  // Garde : chantier supprimé/inconnu (race condition possible)
+  if(!S.currentChantier){
+    // Fallback : tenter IDB direct puis Firestore avant d'abandonner
+    try {
+      const local = await db._idb.get('chantiers', id);
+      if(local){ S.currentChantier = local; }
+    } catch(_){}
+    if(!S.currentChantier){
+      toast('❌ Chantier introuvable (peut-être supprimé)');
+      Logger.warn('Chantiers', `openChantier(${id}) : chantier absent de S.chantiers et IDB`);
+      return;
+    }
+  }
   // Si le chantier vient d'une autre équipe (DG multi-team), on switche temporairement
-  if(S.currentChantier && S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
+  if(S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
   let rapport=await db.get('rapports',id);
 
   // Toujours essayer Firestore quand on est en ligne — pour que les collaborateurs
@@ -6059,10 +6148,7 @@ function removeConclusionPhoto(idx){
 function viewConclusionPhoto(idx){
   const src=S.currentRapport.conclusionPhotos[idx];
   if(!src) return;
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML=`<img src="${src}" style="max-width:95vw;max-height:90vh;border-radius:8px"><button onclick="this.parentNode.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:40px;height:40px;font-family:inherit">✕</button>`;
-  document.body.appendChild(overlay);
+  _openPhotoOverlay(src);
 }
 
 // ════════════════════════════════════════════
@@ -6196,9 +6282,31 @@ function viewNetPhoto(netId, idx){
   if(!n) return;
   const photos = n.photos || (n.photo ? [n.photo] : []);
   const src = photos[idx]; if(!src) return;
+  _openPhotoOverlay(src);
+}
+
+// ── Overlay photo en plein écran (créé via DOM, anti-XSS + clavier Esc) ──
+function _openPhotoOverlay(src){
+  if(!src) return;
   const overlay = document.createElement('div');
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-label','Aperçu photo');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML=`<img src="${src}" style="max-width:95vw;max-height:90vh;border-radius:8px"><button onclick="this.parentNode.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:40px;height:40px;font-family:inherit">✕</button>`;
+  const img = document.createElement('img');
+  img.src = src; // src est une dataUrl/URL contrôlée, mais utiliser .src évite l'injection HTML
+  img.alt = 'Photo';
+  img.style.cssText = 'max-width:95vw;max-height:90vh;border-radius:8px';
+  const closeBtn = document.createElement('button');
+  closeBtn.setAttribute('aria-label','Fermer');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:40px;height:40px;font-family:inherit';
+  const close = ()=>{ overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  overlay.appendChild(img);
+  overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
 }
 
@@ -11070,10 +11178,92 @@ async function terminerChantier(id){
 }
 
 // ════════════════════════════════════════════
-//  FEATURE 11: PWA
-// PWA — Service Worker uniquement (sans bannière d'installation)
+//  FEATURE 11: PWA — Service Worker + install prompt + auto-update
+// ════════════════════════════════════════════
+
+// ── Stockage de l'événement beforeinstallprompt (déclenché par Chrome/Edge si PWA installable) ──
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  _showInstallButton();
+});
+
+// Crée dynamiquement un bouton "⬇️ Installer l'app" flottant (apparaît uniquement quand installable)
+function _showInstallButton(){
+  if(document.getElementById('btn-install-pwa')) return;
+  const btn = document.createElement('button');
+  btn.id = 'btn-install-pwa';
+  btn.setAttribute('aria-label','Installer NCVRD Detect en tant qu\'application');
+  btn.textContent = '⬇️  Installer l\'app';
+  btn.style.cssText = 'position:fixed;bottom:90px;right:16px;background:#0B769F;color:#fff;border:none;padding:10px 16px;border-radius:24px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;box-shadow:0 6px 16px rgba(11,118,159,.4);z-index:1500;transition:transform .15s';
+  btn.addEventListener('mouseenter', () => btn.style.transform = 'translateY(-2px)');
+  btn.addEventListener('mouseleave', () => btn.style.transform = 'translateY(0)');
+  btn.addEventListener('click', promptInstallPWA);
+  document.body.appendChild(btn);
+}
+
+async function promptInstallPWA(){
+  if(!_deferredInstallPrompt){
+    toast('ℹ️ Installation déjà effectuée ou non supportée par ce navigateur');
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  document.getElementById('btn-install-pwa')?.remove();
+  if(outcome === 'accepted') toast('✅ Application installée');
+}
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  document.getElementById('btn-install-pwa')?.remove();
+  toast('🎉 NCVRD Detect installé en tant qu\'application');
+});
+
+// ── Service Worker + auto-update ──
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // Au boot, demander au SW de vérifier s'il y a une nouvelle version
+    reg.update().catch(()=>{});
+    // Re-check toutes les heures
+    setInterval(()=>reg.update().catch(()=>{}), 60 * 60 * 1000);
+    // Quand un nouveau SW est trouvé et prêt → proposer le rechargement
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if(!nw) return;
+      nw.addEventListener('statechange', () => {
+        if(nw.state === 'installed' && navigator.serviceWorker.controller){
+          // Une nouvelle version est dispo (le SW actuel est encore en place)
+          _promptAppUpdate();
+        }
+      });
+    });
+  }).catch(()=>{});
+}
+
+// Affiche un toast persistant invitant à recharger pour avoir la nouvelle version
+let _updateToastShown = false;
+function _promptAppUpdate(){
+  if(_updateToastShown) return;
+  _updateToastShown = true;
+  // Réutilise le système de toast s'il existe, sinon crée un bandeau ad hoc
+  const bar = document.createElement('div');
+  bar.setAttribute('role','status');
+  bar.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0E2841;color:#fff;padding:12px 18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:10000;font-size:14px;display:flex;gap:12px;align-items:center;max-width:90vw';
+  bar.innerHTML = '<span>🔄 Nouvelle version disponible</span>';
+  const btn = document.createElement('button');
+  btn.textContent = 'Recharger';
+  btn.setAttribute('aria-label','Recharger pour appliquer la mise à jour');
+  btn.style.cssText = 'background:#E8620A;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit';
+  btn.addEventListener('click', () => location.reload());
+  const dismiss = document.createElement('button');
+  dismiss.textContent = '✕';
+  dismiss.setAttribute('aria-label','Fermer');
+  dismiss.style.cssText = 'background:transparent;color:#94a3b8;border:none;font-size:18px;cursor:pointer;font-family:inherit;padding:0 4px';
+  dismiss.addEventListener('click', () => bar.remove());
+  bar.appendChild(btn);
+  bar.appendChild(dismiss);
+  document.body.appendChild(bar);
 }
 
 // ════════════════════════════════════════════
@@ -11656,7 +11846,7 @@ async function _doSendEmail(){
     });
 
     // 3 — Envoyer via Google Apps Script (ncvrddetect@gmail.com)
-    console.log('[Email] → destinataire:', recipient, '| objet:', subject, '| pièce:', _emailPendingFname);
+    Logger.debug('Email', '→ envoi', {destinataire:recipient, objet:subject, piece:_emailPendingFname});
     const resp = await fetch(GAS_MAIL_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -11670,7 +11860,7 @@ async function _doSendEmail(){
 
     // Lire la réponse en texte pour pouvoir afficher la cause si parsing JSON échoue
     const rawText = await resp.text();
-    console.log('[Email] HTTP', resp.status, '— réponse GAS :', rawText);
+    Logger.debug('Email', `HTTP ${resp.status} — réponse GAS`, rawText);
     let result;
     try { result = JSON.parse(rawText); }
     catch(_){ throw new Error('Réponse GAS invalide (HTTP '+resp.status+') : '+rawText.slice(0,160)); }
