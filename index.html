@@ -1644,22 +1644,6 @@ body::before{
         style="font-weight:700;font-size:14px" oninput="chantierRefChanged()">
     </div>
 
-    <!-- 📎 Documents de préparation (visibles pour tous les agents du chantier) -->
-    <div id="r-prep-docs-section" style="display:none;padding:10px 14px 0">
-      <div class="acc-section">
-        <button class="acc-toggle" onclick="toggleAcc(this)">
-          <span>📎 Documents de préparation (<span id="r-prep-docs-count">0</span>)</span>
-          <span class="acc-chevron open">▼</span>
-        </button>
-        <div class="acc-body open">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4">
-            DT, plans, autorisations et autres documents ajoutés lors de la préparation du chantier.
-          </div>
-          <div id="r-prep-docs-list" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- § Infos générales -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
@@ -1892,6 +1876,20 @@ body::before{
       <div class="acc-body">
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Trace de toutes les modifications apportées à ce rapport, du plus récent au plus ancien.</div>
         <div id="modif-history-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+
+    <!-- § Documents ressources (8) -->
+    <div id="r-prep-docs-section" class="acc-section" style="display:none">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span><span class="acc-svg-icon"><svg viewBox="0 0 24 24" stroke="#10b981"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>8. Documents ressources (<span id="r-prep-docs-count">0</span>)</span>
+        <span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+          DT, plans, autorisations et autres documents ajoutés lors de la préparation du chantier — accessibles à tous les agents intervenant sur ce chantier.
+        </div>
+        <div id="r-prep-docs-list" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
 
@@ -11939,6 +11937,127 @@ init().catch(e=>{
 
 
 // ════════════════════════════════════════════
+//  Document viewer in-app (images + PDF, fallback download pour autres)
+// ════════════════════════════════════════════
+function _openDocViewer(doc){
+  if(!doc) return;
+  const localSrc  = doc.dataUrl;                    // base64 local (instant + offline)
+  const remoteSrc = doc.url;                        // URL Storage (publique, utilisable par MS/Google viewers)
+  if(!localSrc && !remoteSrc){ toast('❌ Document indisponible'); return; }
+
+  const type  = (doc.type || '').toLowerCase();
+  const fname = (doc.filename || '').toLowerCase();
+  const ext   = fname.split('.').pop() || '';
+  const isImage  = type.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(fname);
+  const isPdf    = type.includes('pdf') || fname.endsWith('.pdf');
+  const isOffice = /^(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(ext) ||
+                   /word|excel|spreadsheet|presentation|officedocument/.test(type);
+
+  // Stratégie de rendu :
+  //   - Image / PDF       → iframe local (base64 OK)
+  //   - Office            → MS Office Online (nécessite URL Storage publique)
+  //   - Autres formats    → Google Viewer (fallback, accepte beaucoup de formats)
+  //   - Pas d'URL pour viewer externe → message + téléchargement
+  let viewerType, viewerSrc;
+  if(isImage){
+    viewerType = 'image';
+    viewerSrc  = localSrc || remoteSrc;
+  } else if(isPdf){
+    viewerType = 'pdf';
+    viewerSrc  = localSrc || remoteSrc;
+  } else if(isOffice && remoteSrc){
+    viewerType = 'office';
+    // MS Office Online — rend Word/Excel/PowerPoint en HTML lisible
+    viewerSrc  = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(remoteSrc);
+  } else if(remoteSrc){
+    viewerType = 'gview';
+    // Google Docs Viewer — fallback universel (PDF, Office, ZIP, etc.)
+    viewerSrc  = 'https://docs.google.com/gview?url=' + encodeURIComponent(remoteSrc) + '&embedded=true';
+  } else {
+    // Pas d'URL publique → impossible d'utiliser un viewer externe
+    if(!confirm('Ce format (.'+ext.toUpperCase()+') nécessite que le document soit synchronisé sur le serveur.\n\nL\'upload est en cours — réessayer dans 30 secondes, ou télécharger maintenant ?\n\nOK = télécharger, Annuler = patienter.')) return;
+    _docDirectDownload(doc);
+    return;
+  }
+
+  // ── Overlay plein écran ──
+  const overlay = document.createElement('div');
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-label','Aperçu '+(doc.filename||'document'));
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column';
+
+  // Topbar : nom + badge type + actions
+  const top = document.createElement('div');
+  top.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.7);border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0';
+  const title = document.createElement('div');
+  title.style.cssText = 'flex:1;min-width:0;display:flex;align-items:center;gap:8px';
+  const badgeLbl = ({image:'IMAGE',pdf:'PDF',office:'OFFICE ONLINE',gview:'GOOGLE VIEWER'})[viewerType] || 'DOC';
+  const badgeCol = ({image:'#3b82f6',pdf:'#dc2626',office:'#0ea5e9',gview:'#10b981'})[viewerType] || '#6b7280';
+  title.innerHTML = '<span style="font-size:9px;font-weight:700;background:'+badgeCol+';color:#fff;padding:3px 7px;border-radius:8px;letter-spacing:.5px;flex-shrink:0">'+badgeLbl+'</span>'+
+    '<div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Inter,sans-serif">'+Validator.sanitize(doc.filename||'Document')+'</div>';
+  const dlBtn = document.createElement('button');
+  dlBtn.innerHTML = '⬇️';
+  dlBtn.setAttribute('aria-label','Télécharger '+(doc.filename||'document'));
+  dlBtn.title = 'Télécharger';
+  dlBtn.style.cssText = 'background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+  dlBtn.addEventListener('click', () => _docDirectDownload(doc));
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '✕';
+  closeBtn.setAttribute('aria-label','Fermer');
+  closeBtn.style.cssText = 'background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  top.appendChild(title);
+  top.appendChild(dlBtn);
+  top.appendChild(closeBtn);
+  overlay.appendChild(top);
+
+  // Zone de contenu (image direct ou iframe)
+  const content = document.createElement('div');
+  content.style.cssText = 'flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:8px;background:#1a1a1a;position:relative';
+
+  // Spinner de chargement (visible pendant que l'iframe charge)
+  if(viewerType !== 'image'){
+    const spinner = document.createElement('div');
+    spinner.id = '_docViewerSpinner';
+    spinner.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:14px;text-align:center;font-family:Inter,sans-serif';
+    spinner.innerHTML = '<div style="font-size:32px;margin-bottom:10px;animation:spin 1.2s linear infinite">⚙️</div><div>Chargement…</div>';
+    content.appendChild(spinner);
+  }
+
+  if(viewerType === 'image'){
+    const img = document.createElement('img');
+    img.src = viewerSrc;
+    img.alt = doc.filename || 'image';
+    img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+    content.appendChild(img);
+  } else {
+    const iframe = document.createElement('iframe');
+    iframe.src = viewerSrc;
+    iframe.setAttribute('title','Aperçu '+(doc.filename||'document'));
+    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:6px;background:#fff';
+    // Retire le spinner quand l'iframe a chargé
+    iframe.addEventListener('load', () => { document.getElementById('_docViewerSpinner')?.remove(); });
+    content.appendChild(iframe);
+  }
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
+// Téléchargement direct (extrait du viewer pour réutilisation)
+function _docDirectDownload(doc){
+  const href = doc.dataUrl || doc.url;
+  if(!href){ toast('❌ Document indisponible'); return; }
+  const a = document.createElement('a');
+  a.href = href;
+  if(href.startsWith('data:')) a.download = doc.filename || 'document';
+  else { a.target = '_blank'; a.rel = 'noopener'; }
+  a.click();
+}
+
+// ════════════════════════════════════════════
 //  Documents de préparation côté écran rapport (vue lecture pour les agents)
 // ════════════════════════════════════════════
 
@@ -11959,22 +12078,26 @@ function _renderRapportPrepDocs(){
     const sizeKB = Math.round((d.size||0)/1024);
     const icon = d.type?.startsWith('image/') ? '🖼️' : (d.type?.includes('pdf') ? '📄' : (d.type?.includes('word')||d.type?.includes('officedocument')) ? '📝' : '📎');
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
-    row.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
+    // Zone cliquable principale → ouvre le viewer
+    const main = document.createElement('div');
+    main.style.cssText = 'flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer';
+    main.setAttribute('role','button');
+    main.setAttribute('aria-label','Visualiser '+(d.filename||'document'));
+    main.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+Validator.sanitize(d.filename||'document')+'</div>'+
-      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB</div></div>';
+      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB · Cliquer pour visualiser</div></div>';
+    main.onclick = () => _openDocViewer(d);
+    const viewBtn = document.createElement('button');
+    viewBtn.innerHTML = '👁️'; viewBtn.setAttribute('aria-label','Visualiser '+(d.filename||'document'));
+    viewBtn.style.cssText = 'background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:6px 10px;color:#10b981;cursor:pointer;font-family:inherit;flex-shrink:0';
+    viewBtn.onclick = () => _openDocViewer(d);
     const dlBtn = document.createElement('button');
     dlBtn.innerHTML = '⬇️'; dlBtn.setAttribute('aria-label','Télécharger '+(d.filename||'document'));
     dlBtn.style.cssText = 'background:rgba(0,140,255,.1);border:1px solid rgba(0,140,255,.25);border-radius:8px;padding:6px 10px;color:#0af;cursor:pointer;font-family:inherit;flex-shrink:0';
-    dlBtn.onclick = () => {
-      const href = d.dataUrl || d.url;
-      if(!href){ toast('❌ Document indisponible (pas encore uploadé)'); return; }
-      const a = document.createElement('a');
-      a.href = href;
-      if(href.startsWith('data:')) a.download = d.filename;
-      else { a.target = '_blank'; a.rel = 'noopener'; }
-      a.click();
-    };
+    dlBtn.onclick = () => _docDirectDownload(d);
+    row.appendChild(main);
+    row.appendChild(viewBtn);
     row.appendChild(dlBtn);
     list.appendChild(row);
   });
@@ -12062,8 +12185,23 @@ function _renderPrepList(){
   const container = document.getElementById('prep-list');
   const empty = document.getElementById('prep-empty');
   if(!container) return;
-  // Inclut tous les chantiers prepa (en cours) + ceux déjà démarrés issus d'une prépa (trace historique)
-  const preps = (S.chantiers||[]).filter(c => c.status === 'preparation' || c.fromPrep === true);
+  // ── Privacy : seul le créateur voit ses prépas (sauf globalAdmin pour audit) ──
+  //   - status='preparation' (encore en cours)        → visible UNIQUEMENT par createdBy
+  //   - fromPrep=true && status='active' (démarré)    → visible aussi pour collaborateurs (règles std)
+  const myUid = currentUserProfile?.uid;
+  const isGA  = typeof isGlobalAdmin === 'function' && isGlobalAdmin(currentUserProfile?.role);
+  const preps = (S.chantiers||[]).filter(c => {
+    if(c.status === 'preparation'){
+      // Privacy stricte : créateur OU globalAdmin uniquement
+      return c.createdBy === myUid || isGA;
+    }
+    if(c.fromPrep === true){
+      // Chantier déjà démarré issu d'une prépa : visible si créateur OU invité OU globalAdmin
+      return c.createdBy === myUid || isGA ||
+             (Array.isArray(c.collaborators) && c.collaborators.includes(myUid));
+    }
+    return false;
+  });
   container.innerHTML = '';
   if(!preps.length){
     if(empty) empty.style.display = 'block';
@@ -12564,18 +12702,30 @@ function _renderPrepDocs(){
     const sizeKB = Math.round((d.size||0)/1024);
     const icon = d.type?.startsWith('image/') ? '🖼️' : (d.type?.includes('pdf') ? '📄' : (d.type?.includes('word')||d.type?.includes('officedocument')) ? '📝' : '📎');
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
-    row.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
+    // Zone cliquable (icône + nom) → ouvre le viewer
+    const main = document.createElement('div');
+    main.style.cssText = 'flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer';
+    main.setAttribute('role','button');
+    main.setAttribute('aria-label','Visualiser '+(d.filename||'document'));
+    main.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+Validator.sanitize(d.filename)+'</div>'+
-      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB</div></div>';
+      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB · Cliquer pour visualiser</div></div>';
+    main.onclick = () => _openDocViewer(d);
+    const viewBtn = document.createElement('button');
+    viewBtn.innerHTML = '👁️'; viewBtn.setAttribute('aria-label','Visualiser '+d.filename);
+    viewBtn.style.cssText = 'background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:6px 10px;color:#10b981;cursor:pointer;font-family:inherit;flex-shrink:0';
+    viewBtn.onclick = () => _openDocViewer(d);
     const dlBtn = document.createElement('button');
     dlBtn.innerHTML = '⬇️'; dlBtn.setAttribute('aria-label','Télécharger '+d.filename);
-    dlBtn.style.cssText = 'background:rgba(0,140,255,.1);border:1px solid rgba(0,140,255,.25);border-radius:8px;padding:6px 10px;color:#0af;cursor:pointer;font-family:inherit';
+    dlBtn.style.cssText = 'background:rgba(0,140,255,.1);border:1px solid rgba(0,140,255,.25);border-radius:8px;padding:6px 10px;color:#0af;cursor:pointer;font-family:inherit;flex-shrink:0';
     dlBtn.onclick = () => _prepDownloadDoc(d.id);
     const rmBtn = document.createElement('button');
     rmBtn.innerHTML = '🗑️'; rmBtn.setAttribute('aria-label','Supprimer '+d.filename);
-    rmBtn.style.cssText = 'background:transparent;border:none;color:#f87171;font-size:16px;cursor:pointer;padding:6px';
+    rmBtn.style.cssText = 'background:transparent;border:none;color:#f87171;font-size:16px;cursor:pointer;padding:6px;flex-shrink:0';
     rmBtn.onclick = () => _prepRemoveDoc(d.id);
+    row.appendChild(main);
+    row.appendChild(viewBtn);
     row.appendChild(dlBtn);
     row.appendChild(rmBtn);
     container.appendChild(row);
