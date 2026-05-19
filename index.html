@@ -1644,6 +1644,22 @@ body::before{
         style="font-weight:700;font-size:14px" oninput="chantierRefChanged()">
     </div>
 
+    <!-- 📎 Documents de préparation (visibles pour tous les agents du chantier) -->
+    <div id="r-prep-docs-section" style="display:none;padding:10px 14px 0">
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)">
+          <span>📎 Documents de préparation (<span id="r-prep-docs-count">0</span>)</span>
+          <span class="acc-chevron open">▼</span>
+        </button>
+        <div class="acc-body open">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4">
+            DT, plans, autorisations et autres documents ajoutés lors de la préparation du chantier.
+          </div>
+          <div id="r-prep-docs-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- § Infos générales -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
@@ -2627,9 +2643,11 @@ body::before{
         <button class="acc-toggle" onclick="toggleAcc(this)"><span>🎯 Nature & Rédacteur</span><span class="acc-chevron open">▼</span></button>
         <div class="acc-body open">
           <div class="form-group"><label class="form-label">Nature des opérations</label>
-            <select class="form-select" id="prep-nature" onchange="prepChanged()">
+            <select class="form-select" id="prep-nature" onchange="onPrepNatureChange()">
               <option value="">— Sélectionner —</option>
-            </select></div>
+            </select>
+            <input class="form-input" id="prep-nature-autre" placeholder="Saisir la nature de l'opération…"
+              style="display:none;margin-top:8px" oninput="prepChanged()"></div>
           <div class="form-group"><label class="form-label">Rédacteur du rapport</label>
             <input class="form-input" id="prep-redacteur" placeholder="Nom du rédacteur" oninput="prepChanged()"></div>
         </div>
@@ -2656,7 +2674,20 @@ body::before{
           </div>
         </div>
       </div>
-      <!-- §5 Documents -->
+      <!-- §5 Plan de situation -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>🗺️ Plan de situation</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <input type="file" id="prep-plan-input" accept="image/*" style="display:none" onchange="prepUploadPlan(this)">
+          <div id="prep-plan-preview" style="display:none;margin-bottom:10px"></div>
+          <button class="btn-big btn-card" style="width:100%" onclick="document.getElementById('prep-plan-input').click()" aria-label="Charger un plan de situation">🗺️ Choisir un plan de situation</button>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.4">
+            Le plan sera transmis automatiquement au rapport de détection lors du démarrage du chantier.
+          </div>
+        </div>
+      </div>
+
+      <!-- §6 Documents -->
       <div class="acc-section">
         <button class="acc-toggle" onclick="toggleAcc(this)"><span>📎 Documents joints (DT, plans, autorisations…)</span><span class="acc-chevron open">▼</span></button>
         <div class="acc-body open">
@@ -3970,17 +4001,22 @@ async function _cacheStoragePhotosLocally(r){
   }
 }
 
-// ── Strip "léger" d'un chantier pour Firestore (vire les base64 lourds des prepDocs) ──
+// ── Strip "léger" d'un chantier pour Firestore (vire les base64 lourds) ──
 // Préserve les URLs Storage déjà uploadées. Utilisé par CloudDB.put.
 function _stripChantierForFirestore(c){
   const d = {...c};
+  const isB64 = s => typeof s === 'string' && s.startsWith('data:');
+  // Plan de situation : base64 → vire, garde URL Storage si présente
+  if(isB64(d.planSituation)){
+    delete d.planSituation;
+    if(c._planUrl) d.planSituation = c._planUrl;
+  }
+  delete d._planUrl; // métadonnée locale-only
+  // Documents joints : vire les base64, garde id/filename/url Storage
   if(Array.isArray(d.prepDocs)){
     d.prepDocs = d.prepDocs.map(doc => {
       const clean = {...doc};
-      // Vire le base64 ; garde id, filename, type, size, url Storage, uploadedAt, uploadedBy
-      if(typeof clean.dataUrl === 'string' && clean.dataUrl.startsWith('data:')){
-        delete clean.dataUrl;
-      }
+      if(isB64(clean.dataUrl)) delete clean.dataUrl;
       return clean;
     });
   }
@@ -5719,6 +5755,8 @@ function renderRapportScreen(){
   const c=S.currentChantier;
   if(!r||!c) return;
   document.getElementById('topTitle').textContent='📋 '+c.name;
+  // Section "Documents de préparation" (si la prep en a déposé)
+  _renderRapportPrepDocs();
   const rref=document.getElementById('r-reference'); if(rref) rref.value=r.reference||c.name||'';
   const rcli=document.getElementById('r-client'); if(rcli) rcli.value=r.client||c.client||'';
   // Entité : restaurer ou auto-détecter selon l'équipe de l'utilisateur
@@ -11901,6 +11939,48 @@ init().catch(e=>{
 
 
 // ════════════════════════════════════════════
+//  Documents de préparation côté écran rapport (vue lecture pour les agents)
+// ════════════════════════════════════════════
+
+// Affiche les docs prep dans l'écran rapport (depuis r.prepDocs OU c.prepDocs si pas copiés).
+function _renderRapportPrepDocs(){
+  const section = document.getElementById('r-prep-docs-section');
+  const list = document.getElementById('r-prep-docs-list');
+  const count = document.getElementById('r-prep-docs-count');
+  if(!section || !list) return;
+  const r = S.currentRapport, c = S.currentChantier;
+  // Source : priorité au rapport (transmis lors du démarrage), fallback au chantier (collaborateur sans rapport encore)
+  const docs = (r?.prepDocs?.length ? r.prepDocs : (c?.prepDocs || []));
+  if(!docs.length){ section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  if(count) count.textContent = docs.length;
+  list.innerHTML = '';
+  docs.forEach(d => {
+    const sizeKB = Math.round((d.size||0)/1024);
+    const icon = d.type?.startsWith('image/') ? '🖼️' : (d.type?.includes('pdf') ? '📄' : (d.type?.includes('word')||d.type?.includes('officedocument')) ? '📝' : '📎');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
+    row.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+Validator.sanitize(d.filename||'document')+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB</div></div>';
+    const dlBtn = document.createElement('button');
+    dlBtn.innerHTML = '⬇️'; dlBtn.setAttribute('aria-label','Télécharger '+(d.filename||'document'));
+    dlBtn.style.cssText = 'background:rgba(0,140,255,.1);border:1px solid rgba(0,140,255,.25);border-radius:8px;padding:6px 10px;color:#0af;cursor:pointer;font-family:inherit;flex-shrink:0';
+    dlBtn.onclick = () => {
+      const href = d.dataUrl || d.url;
+      if(!href){ toast('❌ Document indisponible (pas encore uploadé)'); return; }
+      const a = document.createElement('a');
+      a.href = href;
+      if(href.startsWith('data:')) a.download = d.filename;
+      else { a.target = '_blank'; a.rel = 'noopener'; }
+      a.click();
+    };
+    row.appendChild(dlBtn);
+    list.appendChild(row);
+  });
+}
+
+// ════════════════════════════════════════════
 //  PRÉPARATION CHANTIER — phase amont avant intervention
 // ════════════════════════════════════════════
 
@@ -11915,14 +11995,21 @@ async function loadPreparationScreen(){
     // Recharger la liste complète des chantiers (au cas où)
     if(typeof loadChantiers === 'function') await loadChantiers();
     _renderPrepList();
-    // Peupler le select des natures d'opérations (DynLists)
+    // Peupler le select des natures d'opérations — utilise la même source que le rapport
+    // détection (`DynLists.operations` via `DynLists.get('operations')`)
     const natSel = document.getElementById('prep-nature');
     if(natSel && typeof DynLists !== 'undefined'){
-      natSel.innerHTML = '<option value="">— Sélectionner —</option>';
-      (DynLists.natureOperations || DynLists.get('nature_operations') || []).forEach(n => {
-        const o = document.createElement('option'); o.value = n; o.textContent = n;
+      natSel.innerHTML = '<option value="">— Sélectionner une opération —</option>';
+      const ops = DynLists.operations || DynLists.get('operations') || [];
+      ops.forEach(op => {
+        const o = document.createElement('option'); o.value = op; o.textContent = op;
         natSel.appendChild(o);
       });
+      // Option "Autre" pour saisie libre (cohérent avec le rapport)
+      const oAutre = document.createElement('option');
+      oAutre.value = '__autre__';
+      oAutre.textContent = '✏️ Autre (texte libre)…';
+      natSel.appendChild(oAutre);
     }
     // Peupler le select des contacts NCVRD pour responsable + opérateurs
     ['prep-resp','prep-op-det','prep-op-geo'].forEach(id => {
@@ -12092,17 +12179,121 @@ function _populatePrepForm(c){
   setVal('prep-reference', c.reference);
   setVal('prep-dt-date', c.dtDate);
   setVal('prep-dt-num', c.dtNum);
-  setVal('prep-nature', c.natureOperations);
+  // Nature des opérations : essayer de matcher dans la liste prédéfinie,
+  // sinon basculer en mode "Autre" + texte libre
+  const natSel = document.getElementById('prep-nature');
+  const natAutre = document.getElementById('prep-nature-autre');
+  if(natSel && natAutre){
+    const opsList = (DynLists && (DynLists.operations || DynLists.get('operations'))) || [];
+    if(c.natureOperations && opsList.includes(c.natureOperations)){
+      natSel.value = c.natureOperations;
+      natAutre.style.display = 'none';
+      natAutre.value = '';
+    } else if(c.natureOperations){
+      natSel.value = '__autre__';
+      natAutre.style.display = 'block';
+      natAutre.value = c.natureOperations;
+    } else {
+      natSel.value = '';
+      natAutre.style.display = 'none';
+      natAutre.value = '';
+    }
+  }
   setVal('prep-redacteur', c.redacteur || c.respNom);
   setVal('prep-resp', c.respContact || '');
   // Titre
   const t = document.getElementById('prep-form-title');
   if(t) t.textContent = '📝 ' + (c.name || 'Nouveau chantier');
-  // Listes équipe + docs + collaborateurs
+  // Listes équipe + docs + collaborateurs + plan situation
   _renderPrepOpList('det');
   _renderPrepOpList('geo');
   _renderPrepDocs();
   _renderPrepCollabs();
+  _renderPrepPlan();
+}
+
+// Rend l'aperçu du plan de situation (image + bouton supprimer)
+function _renderPrepPlan(){
+  const wrap = document.getElementById('prep-plan-preview');
+  if(!wrap || !_currentPrep) return;
+  const src = _currentPrep.planSituation || _currentPrep._planUrl;
+  if(!src){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = 'Plan de situation';
+  img.style.cssText = 'width:100%;border-radius:10px;max-height:240px;object-fit:contain;background:rgba(255,255,255,.05);border:1px solid var(--border)';
+  const rm = document.createElement('button');
+  rm.textContent = '🗑️ Supprimer le plan';
+  rm.setAttribute('aria-label','Supprimer le plan de situation');
+  rm.className = 'btn-big btn-card';
+  rm.style.cssText = 'width:100%;margin-top:8px;color:#f87171';
+  rm.onclick = prepRemovePlan;
+  wrap.appendChild(img);
+  wrap.appendChild(rm);
+}
+
+// Upload du plan de situation (image) — base64 local + Storage en arrière-plan
+async function prepUploadPlan(input){
+  if(!input.files.length || !_currentPrep) return;
+  const file = input.files[0];
+  input.value = '';
+  try {
+    // Compression douce si compressImage existe (réduit la taille pour Firestore)
+    let dataUrl;
+    if(typeof compressImage === 'function'){
+      dataUrl = await compressImage(file, 1400);
+    } else {
+      dataUrl = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+    _currentPrep.planSituation = dataUrl;
+    delete _currentPrep._planUrl; // ré-upload nécessaire
+    _renderPrepPlan();
+    await savePrep();
+    toast('🗺️ Plan de situation ajouté — upload Storage en cours…');
+    // Upload Storage en arrière-plan
+    if(fstorage && FIREBASE_CONFIGURED){
+      uploadPhotoToStorage(dataUrl, `chantiers/${_currentPrep.id}/prep/plan_situation.jpg`)
+        .then(async url => {
+          if(url){
+            _currentPrep._planUrl = url;
+            try { await db.put('chantiers', _currentPrep); } catch(_){}
+            Logger.info('Prep', 'Plan situation uploadé en Storage');
+          }
+        })
+        .catch(e => Logger.warn('Prep', 'upload plan situation échoué', e?.message));
+    }
+  } catch(e){ toast('❌ Erreur upload plan : '+(e?.message||e)); }
+}
+
+function prepRemovePlan(){
+  if(!_currentPrep) return;
+  if(!confirm('Supprimer le plan de situation ?')) return;
+  _currentPrep.planSituation = '';
+  delete _currentPrep._planUrl;
+  _renderPrepPlan();
+  savePrep();
+}
+
+// Bascule entre select et texte libre quand "Autre" est choisi pour la nature des opérations
+function onPrepNatureChange(){
+  const sel = document.getElementById('prep-nature');
+  const autre = document.getElementById('prep-nature-autre');
+  if(!sel || !autre) return;
+  if(sel.value === '__autre__'){
+    autre.style.display = 'block';
+    autre.focus();
+  } else {
+    autre.style.display = 'none';
+    autre.value = '';
+  }
+  prepChanged();
 }
 
 // Capture les valeurs DOM dans _currentPrep + autosave 600ms
@@ -12117,7 +12308,13 @@ function prepChanged(){
   c.reference = get('prep-reference');
   c.dtDate = get('prep-dt-date');
   c.dtNum = get('prep-dt-num');
-  c.natureOperations = get('prep-nature');
+  // Nature des opérations : si "Autre" sélectionné, lire l'input texte libre
+  const _natSel = get('prep-nature');
+  if(_natSel === '__autre__'){
+    c.natureOperations = get('prep-nature-autre');
+  } else {
+    c.natureOperations = _natSel;
+  }
   c.redacteur = get('prep-redacteur');
   const respEmail = get('prep-resp');
   if(respEmail){
@@ -12402,9 +12599,10 @@ async function startChantierFromPrep(){
     if(idx >= 0) S.chantiers[idx] = c;
     else S.chantiers.push(c);
 
-    // 2) Créer le rapport pré-rempli avec les infos de la prépa (si pas déjà existant)
+    // 2) Créer ou mettre à jour le rapport avec les infos de la prépa
     let rapport = await db._idb.get('rapports', c.id).catch(()=>null);
     if(!rapport){
+      // Création initiale
       rapport = {
         id: c.id, chantierId: c.id,
         client: c.client || '',
@@ -12415,13 +12613,14 @@ async function startChantierFromPrep(){
         dtDate: c.dtDate || '',
         dtNum: c.dtNum || '',
         reference: c.reference || '',
-        planSituation: '',
+        planSituation: c.planSituation || '',
+        _planUrl: c._planUrl || undefined,
         respNom: c.respNom || '',
         respPoste: c.respPoste || '',
         respContact: c.respContact || '',
         opDetection: (c.opDetection || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
         opGeo:       (c.opGeo       || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
-        _regionPrefilled: true, // évite l'écrasement par auto-fill régional dans openChantier
+        _regionPrefilled: true,
         materiels: (typeof DynLists !== 'undefined' ? DynLists.defaultMateriels : []) || [],
         logiciels: (typeof DynLists !== 'undefined' ? DynLists.defaultLogiciels : []) || [],
         networks: [],
@@ -12429,14 +12628,41 @@ async function startChantierFromPrep(){
         observations: '',
         conclusionPhotos: [],
         updatedAt: Date.now(),
-        // Documents de prépa accessibles depuis l'onglet Docs du chantier
         prepDocs: c.prepDocs || []
       };
-      // S'il y a au moins 1 opérateur de détection minimum, garantir 2 slots (UI attend 2)
-      while(rapport.opDetection.length < 2) rapport.opDetection.push({nom:'',poste:''});
-      if(rapport.opGeo.length === 0) rapport.opGeo.push({nom:'',poste:''});
-      await db.put('rapports', rapport);
+    } else {
+      // Rapport déjà existant : on FORCE la mise à jour des champs admin + opérateurs depuis la prépa
+      // (l'utilisateur a explicitement choisi ces valeurs en prep, elles font autorité)
+      if(c.client)            rapport.client = c.client;
+      if(c.address||c.adresse) rapport.adresse = c.address || c.adresse;
+      if(c.natureOperations)  rapport.natureOperations = c.natureOperations;
+      if(c.dateDebut)         rapport.dateDebut = c.dateDebut;
+      if(c.dtDate)            rapport.dtDate = c.dtDate;
+      if(c.dtNum)             rapport.dtNum = c.dtNum;
+      if(c.reference)         rapport.reference = c.reference;
+      if(c.respNom)           rapport.respNom = c.respNom;
+      if(c.respPoste)         rapport.respPoste = c.respPoste;
+      if(c.respContact)       rapport.respContact = c.respContact;
+      if(c.planSituation)     rapport.planSituation = c.planSituation;
+      if(c._planUrl)          rapport._planUrl = c._planUrl;
+      if(c.opDetection?.length){
+        rapport.opDetection = c.opDetection.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+      }
+      if(c.opGeo?.length){
+        rapport.opGeo = c.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+      }
+      // Docs prep : fusion (ne pas perdre ce qui était déjà dans le rapport)
+      if(c.prepDocs?.length){
+        const existing = (rapport.prepDocs || []).map(d => d.id);
+        rapport.prepDocs = [...(rapport.prepDocs||[]), ...c.prepDocs.filter(d => !existing.includes(d.id))];
+      }
+      rapport._regionPrefilled = true;
+      rapport.updatedAt = Date.now();
     }
+    // Garantir minimum 2 slots opérateurs détection + 1 slot géo (UI attend ces minimums)
+    while(rapport.opDetection.length < 2) rapport.opDetection.push({nom:'',poste:''});
+    if(rapport.opGeo.length === 0) rapport.opGeo.push({nom:'',poste:''});
+    await db.put('rapports', rapport);
 
     toast('✅ Chantier démarré — ouverture du rapport…');
     // 3) Rediriger vers l'écran rapport classique
