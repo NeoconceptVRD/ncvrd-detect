@@ -3185,11 +3185,6 @@ body::before{
     </div>
     <div class="form-group"><label class="form-label">Appareil de détection</label>
       <input class="form-input" id="net-methode" placeholder="Ex: Radiodétection en 50Hz et GEORADAR…" autocomplete="off"></div>
-    <div class="form-group"><label class="form-label">Classe de précision</label>
-      <select class="form-select" id="net-classe" autocomplete="off">
-        <!-- Peuplé dynamiquement par DynLists.populateSelects() -->
-        <option value="">— Chargement… —</option>
-      </select></div>
     <!-- Sélecteur de méthode (affiché uniquement si des choix existent) -->
     <div id="net-obs-choices" style="display:none;margin-bottom:12px">
       <label class="form-label">Choisir l'observation</label>
@@ -3990,7 +3985,7 @@ const DynLists = {
         methode: "Radiodétection en 50Hz et GEORADAR et/ou en radiodétection par induction via une pince à champ magnétique.",
         remarques: "",
         choices: [
-          "Lorsque le réseau n'est pas en classe A sur les DT, La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.",
+          "La détection a été réalisée à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.",
           "Le repérage du réseau ENEDIS a été réalisé à l'aide de l'appareil de radiodétection via une pince à champ magnétique et du générateur en mode 8.19Hz."
         ]
       },
@@ -4008,7 +4003,7 @@ const DynLists = {
       },
       'GAZ': {
         methode: "GEORADAR",
-        remarques: "Lorsque le réseau n'est pas en classe A sur les plans des DT, la détection du réseau GRDF a été réalisé à l'aide du GEORADAR. Et identifié grâce aux affleurants et au plan DT."
+        remarques: "La détection du réseau GRDF a été réalisée à l'aide du GEORADAR, identifié grâce aux affleurants et au plan DT."
       },
       'AEP': {
         methode: "GEORADAR",
@@ -4062,8 +4057,8 @@ const DynLists = {
       'Marquage - piquetage des réseaux enterrés.',
       'Détection, géoréférencement et marquage - piquetage des réseaux enterrés.',
       'Détection et marquage - piquetage des réseaux enterrés.',
-      'Géodétection et géoréférencement des réseaux enterrés Non classe A',
-      'Géodétection et géoréférencement des réseaux sensibles Non classe A',
+      'Géodétection et géoréférencement des réseaux enterrés',
+      'Géodétection et géoréférencement des réseaux sensibles',
       'PGOD',
       'PGOC'
     ],
@@ -4311,14 +4306,7 @@ const DynLists = {
       const oAutre = document.createElement('option'); oAutre.value = '__autre__'; oAutre.textContent = 'Autre (saisie libre)…'; netSel.appendChild(oAutre);
     }
 
-    // 3. Classes de précision
-    const clSel = document.getElementById('net-classe');
-    if(clSel){
-      clSel.innerHTML = '<option value="">— Sélectionner —</option>';
-      this.precisionClasses.forEach(c => {
-        const o = document.createElement('option'); o.value = c.value; o.textContent = c.label; clSel.appendChild(o);
-      });
-    }
+    // 3. (Classes de précision retirées — plus de select à peupler)
 
     // 4. Sections photo
     const phSel = document.getElementById('photo-section');
@@ -6121,21 +6109,11 @@ function renderNetworks(){
           📷 Ajouter une photo
         </button>
       </div>
-      <!-- Méthode + Classe sur la même ligne -->
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;align-items:end">
-        <div>
-          <span class="mini-lbl">Appareil de détection</span>
-          <input class="mini-inp" style="width:100%" value="${n.methode||''}"
-            oninput="updateNet('${n.id}','methode',this.value)" placeholder="Méthode utilisée…" autocomplete="off">
-        </div>
-        <div>
-          <span class="mini-lbl">Classe</span>
-          <select class="mini-inp" style="padding:6px 8px;min-width:110px"
-            onchange="updateNet('${n.id}','classe',this.value)">
-            <option value="" ${!n.classe?'selected':''}>-</option>
-            ${DynLists.precisionClasses.map(c=>`<option value="${c.value}" ${n.classe===c.value?'selected':''}>${c.label.replace(c.value+' ','')}</option>`).join('')}
-          </select>
-        </div>
+      <!-- Appareil de détection (Classe de précision retirée) -->
+      <div style="margin-bottom:6px">
+        <span class="mini-lbl">Appareil de détection</span>
+        <input class="mini-inp" style="width:100%" value="${n.methode||''}"
+          oninput="updateNet('${n.id}','methode',this.value)" placeholder="Méthode utilisée…" autocomplete="off">
       </div>
       <!-- Remarque -->
       <div>
@@ -6506,7 +6484,7 @@ function _openPhotoOverlay(src){
 // Choix d'observation fixes (fallback si non présents dans NET_METHODS)
 const _OBS_CHOICES_FALLBACK = {
   'ENEDIS': [
-    "Lorsque le réseau n'est pas en classe A sur les DT, La détection a été réalisé à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.",
+    "La détection a été réalisée à l'aide des deux appareils. Nous avons utilisé l'appareil de radiodétection en mode passif 50 Hz, pour le positionner en X, Y puis le Géoradar pour nous confirmer la position en X et Y et donner la position en Z.",
     "Le repérage du réseau ENEDIS a été réalisé à l'aide de l'appareil de radiodétection via une pince à champ magnétique et du générateur en mode 8.19Hz."
   ],
   'France Télécom': [
@@ -6580,14 +6558,13 @@ async function addNetwork(){
   const net={id:uid(),nature,
     photos:[...netModalPhotos],
     methode:document.getElementById('net-methode').value,
-    classe:document.getElementById('net-classe').value,
     remarques:document.getElementById('net-remarques').value,
     active:true};
   S.currentRapport.networks.push(net);
   await db.put('rapports',S.currentRapport);
   closeModal('m-add-network');
   renderNetworks();
-  ['net-methode','net-classe','net-remarques'].forEach(id=>document.getElementById(id).value='');
+  ['net-methode','net-remarques'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('net-nature').value='';
   const nc=document.getElementById('net-nature-custom'); if(nc){nc.value='';nc.style.display='none';}
   netModalPhotos=[];
@@ -8873,20 +8850,14 @@ async function doWordDocx(){
       const items=np.map((src,i)=>({url:src,caption:'Photo '+(i+1)}));
       const tbl=await photoTable(items);
       tbl.forEach(el=>children.push(el));
-      // Bloc APPAREIL / CLASSE / OBSERVATION (libellés caps espacés, valeurs en gras navy/orange)
+      // Bloc APPAREIL / OBSERVATION (libellés caps espacés, valeurs en gras navy)
+      // (Classe de précision retirée)
       children.push(sp(60));
-      children.push(new Paragraph({
-        spacing:{before:0,after:60},
-        children:[
-          mkRun(caps('Appareil')+'   ',{size:14,bold:true,color:TEXT_LIGHT}),
-          mkRun(n.methode||'-',{size:20,color:TEXT_DARK})
-        ]
-      }));
       children.push(new Paragraph({
         spacing:{before:0,after:80},
         children:[
-          mkRun(caps('Classe')+'   ',{size:14,bold:true,color:TEXT_LIGHT}),
-          mkRun(String(n.classe||'-').replace(/^Classe\s*/i,'Classe '),{size:20,bold:true,color:NAVY})
+          mkRun(caps('Appareil')+'   ',{size:14,bold:true,color:TEXT_LIGHT}),
+          mkRun(n.methode||'-',{size:20,color:TEXT_DARK})
         ]
       }));
       if(n.remarques){
@@ -8945,8 +8916,9 @@ async function doWordDocx(){
     children.push(sectionTitle('06','Synthèse des Réseaux Détectés'));
     children.push(sp(220));
     if(activeNets.length){
-      // Tableau synthèse : header bleu marine fond + texte blanc, badges classe colorés
-      const colW = [1900, 3000, 1400, CW-1900-3000-1400]; // total = CW
+      // Tableau synthèse : header bleu marine fond + texte blanc (colonne CLASSE retirée)
+      // 3 colonnes : RÉSEAU (2200) / APPAREIL DE DÉTECTION (3500) / OBSERVATIONS (reste)
+      const colW = [2200, 3500, CW-2200-3500];
       const mkSynthCell = (txt,o={})=>new TableCell({
         width:{size:o.w,type:WidthType.DXA},
         shading:{type:ShadingType.CLEAR,fill:o.fill||WHITE},
@@ -8958,12 +8930,10 @@ async function doWordDocx(){
       const header = new TableRow({tableHeader:true,children:[
         mkSynthCell('RÉSEAU',                 {w:colW[0],fill:NAVY,color:WHITE,bold:true,size:18,tracking:60,align:AlignmentType.CENTER}),
         mkSynthCell('APPAREIL DE DÉTECTION',  {w:colW[1],fill:NAVY,color:WHITE,bold:true,size:18,tracking:60,align:AlignmentType.CENTER}),
-        mkSynthCell('CLASSE',                 {w:colW[2],fill:NAVY,color:WHITE,bold:true,size:18,tracking:60,align:AlignmentType.CENTER}),
-        mkSynthCell('OBSERVATIONS',           {w:colW[3],fill:NAVY,color:WHITE,bold:true,size:18,tracking:60,align:AlignmentType.CENTER})
+        mkSynthCell('OBSERVATIONS',           {w:colW[2],fill:NAVY,color:WHITE,bold:true,size:18,tracking:60,align:AlignmentType.CENTER})
       ]});
       const dataRows = activeNets.map((n,i)=>{
         const fill = i%2===0 ? WHITE : CARDBG;
-        // Cellule réseau : caps espacé navy
         const cellReseau = new TableCell({
           width:{size:colW[0],type:WidthType.DXA},
           shading:{type:ShadingType.CLEAR,fill},
@@ -8980,28 +8950,15 @@ async function doWordDocx(){
           margins:{top:200,bottom:200,left:200,right:200},
           children:[new Paragraph({spacing:{before:0,after:0},children:[mkRun(n.methode||'-',{size:20,color:TEXT_DARK})]})]
         });
-        // Cellule CLASSE : badge centré (avec padding pour aérer)
-        const cellClasse = new TableCell({
-          width:{size:colW[2],type:WidthType.DXA},
-          shading:{type:ShadingType.CLEAR,fill},
-          borders:noBorders,
-          verticalAlign:VerticalAlign.CENTER,
-          margins:{top:160,bottom:160,left:160,right:160},
-          children:[new Table({
-            width:{size:colW[2]-320,type:WidthType.DXA},
-            borders:noBorders,
-            rows:[new TableRow({children:[classBadgeCell(n.classe||'',colW[2]-320)]})]
-          })]
-        });
         const cellObs = new TableCell({
-          width:{size:colW[3],type:WidthType.DXA},
+          width:{size:colW[2],type:WidthType.DXA},
           shading:{type:ShadingType.CLEAR,fill},
           borders:noBorders,
           verticalAlign:VerticalAlign.CENTER,
           margins:{top:200,bottom:200,left:200,right:200},
           children:[new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{before:0,after:0},children:[mkRun(n.remarques||'-',{size:18,italics:true,color:TEXT_DARK})]})]
         });
-        return new TableRow({children:[cellReseau,cellAppareil,cellClasse,cellObs]});
+        return new TableRow({children:[cellReseau,cellAppareil,cellObs]});
       });
       children.push(new Table({
         width:{size:CW,type:WidthType.DXA},
@@ -9142,7 +9099,7 @@ async function doWordDocx(){
           ['Indice de protection','IP54 à IP55 selon modèle'],
         ],
         limites: [
-          'Précision angulaire 5" insuffisante pour classe A à longue portée (> 100 m) : utiliser modèle 2" ou 3".',
+          'Précision angulaire 5" insuffisante à longue portée (> 100 m) — utiliser modèle 2" ou 3".',
           'Mesure sans prisme limitée par la réflectivité de la cible (surface sombre ou anguleuse).',
           'Précision sans prisme dégradée à 4 mm + 2 ppm au-delà de 500 m.',
           'Mise en station soignée obligatoire - défaut de calage > 1,5" induit une erreur planimétrique notable sur longues visées.',
@@ -9163,9 +9120,9 @@ async function doWordDocx(){
         limites: [
           'Précision verticale ≈ 2× la précision horizontale - intégrer dans le bilan d\'incertitude Z.',
           'Canyon urbain ou couvert dense : multi-trajets limitants - préférer la station totale.',
-          'PPP Spot Prime : convergence ~30 min requise avant tout relevé de classe A.',
+          'PPP Spot Prime : convergence ~30 min requise avant tout relevé de haute précision.',
           'PDOP > 6 ou < 6 satellites : refuser la solution et attendre.',
-          'Modes DGNSS (40 cm) et SBAS (90 cm) réservés au repérage grossier - jamais pour classe A ou B.',
+          'Modes DGNSS (40 cm) et SBAS (90 cm) réservés au repérage grossier — précision insuffisante pour un relevé fin.',
         ],
         classe: 'Classe A atteignable en RTK multifréquence : PDOP < 3, ≥ 8 satellites, fix RTK stable ≥ 30 s (≥ 60 s pour le Z). Rattachement à repère NGF-IGN69 systématique.',
       },
@@ -9177,7 +9134,7 @@ async function doWordDocx(){
         ],
         limites: [
           'Contrôle de mise en station par double retournement recommandé.',
-          'Vérifier la précision angulaire du modèle avant de valider la classe de précision atteinte.',
+          'Vérifier la précision angulaire du modèle avant la validation finale du relevé.',
         ],
         classe: 'Classe A atteignable selon le modèle et les conditions de mesure - vérifier les spécifications constructeur du modèle utilisé.',
       },
@@ -9213,38 +9170,10 @@ async function doWordDocx(){
     // ─── ANNEXE C - Limites de mesure des appareils ───
     children.push(annexHeader('C','Limites de mesure des appareils'));
     children.push(sp(180));
-    children.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{before:0,after:120},children:[
-      mkRun('Cette annexe présente les limites métrologiques et opérationnelles des appareils utilisés lors de cette opération, conformément à la norme NF S70-003 et à l\'arrêté du 15 février 2012 relatif à la prévention des dommages aux réseaux (DT-DICT). Source : Annexe-Limites-Mesures_V01 - NEOCONCEPT VRD.',{size:18,italics:true,color:TEXT_MID})
+    children.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{before:0,after:240},children:[
+      mkRun('Cette annexe présente les limites métrologiques et opérationnelles des appareils utilisés lors de cette opération. Source : Annexe-Limites-Mesures_V01 - NEOCONCEPT VRD.',{size:18,italics:true,color:TEXT_MID})
     ]}));
-
-    // Rappel classes de précision : titre underline + 3 lignes "badge + définition"
-    children.push(subTitle('Rappel des classes de précision (Arrêté du 15/02/2012)'));
-    children.push(sp(80));
-    const _classeDefs = [
-      ['A', 'Incertitude maximale de localisation ≤ 40 cm (réseaux rigides) / ≤ 50 cm (réseaux flexibles).'],
-      ['B', 'Incertitude maximale de localisation ≤ 1,50 m.'],
-      ['C', 'Incertitude > 1,50 m, ou réseau localisé sans précision suffisante.']
-    ];
-    _classeDefs.forEach(([letter,def],i)=>{
-      const badgeW = 1500;
-      const badge = classBadgeCell('CLASSE '+letter,badgeW);
-      const defCell = new TableCell({
-        width:{size:CW-badgeW,type:WidthType.DXA},
-        shading:{type:ShadingType.CLEAR,fill:CARDBG},
-        borders:noBorders,
-        verticalAlign:VerticalAlign.CENTER,
-        margins:{top:160,bottom:160,left:280,right:200},
-        children:[new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{before:0,after:0},children:[mkRun(def,{size:20,color:TEXT_DARK})]})]
-      });
-      children.push(new Table({
-        width:{size:CW,type:WidthType.DXA},
-        columnWidths:[badgeW,CW-badgeW],
-        borders:noBorders,
-        rows:[new TableRow({children:[badge,defCell]})]
-      }));
-      if(i<_classeDefs.length-1) children.push(sp(40));
-    });
-    children.push(sp(240));
+    // (Bloc "Rappel des classes de précision" retiré)
 
     // Une fiche par type d'appareil utilisé (1 page par appareil)
     const typesUtilises=[...new Set((r.materiels||[]).map(m=>m.type).filter(Boolean))];
@@ -9311,9 +9240,7 @@ async function doWordDocx(){
         children.push(subTitle('Limites d\'utilisation'));
         info.limites.forEach(l=>children.push(bulletOrange(l)));
         children.push(sp(220));
-        // Card "Impact sur la classe" (label navy bloc + texte italique à droite)
-        children.push(impactCard(info.classe));
-        children.push(sp(160));
+        // (Card "Impact sur la classe" retirée)
       });
     } else {
       children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40,after:0},children:[mkRun('Aucun appareil renseigné dans les moyens matériels.',{size:20,italics:true,color:TEXT_LIGHT})]}));
@@ -9997,6 +9924,23 @@ async function addCollaborateurChantier(chantierId, targetUid){
   chantier.updatedAt = Date.now();
   await db.put('chantiers', chantier);
   await syncChantierToFirebase(chantier);
+
+  // ── CRITIQUE : pousser AUSSI le rapport vers Firestore pour que le collaborateur
+  //    voie les networks/textes déjà saisis. Sans ça, l'absence de rapport en Firestore
+  //    fait que le collab crée un rapport vide localement à l'ouverture du chantier.
+  try {
+    // Prendre le rapport en mémoire si c'est le chantier ouvert, sinon depuis IDB
+    let rapport = (S.currentRapport && S.currentRapport.id === chantierId)
+      ? S.currentRapport
+      : await db._idb.get('rapports', chantierId).catch(()=>null);
+    if(rapport){
+      // Force la mise à jour de lastModifiedAt pour que openChantier collab utilise Firestore
+      await syncRapportToFirebase(rapport);
+      Logger.info('Chantiers', `Rapport poussé en Firestore avant partage à ${targetUid}`);
+    }
+  } catch(e){
+    Logger.warn('Chantiers', 'syncRapportToFirebase avant partage échoué', e?.message);
+  }
 
   // ── Envoyer une notification Firestore au collaborateur ──
   if(FIREBASE_CONFIGURED && fdb && targetUid){
@@ -11062,7 +11006,7 @@ async function loadDemoData(){
       {id:'demo2-n5',nature:'Assainissement EU',methode:'GEORADAR 655 MHz',remarques:'Collecteur maçonné 0,60x0,90m - profondeur 2,10m. Regards tous les 30m.',active:true,photo:null},
       {id:'demo2-n6',nature:'GAZ GrDF',methode:'Radiodétection fréquence 50Hz',remarques:"Canalisation acier DN80 - MPS. Profondeur 0,70m. Coffret de détente au n°24.",active:true,photo:null}
     ],
-    conclusions:"L'ensemble des réseaux ont été géolocalisés par notre géomètre Élodie MARTIN avec la station totale LEICA TS13 et le GPS LEICA GG04 Plus.\n\nLes données sont reportées sous AUTOCAD/COVADIS - plan joint au rapport.\n\nClasse de précision A atteinte sur 180 ml. Mission terminée et validée par la Mairie de Versailles le 28/02/2024.",
+    conclusions:"L'ensemble des réseaux ont été géolocalisés par notre géomètre Élodie MARTIN avec la station totale LEICA TS13 et le GPS LEICA GG04 Plus.\n\nLes données sont reportées sous AUTOCAD/COVADIS - plan joint au rapport.\n\nMission terminée sur 180 ml et validée par la Mairie de Versailles le 28/02/2024.",
     observations:"- Ancien réseau de chauffage urbain désaffecté non référencé - signalé à la Mairie.\n- Zone pavée historique protégée : méthodes non-intrusives uniquement.\n- Légère pluie le 14/02 - passages supplémentaires effectués zone nord.\n- Rapport validé et signé par M. Jacques LEFEBVRE (Mairie de Versailles) le 28/02/2024.",
     conclusionPhotos:[],
     updatedAt:now - 86400000*25
@@ -11098,7 +11042,7 @@ async function loadDemoData(){
       {id:'demo-n6',nature:'Assainissement EU/EP',methode:'GEORADAR 655 MHz',remarques:'Collecteur béton Ø300mm EP + Ø200mm EU - profondeur 1,50m',active:true,photo:null},
       {id:'demo-n7',nature:'Éclairage public',methode:'Radiodétection 50Hz',remarques:'Câble éclairage public - longe le trottoir côté pair',active:true,photo:null}
     ],
-    conclusions:'L\'ensemble des réseaux géolocalisés à l\'aide du géoradar et de l\'appareil de radiodétection ont été relevés par notre géomètre à l\'aide d\'une tablette Panasonic Toughbook FZ-G1, d\'une station totale LEICA TS13 et d\'une antenne GPS LEICA GG04 Plus.\n\nCes données ont ensuite été reportées sous format AUTOCAD/COVADIS, dont le plan est joint au présent rapport.\n\nLa classe de précision A est atteinte sur l\'ensemble de la zone d\'investigation.',
+    conclusions:'L\'ensemble des réseaux géolocalisés à l\'aide du géoradar et de l\'appareil de radiodétection ont été relevés par notre géomètre à l\'aide d\'une tablette Panasonic Toughbook FZ-G1, d\'une station totale LEICA TS13 et d\'une antenne GPS LEICA GG04 Plus.\n\nCes données ont ensuite été reportées sous format AUTOCAD/COVADIS, dont le plan est joint au présent rapport.',
     observations:'- Réseau fibre optique non détecté dans la zone nord (accès impossible - véhicule stationné).\n- Présence d\'un réseau inconnu de type métallique en croisement avec l\'AEP au PR 45 - signalé au maître d\'ouvrage.\n- Conditions météo favorables - sol sec - bonne pénétration radar.',
     conclusionPhotos:[],updatedAt:now
   });
