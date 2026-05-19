@@ -12829,10 +12829,17 @@ function _renderPrepDocs(){
 
 // Démarre l'intervention : status preparation → active, crée le rapport pré-rempli, redirige
 async function startChantierFromPrep(){
-  const c = _currentPrep; if(!c) return;
+  console.log('[Prep] startChantierFromPrep appelée, _currentPrep =', _currentPrep);
+  const c = _currentPrep;
+  if(!c){ toast('❌ Aucune préparation en cours — réouvrez le chantier'); console.warn('[Prep] _currentPrep est null'); return; }
   // Validation minimale
   if(!c.name?.trim()){ toast('⚠️ Le chantier doit avoir un nom'); return; }
-  if(!confirm('Démarrer le chantier "'+c.name+'" ?\n\nIl basculera en statut actif et les agents pourront commencer l\'intervention sur le terrain.\n\n(La trace de cette préparation restera visible dans 📝 Prépa avec le badge "✅ Démarré".)')) return;
+  console.log('[Prep] Affichage confirm…');
+  if(!confirm('Démarrer le chantier "'+c.name+'" ?\n\nIl basculera en statut actif et les agents pourront commencer l\'intervention sur le terrain.\n\n(La trace de cette préparation restera visible dans 📝 Prépa avec le badge "✅ Démarré".)')){
+    console.log('[Prep] Utilisateur a annulé le confirm');
+    return;
+  }
+  console.log('[Prep] Démarrage confirmé, basculement status → active');
   c.status = 'active';
   c.updatedAt = Date.now();
   c.startedAt = Date.now();
