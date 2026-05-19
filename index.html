@@ -5764,10 +5764,63 @@ function stripLimitesText(text){
   return text.replace(/\n*LIMITES\s*:\s*Cette méthode ne permet pas l['']identification des réseaux détectés\.[^]*?nature\.\s*/g,'').trim();
 }
 
+// ════════════════════════════════════════════
+//  Source de vérité unique : le CHANTIER détient les infos admin (client, DT, équipe, plan…)
+//  Le RAPPORT ne contient que les infos terrain (networks, conclusions, signatures).
+// ════════════════════════════════════════════
+
+// Synchronise les champs admin entre chantier (source) et rapport (vue). Idempotent.
+// - Si chantier a une valeur → rapport reçoit la même
+// - Si chantier vide mais rapport a une valeur → migration ancienne archi (r → c)
+// Liste des champs admin (gérés via le chantier) :
+const _RAPPORT_ADMIN_FIELDS = [
+  'client', 'adresse', 'dateDebut', 'dateFin',
+  'dtDate', 'dtNum', 'natureOperations',
+  'reference', 'respNom', 'respPoste', 'respContact',
+  'entite', 'planSituation', '_planUrl'
+];
+
+function _syncRapportAdminFromChantier(){
+  const r = S.currentRapport;
+  const c = S.currentChantier;
+  if(!r || !c) return false;
+  const isEmpty = v => v === undefined || v === null || v === '';
+  let changed = false;
+  for(const k of _RAPPORT_ADMIN_FIELDS){
+    if(!isEmpty(c[k])){
+      if(r[k] !== c[k]){ r[k] = c[k]; changed = true; }
+    } else if(!isEmpty(r[k])){
+      // Migration ancien chantier : copie r → c (le chantier prend l'autorité)
+      c[k] = r[k]; changed = true;
+    }
+  }
+  // Opérateurs : array
+  const hasOps = arr => Array.isArray(arr) && arr.some(o => o && (o.nom || o.poste));
+  if(hasOps(c.opDetection)){
+    r.opDetection = c.opDetection.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    while(r.opDetection.length < 2) r.opDetection.push({nom:'',poste:''});
+    changed = true;
+  } else if(hasOps(r.opDetection)){
+    c.opDetection = r.opDetection.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    changed = true;
+  }
+  if(hasOps(c.opGeo)){
+    r.opGeo = c.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    if(r.opGeo.length === 0) r.opGeo.push({nom:'',poste:''});
+    changed = true;
+  } else if(hasOps(r.opGeo)){
+    c.opGeo = r.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    changed = true;
+  }
+  return changed;
+}
+
 function renderRapportScreen(){
   const r=S.currentRapport;
   const c=S.currentChantier;
   if(!r||!c) return;
+  // ⚠️ Synchronisation chantier → rapport AVANT tout rendu (source de vérité unique)
+  _syncRapportAdminFromChantier();
   document.getElementById('topTitle').textContent='📋 '+c.name;
   // Section "Documents de préparation" (si la prep en a déposé)
   _renderRapportPrepDocs();
@@ -5922,12 +5975,28 @@ function rapportChanged(){
   r.recapLin=document.getElementById('r-recap-lin').value;
   const _veriNom=document.getElementById('sig-verificateur-nom'); if(_veriNom) r.veriNom=_veriNom.value;
   r.updatedAt=Date.now();
+
+  // ⚠️ Synchroniser les champs admin r → c (le chantier est la source de vérité)
+  //   Comme ça, peu importe l'écran (rapport ou prépa), le chantier reste à jour.
+  const c = S.currentChantier;
+  let cChanged = false;
+  if(c){
+    for(const k of (typeof _RAPPORT_ADMIN_FIELDS !== 'undefined' ? _RAPPORT_ADMIN_FIELDS : [])){
+      if(r[k] !== undefined && r[k] !== c[k]){ c[k] = r[k]; cChanged = true; }
+    }
+    if(Array.isArray(r.opDetection)){ c.opDetection = r.opDetection.slice(); cChanged = true; }
+    if(Array.isArray(r.opGeo)){       c.opGeo       = r.opGeo.slice();       cChanged = true; }
+    if(cChanged) c.updatedAt = Date.now();
+  }
+
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     // Guard : vérifier que le rapport existe encore en IDB (suppression concurrente)
     const _stillExists = await db._idb.get('rapports', r.id).catch(()=>null);
     if(!_stillExists) return;
     await db.put('rapports',r);
+    // Sauvegarder aussi le chantier si admin a changé (sync vers Firestore + collaborateurs)
+    if(c && cChanged){ try { await db.put('chantiers', c); } catch(_){} }
     syncRapportToFirebase(r);
     const bar=document.getElementById('autosave-bar');
     if(bar) bar.textContent='✓ Sauvegardé à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(S.isOffline?' · hors ligne':'');
@@ -6425,6 +6494,13 @@ async function handlePhotoSrcInput(input){
       const compressed = await compressImage(file, maxW);
       if(ctx === 'plan'){
         S.currentRapport.planSituation = compressed;
+        // ⚠️ Source de vérité : aussi dans le chantier (visible côté collaborateur)
+        if(S.currentChantier){
+          S.currentChantier.planSituation = compressed;
+          delete S.currentChantier._planUrl; // ré-upload Storage nécessaire
+          S.currentChantier.updatedAt = Date.now();
+          db.put('chantiers', S.currentChantier).catch(()=>{});
+        }
         const wrap = document.getElementById('plan-situation-img-wrap');
         wrap.innerHTML = '<img src="'+compressed+'" style="width:100%;border-radius:8px;max-height:200px;object-fit:contain">';
         wrap.style.display = 'block';
@@ -8222,6 +8298,9 @@ function _dataUrlToBytes(dataUrl){
 function _imgToBytes(src){ return Promise.resolve(null); }
 
 async function doWordDocx(){
+  // ⚠️ Synchronise les champs admin du chantier vers le rapport AVANT validation/export
+  //   Garantit que client/DT/opérateurs/plan sont à jour, même si saisis uniquement en prépa.
+  if(typeof _syncRapportAdminFromChantier === 'function') _syncRapportAdminFromChantier();
   const r = S.currentRapport;
   // ── Validation : champs critiques pour un livrable client ──
   const _vErr = _validateRapportForExport(r);
@@ -12084,8 +12163,8 @@ function _renderRapportPrepDocs(){
   const count = document.getElementById('r-prep-docs-count');
   if(!section || !list) return;
   const r = S.currentRapport, c = S.currentChantier;
-  // Source : priorité au rapport (transmis lors du démarrage), fallback au chantier (collaborateur sans rapport encore)
-  const docs = (r?.prepDocs?.length ? r.prepDocs : (c?.prepDocs || []));
+  // ⚠️ Source de vérité = le chantier. Fallback rapport pour compat ancienne archi.
+  const docs = (c?.prepDocs?.length ? c.prepDocs : (r?.prepDocs || []));
   if(!docs.length){ section.style.display = 'none'; return; }
   section.style.display = 'block';
   if(count) count.textContent = docs.length;
@@ -12765,76 +12844,32 @@ async function startChantierFromPrep(){
     if(idx >= 0) S.chantiers[idx] = c;
     else S.chantiers.push(c);
 
-    // 2) Créer ou mettre à jour le rapport avec les infos de la prépa
+    // 2) Créer le rapport minimal (les champs admin sont lus dynamiquement depuis le chantier)
+    //    Plus de copie d'infos admin du chantier vers le rapport : c'est le chantier qui fait foi.
     let rapport = await db._idb.get('rapports', c.id).catch(()=>null);
     if(!rapport){
-      // Création initiale
       rapport = {
         id: c.id, chantierId: c.id,
-        client: c.client || '',
-        adresse: c.address || c.adresse || '',
-        natureOperations: c.natureOperations || '',
-        classePresicion: '',
-        dateDebut: c.dateDebut || today(),
-        dtDate: c.dtDate || '',
-        dtNum: c.dtNum || '',
-        reference: c.reference || '',
-        planSituation: c.planSituation || '',
-        _planUrl: c._planUrl || undefined,
-        respNom: c.respNom || '',
-        respPoste: c.respPoste || '',
-        respContact: c.respContact || '',
-        opDetection: (c.opDetection || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
-        opGeo:       (c.opGeo       || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
-        _regionPrefilled: true,
+        // Champs terrain uniquement (le chantier détient les infos admin)
+        networks: [],
         materiels: (typeof DynLists !== 'undefined' ? DynLists.defaultMateriels : []) || [],
         logiciels: (typeof DynLists !== 'undefined' ? DynLists.defaultLogiciels : []) || [],
-        networks: [],
         conclusions: (typeof DynLists !== 'undefined' && DynLists.defaultConclusion) ? DynLists.defaultConclusion : '',
         observations: '',
         conclusionPhotos: [],
+        _regionPrefilled: true,    // empêche openChantier de re-fill l'équipe régionale
+        opDetection: [{nom:'',poste:''},{nom:'',poste:''}],
+        opGeo:       [{nom:'',poste:''}],
         updatedAt: Date.now(),
-        prepDocs: c.prepDocs || []
+        lastModifiedAt: Date.now(),
+        lastModifiedBy: currentUserProfile?.uid || 'local'
       };
     } else {
-      // Rapport déjà existant : on FORCE la mise à jour des champs admin + opérateurs depuis la prépa
-      // (l'utilisateur a explicitement choisi ces valeurs en prep, elles font autorité)
-      if(c.client)            rapport.client = c.client;
-      if(c.address||c.adresse) rapport.adresse = c.address || c.adresse;
-      if(c.natureOperations)  rapport.natureOperations = c.natureOperations;
-      if(c.dateDebut)         rapport.dateDebut = c.dateDebut;
-      if(c.dtDate)            rapport.dtDate = c.dtDate;
-      if(c.dtNum)             rapport.dtNum = c.dtNum;
-      if(c.reference)         rapport.reference = c.reference;
-      if(c.respNom)           rapport.respNom = c.respNom;
-      if(c.respPoste)         rapport.respPoste = c.respPoste;
-      if(c.respContact)       rapport.respContact = c.respContact;
-      if(c.planSituation)     rapport.planSituation = c.planSituation;
-      if(c._planUrl)          rapport._planUrl = c._planUrl;
-      if(c.opDetection?.length){
-        rapport.opDetection = c.opDetection.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
-      }
-      if(c.opGeo?.length){
-        rapport.opGeo = c.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
-      }
-      // Docs prep : fusion (ne pas perdre ce qui était déjà dans le rapport)
-      if(c.prepDocs?.length){
-        const existing = (rapport.prepDocs || []).map(d => d.id);
-        rapport.prepDocs = [...(rapport.prepDocs||[]), ...c.prepDocs.filter(d => !existing.includes(d.id))];
-      }
       rapport._regionPrefilled = true;
+      rapport.lastModifiedAt = Date.now();
       rapport.updatedAt = Date.now();
     }
-    // Garantir minimum 2 slots opérateurs détection + 1 slot géo (UI attend ces minimums)
-    while(rapport.opDetection.length < 2) rapport.opDetection.push({nom:'',poste:''});
-    if(rapport.opGeo.length === 0) rapport.opGeo.push({nom:'',poste:''});
-    // Forcer lastModifiedAt + updatedAt élevés pour que le merge Firestore dans openChantier
-    // ne perde pas nos valeurs en cas de doc Firestore plus ancien.
-    rapport.lastModifiedAt = Date.now();
-    rapport.lastModifiedBy = currentUserProfile?.uid || 'local';
-    rapport.updatedAt = Date.now();
     await db.put('rapports', rapport);
-    // Forcer la version en mémoire (sécurité : si openChantier tarde, le rapport est déjà bon)
     S.currentRapport = rapport;
 
     toast('✅ Chantier démarré — ouverture du rapport…');
