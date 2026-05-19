@@ -1441,6 +1441,7 @@ body::before{
 <!-- ─── LEFT NAV ──────────────────────────── -->
 <div id="bottom-nav" style="display:none">
   <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')">🏗️<br>Accueil</button>
+  <button class="nav-btn" id="nav-preparation" onclick="showScreen('s-preparation');loadPreparationScreen()">📝<br>Prépa</button>
   <button class="nav-btn" id="nav-ouvrages" onclick="showScreen('s-ouvrages')">🔩<br>Ouvrages</button>
   <button class="nav-btn" id="nav-sresst" onclick="showScreen('s-sresst');loadSRESSTScreen()">🦺<br>SRESST</button>
   <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')">📋<br>Consignes</button>
@@ -2564,6 +2565,129 @@ body::before{
     </div>
   </div>
 
+
+  <!-- ══════════════════ SCREEN PRÉPARATION CHANTIER ══════════════════ -->
+  <!-- Liste des chantiers en préparation + bouton "Nouveau" -->
+  <div class="screen" id="s-preparation" style="display:none;padding-bottom:80px">
+    <div style="position:sticky;top:0;z-index:20;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#fff">📝 Préparation</div>
+        <div style="font-size:11px;color:var(--muted)">Chantiers en amont de l'intervention</div>
+      </div>
+      <button class="btn-accent" style="padding:9px 18px;font-size:13px;border-radius:20px;font-weight:700" onclick="openNewPrep()" aria-label="Nouveau chantier en préparation">➕ Nouveau</button>
+    </div>
+    <div style="padding:16px">
+      <div id="prep-empty" style="display:none;padding:32px 16px;text-align:center;color:var(--muted);font-size:13px">
+        <div style="font-size:48px;margin-bottom:12px">📝</div>
+        <div style="font-weight:600;margin-bottom:6px">Aucun chantier en préparation</div>
+        <div>Crée un chantier en amont pour préparer la partie administrative, joindre les DT et partager avec ton équipe.</div>
+      </div>
+      <div id="prep-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+
+  <!-- Écran édition d'un chantier en préparation -->
+  <div class="screen" id="s-preparation-form" style="display:none;padding-bottom:120px">
+    <div style="position:sticky;top:0;z-index:20;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <button class="btn-card" style="padding:8px 12px;font-size:13px;border-radius:18px" onclick="showScreen('s-preparation');loadPreparationScreen()" aria-label="Retour">← Liste</button>
+      <div style="flex:1;text-align:center">
+        <div id="prep-form-title" style="font-size:15px;font-weight:800;color:#fff">📝 Préparation</div>
+      </div>
+      <button class="btn-accent" style="padding:8px 14px;font-size:13px;border-radius:18px;font-weight:700" onclick="savePrep()" aria-label="Enregistrer la préparation">💾</button>
+    </div>
+    <div style="padding:14px 16px">
+      <!-- §1 Infos chantier -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>🏗️ Infos chantier</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <div class="form-group"><label class="form-label">Nom du chantier *</label>
+            <input class="form-input" id="prep-name" placeholder="Ex : Rue Louis Castel - Gennevilliers" oninput="prepChanged()"></div>
+          <div class="form-group"><label class="form-label">Client / Donneur d'ordre</label>
+            <input class="form-input" id="prep-client" placeholder="Ex : ENEDIS" oninput="prepChanged()"></div>
+          <div class="form-group"><label class="form-label">Adresse / Commune</label>
+            <input class="form-input" id="prep-address" placeholder="Ex : 8 Rue Louis Castel, 92230 Gennevilliers" oninput="prepChanged()"></div>
+          <div class="form-group"><label class="form-label">Date d'intervention prévue</label>
+            <input class="form-input" type="date" id="prep-date" oninput="prepChanged()"></div>
+          <div class="form-group"><label class="form-label">Référence interne</label>
+            <input class="form-input" id="prep-reference" placeholder="Auto-générée si vide" oninput="prepChanged()"></div>
+        </div>
+      </div>
+      <!-- §2 DT -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>📋 Déclaration de Travaux (DT)</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <div class="form-group"><label class="form-label">Date de déclaration DT</label>
+            <input class="form-input" type="date" id="prep-dt-date" oninput="prepChanged()"></div>
+          <div class="form-group"><label class="form-label">Numéro de téléservice</label>
+            <input class="form-input" id="prep-dt-num" placeholder="Ex : 2026040078967" oninput="prepChanged()"></div>
+        </div>
+      </div>
+      <!-- §3 Nature + Rédacteur -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>🎯 Nature & Rédacteur</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <div class="form-group"><label class="form-label">Nature des opérations</label>
+            <select class="form-select" id="prep-nature" onchange="prepChanged()">
+              <option value="">— Sélectionner —</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Rédacteur du rapport</label>
+            <input class="form-input" id="prep-redacteur" placeholder="Nom du rédacteur" oninput="prepChanged()"></div>
+        </div>
+      </div>
+      <!-- §4 Équipe -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>👷 Équipe pré-assignée</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <div class="form-group"><label class="form-label">Responsable de projet</label>
+            <select class="form-select" id="prep-resp" onchange="prepChanged()">
+              <option value="">— Sélectionner —</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Opérateurs de détection</label>
+            <select class="form-select" id="prep-op-det" onchange="prepAddOpDet(this)">
+              <option value="">+ Ajouter un opérateur</option>
+            </select>
+            <div id="prep-op-det-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Opérateurs de géoréférencement</label>
+            <select class="form-select" id="prep-op-geo" onchange="prepAddOpGeo(this)">
+              <option value="">+ Ajouter un opérateur</option>
+            </select>
+            <div id="prep-op-geo-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- §5 Documents -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>📎 Documents joints (DT, plans, autorisations…)</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <input type="file" id="prep-doc-input" multiple style="display:none" onchange="prepAddDocs(this)"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.dwg,.zip,.txt">
+          <button class="btn-big btn-card" style="width:100%;margin-bottom:10px" onclick="document.getElementById('prep-doc-input').click()" aria-label="Joindre des fichiers">📤 Joindre des fichiers</button>
+          <div id="prep-docs-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+      <!-- §6 Partage agents -->
+      <div class="acc-section">
+        <button class="acc-toggle" onclick="toggleAcc(this)"><span>👥 Agents participants</span><span class="acc-chevron open">▼</span></button>
+        <div class="acc-body open">
+          <div class="form-group"><label class="form-label">Inviter un agent</label>
+            <select class="form-select" id="prep-share-user" onchange="prepShareAgent(this)">
+              <option value="">+ Sélectionner un agent…</option>
+            </select>
+          </div>
+          <div id="prep-collab-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+      <!-- Boutons d'action -->
+      <div class="btn-row" style="margin-top:16px;gap:10px">
+        <button class="btn-big btn-card" style="flex:1;color:#f87171" onclick="deletePrep()" aria-label="Supprimer ce chantier en préparation">🗑️ Supprimer</button>
+        <button class="btn-big btn-accent" style="flex:2;background:linear-gradient(135deg,#059669,#047857);border-color:#059669" onclick="startChantierFromPrep()" aria-label="Démarrer le chantier sur le terrain">✅ Démarrer le chantier</button>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
+        💡 Démarrer le chantier le bascule en statut "actif" et l'agent assigné pourra commencer l'intervention sur le terrain (saisie réseaux, photos, etc.).
+      </div>
+    </div>
+  </div>
 
   <!-- ══════════════════ SCREEN SRESST ══════════════════ -->
   <div class="screen" id="s-sresst" style="display:none;padding-bottom:80px">
@@ -3846,6 +3970,23 @@ async function _cacheStoragePhotosLocally(r){
   }
 }
 
+// ── Strip "léger" d'un chantier pour Firestore (vire les base64 lourds des prepDocs) ──
+// Préserve les URLs Storage déjà uploadées. Utilisé par CloudDB.put.
+function _stripChantierForFirestore(c){
+  const d = {...c};
+  if(Array.isArray(d.prepDocs)){
+    d.prepDocs = d.prepDocs.map(doc => {
+      const clean = {...doc};
+      // Vire le base64 ; garde id, filename, type, size, url Storage, uploadedAt, uploadedBy
+      if(typeof clean.dataUrl === 'string' && clean.dataUrl.startsWith('data:')){
+        delete clean.dataUrl;
+      }
+      return clean;
+    });
+  }
+  return d;
+}
+
 // ── Strip "léger" d'un rapport pour Firestore (vire les base64 lourds) ──
 // Préserve les URLs Storage déjà uploadées (champs ._photosUrls, ._planUrl, ._conclusionUrls).
 // Utilisé par CloudDB.put pour éviter le rejet Firestore (limite 1 MB / document).
@@ -3930,7 +4071,9 @@ class CloudDB {
     //    syncRapportToFirebase fait un strip complet en parallèle quand il est appelé.
     let d;
     try {
-      d = (store === 'rapports') ? _stripRapportForFirestore(data) : {...data};
+      if(store === 'rapports')      d = _stripRapportForFirestore(data);
+      else if(store === 'chantiers') d = _stripChantierForFirestore(data);
+      else                            d = {...data};
     } catch(e){
       Logger.warn('CloudDB', `strip échoué pour ${store}/${data?.id}, envoi brut`, e?.message);
       d = {...data};
@@ -4708,19 +4851,23 @@ const today=()=>new Date().toISOString().split('T')[0];
 // ════════════════════════════════════════════
 //  ROUTING
 // ════════════════════════════════════════════
-const SCREENS=['screen-home','screen-rapport','s-camera','s-photos','s-dossier','s-consignes','s-ouvrages','s-ouvrage-form','s-profil','s-login','s-admin','s-sresst'];
+const SCREENS=['screen-home','screen-rapport','s-camera','s-photos','s-dossier','s-consignes','s-ouvrages','s-ouvrage-form','s-profil','s-login','s-admin','s-sresst','s-preparation','s-preparation-form'];
 const NAV_MAP={
   'screen-home':'nav-home',
   's-photos':'nav-photos','s-dossier':'nav-dossier','s-consignes':'nav-consignes',
   's-ouvrages':'nav-ouvrages','s-ouvrage-form':'nav-ouvrages',
-  's-profil':'nav-profil','s-admin':'nav-admin'
+  's-profil':'nav-profil','s-admin':'nav-admin',
+  's-preparation':'nav-preparation','s-preparation-form':'nav-preparation',
+  's-sresst':'nav-sresst'
 };
 const TITLES={
   'screen-home':'NCVRD Detect','screen-rapport':'📋 Rapport',
   's-camera':'📷 Caméra','s-photos':'📸 Photos',
   's-dossier':'📄 Documents','s-consignes':'📋 Consignes',
   's-ouvrages':'🏗️ Ouvrages','s-ouvrage-form':'🏗️ Fiche ouvrage',
-  's-profil':'👤 Profil','s-admin':'⚙️ Admin'
+  's-profil':'👤 Profil','s-admin':'⚙️ Admin',
+  's-preparation':'📝 Préparation','s-preparation-form':'📝 Préparation chantier',
+  's-sresst':'🦺 SRESST'
 };
 
 function showScreen(id){
@@ -5006,11 +5153,14 @@ function switchTab(tab){
 function renderChantiers(list){
   const el=document.getElementById('chantier-list');
 
+  // Exclure les chantiers en préparation (gérés dans l'écran 📝 Préparation)
+  list = (list || []).filter(c => c.status !== 'preparation');
+
   // Compter et afficher les badges
   const myUid_rc   = currentUserProfile?.uid;
-  const encours    = S.chantiers.filter(c => c.statut !== 'termine' && (!c.createdBy || c.createdBy === myUid_rc || isAdminRole(currentUserProfile?.role)));
+  const encours    = S.chantiers.filter(c => c.status !== 'preparation' && c.statut !== 'termine' && (!c.createdBy || c.createdBy === myUid_rc || isAdminRole(currentUserProfile?.role)));
   const termines   = S.chantiers.filter(c => c.statut === 'termine');
-  const partages   = S.chantiers.filter(c => Array.isArray(c.collaborators) && c.collaborators.includes(myUid_rc) && c.createdBy !== myUid_rc);
+  const partages   = S.chantiers.filter(c => c.status !== 'preparation' && Array.isArray(c.collaborators) && c.collaborators.includes(myUid_rc) && c.createdBy !== myUid_rc);
   const be = document.getElementById('badge-encours');
   const bt = document.getElementById('badge-termine');
   const bp = document.getElementById('badge-partage');
@@ -11747,6 +11897,519 @@ init().catch(e=>{
   hideSplashScreen();
   showScreen('s-login');
 });
+
+
+
+// ════════════════════════════════════════════
+//  PRÉPARATION CHANTIER — phase amont avant intervention
+// ════════════════════════════════════════════
+
+// État local du chantier en cours d'édition (préparation)
+let _currentPrep = null;
+let _prepSaveTimer = null;
+let _prepTeamUsers = []; // cache des utilisateurs de l'équipe pour le partage
+
+// Charge la liste des chantiers en préparation + peuple les selects
+async function loadPreparationScreen(){
+  try {
+    // Recharger la liste complète des chantiers (au cas où)
+    if(typeof loadChantiers === 'function') await loadChantiers();
+    _renderPrepList();
+    // Peupler le select des natures d'opérations (DynLists)
+    const natSel = document.getElementById('prep-nature');
+    if(natSel && typeof DynLists !== 'undefined'){
+      natSel.innerHTML = '<option value="">— Sélectionner —</option>';
+      (DynLists.natureOperations || DynLists.get('nature_operations') || []).forEach(n => {
+        const o = document.createElement('option'); o.value = n; o.textContent = n;
+        natSel.appendChild(o);
+      });
+    }
+    // Peupler le select des contacts NCVRD pour responsable + opérateurs
+    ['prep-resp','prep-op-det','prep-op-geo'].forEach(id => {
+      const sel = document.getElementById(id);
+      if(!sel) return;
+      const isResp = id === 'prep-resp';
+      sel.innerHTML = isResp ? '<option value="">— Sélectionner —</option>' : '<option value="">+ Ajouter un opérateur</option>';
+      const byAgence = {};
+      (NCVRD_CONTACTS||[]).forEach(c => {
+        if(!byAgence[c.agence]) byAgence[c.agence] = [];
+        byAgence[c.agence].push(c);
+      });
+      Object.entries(byAgence).forEach(([ag, list]) => {
+        const grp = document.createElement('optgroup'); grp.label = '📍 ' + ag;
+        list.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.email;
+          o.textContent = c.prenom + ' (' + c.email + ')';
+          grp.appendChild(o);
+        });
+        sel.appendChild(grp);
+      });
+    });
+    // Peupler le select des utilisateurs Firebase pour le partage
+    await _loadPrepTeamUsers();
+  } catch(e){ Logger.warn('Prep', 'loadPreparationScreen', e?.message); }
+}
+
+async function _loadPrepTeamUsers(){
+  const sel = document.getElementById('prep-share-user');
+  if(!sel || !FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
+  try {
+    const snap = await fdb.collection('users').where('teamId','==',currentUserProfile.teamId).get();
+    _prepTeamUsers = [];
+    snap.forEach(d => {
+      const u = {uid:d.id, ...d.data()};
+      if(u.uid !== currentUserProfile.uid) _prepTeamUsers.push(u); // exclure soi-même
+    });
+    sel.innerHTML = '<option value="">+ Sélectionner un agent…</option>';
+    _prepTeamUsers.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.uid;
+      o.textContent = (u.displayName || u.email || u.uid) + (u.role ? ' — '+u.role : '');
+      sel.appendChild(o);
+    });
+  } catch(e){ Logger.warn('Prep', 'load team users', e?.message); }
+}
+
+function _renderPrepList(){
+  const container = document.getElementById('prep-list');
+  const empty = document.getElementById('prep-empty');
+  if(!container) return;
+  const preps = (S.chantiers||[]).filter(c => c.status === 'preparation');
+  container.innerHTML = '';
+  if(!preps.length){
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  preps.sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0));
+  preps.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'padding:14px 16px;cursor:pointer;border-left:3px solid #f59e0b';
+    card.setAttribute('role','button');
+    card.setAttribute('aria-label','Ouvrir le chantier en préparation '+(c.name||'sans nom'));
+    card.onclick = () => openPrep(c.id);
+    const docs = (c.prepDocs||[]).length;
+    const collabs = (c.collaborators||[]).length;
+    card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<span style="font-size:11px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">EN PRÉPA</span>'+
+      '<span style="font-size:11px;color:var(--muted)">'+(c.dateDebut||'—')+'</span>'+
+      '</div>'+
+      '<div style="font-weight:700;color:#fff;font-size:15px;margin-bottom:4px">'+Validator.sanitize(c.name||'Sans nom')+'</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">'+Validator.sanitize(c.client||'-')+' · '+Validator.sanitize(c.address||c.adresse||'-')+'</div>'+
+      '<div style="display:flex;gap:14px;font-size:11px;color:var(--muted)">'+
+        (docs?'<span>📎 '+docs+' doc'+(docs>1?'s':'')+'</span>':'')+
+        (collabs?'<span>👥 '+collabs+' agent'+(collabs>1?'s':'')+'</span>':'')+
+        (c.dtNum?'<span>📋 DT '+Validator.sanitize(c.dtNum)+'</span>':'')+
+      '</div>';
+    container.appendChild(card);
+  });
+}
+
+function openNewPrep(){
+  _currentPrep = {
+    id: uid(),
+    name: '', address: '', client: '', reference: '',
+    dateDebut: today(),
+    status: 'preparation',
+    dtDate: '', dtNum: '',
+    natureOperations: '', redacteur: currentUserProfile?.displayName || '',
+    respNom: '', respPoste: '', respContact: '',
+    opDetection: [], opGeo: [],
+    prepDocs: [],
+    collaborators: [],
+    createdAt: Date.now(), updatedAt: Date.now(),
+    createdBy: currentUserProfile?.uid || 'local'
+  };
+  _populatePrepForm(_currentPrep);
+  showScreen('s-preparation-form');
+}
+
+async function openPrep(id){
+  let c = S.chantiers.find(x => x.id === id);
+  if(!c) c = await db._idb.get('chantiers', id).catch(()=>null);
+  if(!c){ toast('❌ Chantier introuvable'); return; }
+  // Garantir les arrays
+  c.prepDocs = c.prepDocs || [];
+  c.collaborators = c.collaborators || [];
+  c.opDetection = c.opDetection || [];
+  c.opGeo = c.opGeo || [];
+  _currentPrep = c;
+  _populatePrepForm(c);
+  showScreen('s-preparation-form');
+  // Tâche de fond : upload des docs encore en base64 sans URL Storage (cas après refresh)
+  if(navigator.onLine && fstorage){
+    _uploadPrepDocsToStorage(c).catch(e =>
+      Logger.warn('Prep', 'upload Storage différé échoué', e?.message)
+    );
+  }
+}
+
+function _populatePrepForm(c){
+  const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value = val||''; };
+  setVal('prep-name', c.name);
+  setVal('prep-client', c.client);
+  setVal('prep-address', c.address || c.adresse);
+  setVal('prep-date', c.dateDebut);
+  setVal('prep-reference', c.reference);
+  setVal('prep-dt-date', c.dtDate);
+  setVal('prep-dt-num', c.dtNum);
+  setVal('prep-nature', c.natureOperations);
+  setVal('prep-redacteur', c.redacteur || c.respNom);
+  setVal('prep-resp', c.respContact || '');
+  // Titre
+  const t = document.getElementById('prep-form-title');
+  if(t) t.textContent = '📝 ' + (c.name || 'Nouveau chantier');
+  // Listes équipe + docs + collaborateurs
+  _renderPrepOpList('det');
+  _renderPrepOpList('geo');
+  _renderPrepDocs();
+  _renderPrepCollabs();
+}
+
+// Capture les valeurs DOM dans _currentPrep + autosave 600ms
+function prepChanged(){
+  const c = _currentPrep; if(!c) return;
+  const get = id => document.getElementById(id)?.value || '';
+  c.name = get('prep-name');
+  c.client = get('prep-client');
+  c.address = get('prep-address');
+  c.adresse = c.address; // compat avec champ rapport
+  c.dateDebut = get('prep-date');
+  c.reference = get('prep-reference');
+  c.dtDate = get('prep-dt-date');
+  c.dtNum = get('prep-dt-num');
+  c.natureOperations = get('prep-nature');
+  c.redacteur = get('prep-redacteur');
+  const respEmail = get('prep-resp');
+  if(respEmail){
+    const contact = (NCVRD_CONTACTS||[]).find(x => x.email === respEmail);
+    if(contact){
+      c.respNom = contact.prenom;
+      c.respContact = contact.email;
+    }
+  }
+  c.updatedAt = Date.now();
+  clearTimeout(_prepSaveTimer);
+  _prepSaveTimer = setTimeout(async () => {
+    try { await db.put('chantiers', c); } catch(_){}
+  }, 600);
+  // Mettre à jour le titre dynamiquement
+  const t = document.getElementById('prep-form-title');
+  if(t) t.textContent = '📝 ' + (c.name || 'Nouveau chantier');
+}
+
+async function savePrep(){
+  const c = _currentPrep; if(!c){ toast('❌ Aucune préparation en cours'); return; }
+  prepChanged();
+  clearTimeout(_prepSaveTimer);
+  c.updatedAt = Date.now();
+  try {
+    await db.put('chantiers', c);
+    // Mettre à jour S.chantiers si déjà présent
+    const idx = S.chantiers.findIndex(x => x.id === c.id);
+    if(idx >= 0) S.chantiers[idx] = c;
+    else S.chantiers.push(c);
+    toast('✅ Préparation enregistrée');
+  } catch(e){ toast('❌ Erreur sauvegarde : '+(e?.message||e)); }
+}
+
+async function deletePrep(){
+  const c = _currentPrep; if(!c) return;
+  if(!confirm('Supprimer ce chantier en préparation ?\n\nLes documents joints et collaborateurs invités seront aussi retirés.')) return;
+  try {
+    if(typeof deleteChantier === 'function') await deleteChantier(c.id);
+    else { await db.del('chantiers', c.id); S.chantiers = S.chantiers.filter(x => x.id !== c.id); }
+    _currentPrep = null;
+    showScreen('s-preparation');
+    loadPreparationScreen();
+    toast('🗑️ Préparation supprimée');
+  } catch(e){ toast('❌ '+(e?.message||e)); }
+}
+
+// Ajoute un opérateur (détection ou géo) depuis le select
+function prepAddOpDet(sel){ _prepAddOp(sel, 'det'); }
+function prepAddOpGeo(sel){ _prepAddOp(sel, 'geo'); }
+function _prepAddOp(sel, type){
+  if(!_currentPrep || !sel.value) return;
+  const contact = (NCVRD_CONTACTS||[]).find(x => x.email === sel.value);
+  if(!contact){ sel.value = ''; return; }
+  const arr = type === 'det' ? (_currentPrep.opDetection = _currentPrep.opDetection || []) : (_currentPrep.opGeo = _currentPrep.opGeo || []);
+  if(arr.find(o => o.email === contact.email)){ sel.value = ''; toast('Déjà ajouté'); return; }
+  arr.push({nom: contact.prenom, email: contact.email, agence: contact.agence, poste: ''});
+  sel.value = '';
+  _renderPrepOpList(type);
+  prepChanged();
+}
+function _prepRemoveOp(type, email){
+  if(!_currentPrep) return;
+  const key = type === 'det' ? 'opDetection' : 'opGeo';
+  _currentPrep[key] = (_currentPrep[key]||[]).filter(o => o.email !== email);
+  _renderPrepOpList(type);
+  prepChanged();
+}
+function _renderPrepOpList(type){
+  const containerId = type === 'det' ? 'prep-op-det-list' : 'prep-op-geo-list';
+  const container = document.getElementById(containerId);
+  if(!container || !_currentPrep) return;
+  const arr = (type === 'det' ? _currentPrep.opDetection : _currentPrep.opGeo) || [];
+  container.innerHTML = '';
+  arr.forEach(o => {
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;gap:8px';
+    chip.innerHTML = '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">'+Validator.sanitize(o.nom)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+Validator.sanitize(o.agence||'')+' · '+Validator.sanitize(o.email||'')+'</div></div>';
+    const rm = document.createElement('button');
+    rm.textContent = '✕'; rm.setAttribute('aria-label','Retirer');
+    rm.style.cssText = 'background:transparent;border:none;color:#f87171;font-size:18px;cursor:pointer;padding:4px 8px';
+    rm.onclick = () => _prepRemoveOp(type, o.email);
+    chip.appendChild(rm);
+    container.appendChild(chip);
+  });
+}
+
+// Partage : ajoute un agent collaborateur via uid Firebase
+async function prepShareAgent(sel){
+  if(!_currentPrep || !sel.value) return;
+  const uid = sel.value;
+  if(!_currentPrep.collaborators) _currentPrep.collaborators = [];
+  if(_currentPrep.collaborators.includes(uid)){ sel.value = ''; toast('Agent déjà invité'); return; }
+  _currentPrep.collaborators.push(uid);
+  sel.value = '';
+  // Sauvegarder + notifier
+  await savePrep();
+  _renderPrepCollabs();
+  // Notif in-app via Firestore
+  if(FIREBASE_CONFIGURED && fdb){
+    try {
+      const senderName = currentUserProfile ? (currentUserProfile.displayName || currentUserProfile.email || 'Un collègue') : 'Un collègue';
+      await fdb.collection('notifications').add({
+        toUid: uid,
+        fromUid: currentUserProfile?.uid || null,
+        fromName: senderName,
+        type: 'chantier_invite',
+        chantierId: _currentPrep.id,
+        chantierName: _currentPrep.name || 'Sans titre',
+        message: senderName + ' vous a invité sur le chantier en préparation "' + (_currentPrep.name || 'Sans titre') + '"',
+        read: false,
+        createdAt: Date.now()
+      });
+      toast('✅ Agent invité — notification envoyée');
+    } catch(e){ Logger.warn('Prep', 'notif invite', e?.message); toast('⚠️ Agent ajouté (notification échouée)'); }
+  } else {
+    toast('✅ Agent invité');
+  }
+}
+function _prepRemoveCollab(uid){
+  if(!_currentPrep) return;
+  _currentPrep.collaborators = (_currentPrep.collaborators||[]).filter(u => u !== uid);
+  savePrep();
+  _renderPrepCollabs();
+}
+function _renderPrepCollabs(){
+  const container = document.getElementById('prep-collab-list');
+  if(!container || !_currentPrep) return;
+  const collabs = _currentPrep.collaborators || [];
+  container.innerHTML = '';
+  if(!collabs.length){
+    container.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">Aucun agent invité</div>';
+    return;
+  }
+  collabs.forEach(u => {
+    const user = _prepTeamUsers.find(x => x.uid === u);
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;gap:8px';
+    chip.innerHTML = '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">👤 '+Validator.sanitize(user?.displayName || user?.email || u)+'</div>'+
+      (user?.role ? '<div style="font-size:11px;color:var(--muted)">'+Validator.sanitize(user.role)+'</div>' : '')+'</div>';
+    const rm = document.createElement('button');
+    rm.textContent = '✕'; rm.setAttribute('aria-label','Retirer');
+    rm.style.cssText = 'background:transparent;border:none;color:#f87171;font-size:18px;cursor:pointer;padding:4px 8px';
+    rm.onclick = () => _prepRemoveCollab(u);
+    chip.appendChild(rm);
+    container.appendChild(chip);
+  });
+}
+
+// Documents joints (PDF, images, Office, etc.)
+// Flux : 1) lecture base64 + push local immédiat (UI instant)
+//        2) save IDB → l'utilisateur peut continuer
+//        3) upload Storage en arrière-plan → URL ajoutée sur le doc
+//        4) Firestore reçoit l'URL Storage (pas le base64 → strip auto)
+async function prepAddDocs(input){
+  if(!input.files.length || !_currentPrep) return;
+  if(!_currentPrep.prepDocs) _currentPrep.prepDocs = [];
+  const files = Array.from(input.files);
+  input.value = '';
+  const newDocs = [];
+  for(const file of files){
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+      const doc = {
+        id: uid(),
+        filename: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        dataUrl,                                  // base64 local (disparaîtra de Firestore via strip)
+        uploadedAt: Date.now(),
+        uploadedBy: currentUserProfile?.uid || 'local'
+      };
+      _currentPrep.prepDocs.push(doc);
+      newDocs.push(doc);
+    } catch(e){ toast('⚠️ Erreur upload '+file.name+' : '+(e?.message||e)); }
+  }
+  _renderPrepDocs();
+  await savePrep();
+  toast('📎 '+files.length+' document'+(files.length>1?'s':'')+' ajouté'+(files.length>1?'s':'')+' — upload Storage en cours…');
+  // Upload Storage en arrière-plan (fire-and-forget)
+  _uploadPrepDocsToStorage(_currentPrep, newDocs).catch(e =>
+    Logger.warn('Prep', 'upload Storage échoué', e?.message)
+  );
+}
+
+// Upload des prepDocs vers Firebase Storage (idempotent : skip ceux qui ont déjà .url)
+async function _uploadPrepDocsToStorage(c, onlyDocs){
+  if(!fstorage || !FIREBASE_CONFIGURED || !c?.prepDocs?.length) return;
+  const targets = onlyDocs && onlyDocs.length ? onlyDocs : c.prepDocs;
+  let uploaded = 0, failed = 0;
+  for(const d of targets){
+    if(d.url) continue;                          // déjà uploadé
+    if(!d.dataUrl?.startsWith('data:')) continue;
+    const safe = String(d.filename||'doc').replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `chantiers/${c.id}/prep/${d.id}_${safe}`;
+    try {
+      const url = await uploadPhotoToStorage(d.dataUrl, path); // fonction générique (gère tous mimes)
+      if(url){ d.url = url; uploaded++; }
+      else { failed++; }
+    } catch(e){ failed++; Logger.warn('Prep', 'upload '+d.filename, e?.message); }
+  }
+  if(uploaded){
+    // Sauver les URLs en IDB local + re-sync Firestore (avec strip auto)
+    try { await db.put('chantiers', c); } catch(_){}
+    Logger.info('Prep', `Storage : ${uploaded}/${targets.length} doc(s) uploadé(s)`);
+    if(_currentPrep?.id === c.id) _renderPrepDocs();
+    toast('✅ '+uploaded+' document'+(uploaded>1?'s':'')+' uploadé'+(uploaded>1?'s':'')+' sur Storage');
+  }
+  if(failed) Logger.warn('Prep', `${failed} doc(s) ont échoué à l'upload Storage`);
+}
+function _prepRemoveDoc(docId){
+  if(!_currentPrep) return;
+  if(!confirm('Supprimer ce document ?')) return;
+  _currentPrep.prepDocs = (_currentPrep.prepDocs||[]).filter(d => d.id !== docId);
+  _renderPrepDocs();
+  savePrep();
+}
+function _prepDownloadDoc(docId){
+  if(!_currentPrep) return;
+  const doc = (_currentPrep.prepDocs||[]).find(d => d.id === docId);
+  if(!doc) return;
+  // Préfère base64 local (instant + offline), fallback URL Storage
+  const href = doc.dataUrl || doc.url;
+  if(!href){ toast('❌ Document indisponible (pas encore uploadé ?)'); return; }
+  const a = document.createElement('a');
+  a.href = href;
+  if(href.startsWith('data:')) a.download = doc.filename;
+  else { a.target = '_blank'; a.rel = 'noopener'; } // URL Storage : ouvre dans un nouvel onglet
+  a.click();
+}
+function _renderPrepDocs(){
+  const container = document.getElementById('prep-docs-list');
+  if(!container || !_currentPrep) return;
+  const docs = _currentPrep.prepDocs || [];
+  container.innerHTML = '';
+  if(!docs.length){
+    container.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">Aucun document joint</div>';
+    return;
+  }
+  docs.forEach(d => {
+    const sizeKB = Math.round((d.size||0)/1024);
+    const icon = d.type?.startsWith('image/') ? '🖼️' : (d.type?.includes('pdf') ? '📄' : (d.type?.includes('word')||d.type?.includes('officedocument')) ? '📝' : '📎');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px';
+    row.innerHTML = '<span style="font-size:22px;flex-shrink:0">'+icon+'</span>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+Validator.sanitize(d.filename)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+sizeKB+' KB</div></div>';
+    const dlBtn = document.createElement('button');
+    dlBtn.innerHTML = '⬇️'; dlBtn.setAttribute('aria-label','Télécharger '+d.filename);
+    dlBtn.style.cssText = 'background:rgba(0,140,255,.1);border:1px solid rgba(0,140,255,.25);border-radius:8px;padding:6px 10px;color:#0af;cursor:pointer;font-family:inherit';
+    dlBtn.onclick = () => _prepDownloadDoc(d.id);
+    const rmBtn = document.createElement('button');
+    rmBtn.innerHTML = '🗑️'; rmBtn.setAttribute('aria-label','Supprimer '+d.filename);
+    rmBtn.style.cssText = 'background:transparent;border:none;color:#f87171;font-size:16px;cursor:pointer;padding:6px';
+    rmBtn.onclick = () => _prepRemoveDoc(d.id);
+    row.appendChild(dlBtn);
+    row.appendChild(rmBtn);
+    container.appendChild(row);
+  });
+}
+
+// Démarre l'intervention : status preparation → active, crée le rapport pré-rempli, redirige
+async function startChantierFromPrep(){
+  const c = _currentPrep; if(!c) return;
+  // Validation minimale
+  if(!c.name?.trim()){ toast('⚠️ Le chantier doit avoir un nom'); return; }
+  if(!confirm('Démarrer le chantier "'+c.name+'" ?\n\nIl basculera en statut actif et les agents pourront commencer l\'intervention sur le terrain.')) return;
+  c.status = 'active';
+  c.updatedAt = Date.now();
+  c.startedAt = Date.now();
+  try {
+    // 1) Sauver le chantier
+    await db.put('chantiers', c);
+    const idx = S.chantiers.findIndex(x => x.id === c.id);
+    if(idx >= 0) S.chantiers[idx] = c;
+    else S.chantiers.push(c);
+
+    // 2) Créer le rapport pré-rempli avec les infos de la prépa (si pas déjà existant)
+    let rapport = await db._idb.get('rapports', c.id).catch(()=>null);
+    if(!rapport){
+      rapport = {
+        id: c.id, chantierId: c.id,
+        client: c.client || '',
+        adresse: c.address || c.adresse || '',
+        natureOperations: c.natureOperations || '',
+        classePresicion: '',
+        dateDebut: c.dateDebut || today(),
+        dtDate: c.dtDate || '',
+        dtNum: c.dtNum || '',
+        reference: c.reference || '',
+        planSituation: '',
+        respNom: c.respNom || '',
+        respPoste: c.respPoste || '',
+        respContact: c.respContact || '',
+        opDetection: (c.opDetection || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
+        opGeo:       (c.opGeo       || []).map(o => ({nom: o.nom || '', poste: o.poste || ''})),
+        _regionPrefilled: true, // évite l'écrasement par auto-fill régional dans openChantier
+        materiels: (typeof DynLists !== 'undefined' ? DynLists.defaultMateriels : []) || [],
+        logiciels: (typeof DynLists !== 'undefined' ? DynLists.defaultLogiciels : []) || [],
+        networks: [],
+        conclusions: (typeof DynLists !== 'undefined' && DynLists.defaultConclusion) ? DynLists.defaultConclusion : '',
+        observations: '',
+        conclusionPhotos: [],
+        updatedAt: Date.now(),
+        // Documents de prépa accessibles depuis l'onglet Docs du chantier
+        prepDocs: c.prepDocs || []
+      };
+      // S'il y a au moins 1 opérateur de détection minimum, garantir 2 slots (UI attend 2)
+      while(rapport.opDetection.length < 2) rapport.opDetection.push({nom:'',poste:''});
+      if(rapport.opGeo.length === 0) rapport.opGeo.push({nom:'',poste:''});
+      await db.put('rapports', rapport);
+    }
+
+    toast('✅ Chantier démarré — ouverture du rapport…');
+    // 3) Rediriger vers l'écran rapport classique
+    setTimeout(() => {
+      if(typeof openChantier === 'function') openChantier(c.id);
+    }, 400);
+  } catch(e){
+    toast('❌ Erreur démarrage : '+(e?.message||e));
+    c.status = 'preparation'; // rollback
+  }
+}
 
 
 
