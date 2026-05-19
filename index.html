@@ -5592,7 +5592,10 @@ async function openChantier(id){
   }
   // Si le chantier vient d'une autre équipe (DG multi-team), on switche temporairement
   if(S.currentChantier._teamId) db.setTeam(S.currentChantier._teamId);
-  let rapport=await db.get('rapports',id);
+  // ⚠️ Lecture IDB local en priorité (PAS Firestore via db.get) — la version locale contient
+  //   les base64 (plan, photos, signatures) qui sont strippés en Firestore. Le merge Firestore
+  //   plus bas applique uniquement les modifs plus récentes (lastModifiedAt).
+  let rapport=await db._idb.get('rapports',id).catch(()=>null);
 
   // Toujours essayer Firestore quand on est en ligne — pour que les collaborateurs
   // voient les données fraîches (texte + photos) et non une version locale périmée
@@ -5633,6 +5636,19 @@ async function openChantier(id){
             // Signatures : toujours locales (Firestore les efface)
             if(rapport.signature)     remote.signature     = rapport.signature;
             if(rapport.signatureVeri) remote.signatureVeri = rapport.signatureVeri;
+            // ── Champs admin : préférer la valeur non-vide entre Firestore et local ──
+            // (évite de perdre client/DT/nature/opérateurs si Firestore a une version stale)
+            const preferNonEmpty = (key) => {
+              const rv = remote[key], lv = rapport[key];
+              const empty = v => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+              if(empty(rv) && !empty(lv)) remote[key] = lv;
+            };
+            ['client','adresse','natureOperations','dateDebut','dateFin','dtDate','dtNum',
+             'reference','respNom','respPoste','respContact','redacteur','veriNom',
+             'conclusions','observations','recapDT','recapLin',
+             'opDetection','opGeo','materiels','logiciels','prepDocs'].forEach(preferNonEmpty);
+            // _regionPrefilled local : à préserver pour éviter le re-fill régional
+            if(rapport._regionPrefilled) remote._regionPrefilled = true;
           }
           rapport = remote;
           await db.put('rapports', rapport);
@@ -12812,7 +12828,14 @@ async function startChantierFromPrep(){
     // Garantir minimum 2 slots opérateurs détection + 1 slot géo (UI attend ces minimums)
     while(rapport.opDetection.length < 2) rapport.opDetection.push({nom:'',poste:''});
     if(rapport.opGeo.length === 0) rapport.opGeo.push({nom:'',poste:''});
+    // Forcer lastModifiedAt + updatedAt élevés pour que le merge Firestore dans openChantier
+    // ne perde pas nos valeurs en cas de doc Firestore plus ancien.
+    rapport.lastModifiedAt = Date.now();
+    rapport.lastModifiedBy = currentUserProfile?.uid || 'local';
+    rapport.updatedAt = Date.now();
     await db.put('rapports', rapport);
+    // Forcer la version en mémoire (sécurité : si openChantier tarde, le rapport est déjà bon)
+    S.currentRapport = rapport;
 
     toast('✅ Chantier démarré — ouverture du rapport…');
     // 3) Rediriger vers l'écran rapport classique
