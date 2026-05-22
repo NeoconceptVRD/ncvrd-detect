@@ -4789,6 +4789,12 @@ async function registerUser(){
   ]);
   if(vErr){ errEl.textContent = vErr; errEl.style.display='block'; return; }
 
+  // Sécurité : interdit l'auto-attribution d'un rôle administrateur à l'inscription
+  if(['Responsable Opérationnel',"Directeur d'agence",'Directeur Général','QHSE','ADMIN'].includes(role)){
+    errEl.textContent = "Inscription en rôle technique uniquement — un responsable vous attribuera les droits d'administration ensuite.";
+    errEl.style.display='block'; return;
+  }
+
   try {
     const cred = await fauth.createUserWithEmailAndPassword(email, pwd);
     await cred.user.updateProfile({displayName: name});
@@ -4960,26 +4966,26 @@ function updateRoleOptions(type){
   const hint = document.getElementById('reg-role-hint');
   const label = document.getElementById('reg-role-label');
   if(!sel) return;
+  // Sécurité : à l'inscription, seuls les rôles techniques sont proposés.
+  // Les droits d'administration sont attribués ensuite par un responsable
+  // via la base de contrôle (pas d'auto-attribution d'un rôle admin).
   sel.innerHTML = '<option value="" disabled selected>-- Choisissez votre rôle --</option>';
-  if(type==='tech' || type==='all'){
-    ROLES_TECH.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
-  }
-  if(type==='admin' || type==='all'){
-    ROLES_ADMIN_LIST.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
-  }
-  if(type==='tech'){
-    label.textContent='👷 MON RÔLE (Technicien)';
-    hint.textContent='Code technicien détecté ✓';
-    hint.style.color='#15803d';
-  } else if(type==='admin'){
-    label.textContent='🔑 MON RÔLE (Administrateur)';
-    hint.textContent='Code administrateur détecté ✓';
-    hint.style.color='#92400e';
-  } else if(type==='unknown'){
+  if(type==='unknown'){
     label.textContent='👷 MON RÔLE';
     hint.textContent='Code non reconnu — vérifiez le code saisi';
     hint.style.color='#dc2626';
     sel.innerHTML='<option value="" disabled selected>-- Code invalide --</option>';
+    return;
+  }
+  ROLES_TECH.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
+  if(type==='admin'){
+    label.textContent='👷 MON RÔLE';
+    hint.textContent='Code reconnu ✓ — vos droits seront activés par un responsable';
+    hint.style.color='#92400e';
+  } else if(type==='tech'){
+    label.textContent='👷 MON RÔLE (Technicien)';
+    hint.textContent='Code technicien détecté ✓';
+    hint.style.color='#15803d';
   } else {
     label.textContent='👷 MON RÔLE';
     hint.textContent='';
@@ -11373,10 +11379,19 @@ async function adminCreateAccount(){
     const secAuth = secApp.auth();
     const cred = await secAuth.createUserWithEmailAndPassword(email, pwd);
     await cred.user.updateProfile({ displayName:name });
-    const profile = { displayName:name, email, teamId, teamName, role, createdAt:Date.now(), createdByAdmin:true };
+    // Les règles interdisent à un compte de se créer avec un rôle admin :
+    // on crée le profil avec un rôle technique, puis on promeut via le compte admin si besoin.
+    const ADMIN_ROLE_NAMES = ['Responsable Opérationnel',"Directeur d'agence",'Directeur Général','QHSE','ADMIN'];
+    const wantsAdmin = ADMIN_ROLE_NAMES.includes(role);
+    const baseRole = wantsAdmin ? (ROLES_TECH[0] || 'Technicien Détection') : role;
+    const profile = { displayName:name, email, teamId, teamName, role:baseRole, createdAt:Date.now(), createdByAdmin:true };
     await secApp.firestore().collection('users').doc(cred.user.uid).set(profile);
     await secAuth.signOut();
-    _adminData.users.push({ uid:cred.user.uid, ...profile });
+    if(wantsAdmin){
+      // Promotion effectuée par le compte administrateur (autorisée par les règles)
+      await fdb.collection('users').doc(cred.user.uid).update({ role });
+    }
+    _adminData.users.push({ uid:cred.user.uid, ...profile, role });
     closeModal('m-create-account');
     renderAdminCollab();
     toast('✅ Compte créé : '+name);
