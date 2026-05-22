@@ -5077,11 +5077,22 @@ if(document.readyState === 'loading'){
 } else {
   _applyAriaLabels();
 }
-// Observer : couvre le DOM dynamique (cards de chantier, ouvrages, etc.)
+// ── Observer DEBOUNCED : couvre le DOM dynamique sans plomber les performances ──
+//   Avant : _applyAriaLabels appelé à CHAQUE mutation DOM (chaque render, chaque scroll)
+//           → des milliers d'appels/seconde, CPU saturé.
+//   Maintenant : un seul scan groupé, planifié pendant un temps mort du navigateur
+//           (requestIdleCallback). Peu importe le nombre de mutations, 1 scan par rafale.
+let _ariaScanScheduled = false;
+function _scheduleAriaScan(){
+  if(_ariaScanScheduled) return;
+  _ariaScanScheduled = true;
+  const run = () => { _ariaScanScheduled = false; try { _applyAriaLabels(document); } catch(_){} };
+  if(window.requestIdleCallback) requestIdleCallback(run, {timeout:2500});
+  else setTimeout(run, 800);
+}
 try {
-  new MutationObserver(muts => {
-    for(const m of muts) for(const node of m.addedNodes) if(node.nodeType === 1) _applyAriaLabels(node);
-  }).observe(document.body, {childList:true, subtree:true});
+  new MutationObserver(() => _scheduleAriaScan())
+    .observe(document.body, {childList:true, subtree:true});
 } catch(_){}
 function togglePwd(inputId,btn){
   const inp=document.getElementById(inputId);if(!inp)return;
@@ -12166,14 +12177,27 @@ function _openDocViewer(doc){
       }
       try {
         const result = await window.mammoth.convertToHtml({ arrayBuffer: buf });
+        // ⚠️ Reconfigurer le conteneur en BLOCK + scroll (pas de centrage flex :
+        //   un flex item centré qui dépasse est "mordu" sur les bords et non scrollable).
+        content.style.cssText = 'flex:1;overflow:auto;background:#525659;padding:20px 10px;display:block';
         const page = document.createElement('div');
-        page.style.cssText = 'background:#fff;color:#1a1a1a;padding:48px 56px;max-width:820px;width:100%;margin:0 auto;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:Calibri,Inter,sans-serif;font-size:15px;line-height:1.6';
+        page.style.cssText = 'background:#fff;color:#1a1a1a;box-sizing:border-box;padding:36px 44px;'
+          + 'max-width:820px;width:100%;margin:0 auto;border-radius:4px;box-shadow:0 4px 24px rgba(0,0,0,.5);'
+          + 'font-family:Calibri,Inter,sans-serif;font-size:15px;line-height:1.65;'
+          + 'overflow-wrap:break-word;word-wrap:break-word;hyphens:auto';
         page.innerHTML = result.value || '<p style="color:#888;font-style:italic">(Document vide ou non convertible)</p>';
-        // Styliser les tableaux/images du rendu Mammoth
-        page.querySelectorAll('table').forEach(t => { t.style.cssText = 'border-collapse:collapse;width:100%;margin:12px 0'; });
-        page.querySelectorAll('td,th').forEach(c => { c.style.cssText = 'border:1px solid #ccc;padding:6px 10px;text-align:left'; });
-        page.querySelectorAll('img').forEach(im => { im.style.cssText = 'max-width:100%;height:auto'; });
-        content.style.alignItems = 'flex-start';
+        // Tableaux : largeur contrainte (table-layout:fixed) pour ne jamais déborder
+        page.querySelectorAll('table').forEach(t => {
+          t.style.cssText = 'border-collapse:collapse;width:100%;max-width:100%;margin:14px 0;table-layout:fixed';
+        });
+        page.querySelectorAll('td,th').forEach(c => {
+          c.style.cssText = 'border:1px solid #ccc;padding:6px 9px;text-align:left;'
+            + 'overflow-wrap:break-word;word-break:break-word;vertical-align:top';
+        });
+        // Images : jamais plus larges que la page
+        page.querySelectorAll('img').forEach(im => { im.style.maxWidth = '100%'; im.style.height = 'auto'; });
+        // Paragraphes / titres : pas de marge qui déborde
+        page.querySelectorAll('p,h1,h2,h3,h4,li').forEach(el => { el.style.maxWidth = '100%'; });
         content.innerHTML = '';
         content.appendChild(page);
       } catch(e){
