@@ -12046,46 +12046,46 @@ init().catch(e=>{
 // ════════════════════════════════════════════
 //  Document viewer in-app (images + PDF, fallback download pour autres)
 // ════════════════════════════════════════════
+// Charge Mammoth.js (conversion DOCX → HTML in-browser) à la demande
+function _loadMammoth(){
+  return new Promise(resolve => {
+    if(window.mammoth) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js';
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+// Récupère le contenu d'un document en ArrayBuffer (base64 local OU URL Storage)
+async function _docToArrayBuffer(doc){
+  if(doc.dataUrl && doc.dataUrl.startsWith('data:')){
+    const b64 = doc.dataUrl.split(',')[1] || '';
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+  if(doc.url){
+    const res = await fetch(doc.url);
+    if(res.ok) return await res.arrayBuffer();
+  }
+  return null;
+}
+
 function _openDocViewer(doc){
   if(!doc) return;
-  const localSrc  = doc.dataUrl;                    // base64 local (instant + offline)
-  const remoteSrc = doc.url;                        // URL Storage (publique, utilisable par MS/Google viewers)
+  const localSrc  = doc.dataUrl;
+  const remoteSrc = doc.url;
   if(!localSrc && !remoteSrc){ toast('❌ Document indisponible'); return; }
 
   const type  = (doc.type || '').toLowerCase();
   const fname = (doc.filename || '').toLowerCase();
   const ext   = fname.split('.').pop() || '';
-  const isImage  = type.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(fname);
-  const isPdf    = type.includes('pdf') || fname.endsWith('.pdf');
-  const isOffice = /^(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(ext) ||
-                   /word|excel|spreadsheet|presentation|officedocument/.test(type);
-
-  // Stratégie de rendu :
-  //   - Image / PDF       → iframe local (base64 OK)
-  //   - Office            → MS Office Online (nécessite URL Storage publique)
-  //   - Autres formats    → Google Viewer (fallback, accepte beaucoup de formats)
-  //   - Pas d'URL pour viewer externe → message + téléchargement
-  let viewerType, viewerSrc;
-  if(isImage){
-    viewerType = 'image';
-    viewerSrc  = localSrc || remoteSrc;
-  } else if(isPdf){
-    viewerType = 'pdf';
-    viewerSrc  = localSrc || remoteSrc;
-  } else if(isOffice && remoteSrc){
-    viewerType = 'office';
-    // MS Office Online — rend Word/Excel/PowerPoint en HTML lisible
-    viewerSrc  = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(remoteSrc);
-  } else if(remoteSrc){
-    viewerType = 'gview';
-    // Google Docs Viewer — fallback universel (PDF, Office, ZIP, etc.)
-    viewerSrc  = 'https://docs.google.com/gview?url=' + encodeURIComponent(remoteSrc) + '&embedded=true';
-  } else {
-    // Pas d'URL publique → impossible d'utiliser un viewer externe
-    if(!confirm('Ce format (.'+ext.toUpperCase()+') nécessite que le document soit synchronisé sur le serveur.\n\nL\'upload est en cours — réessayer dans 30 secondes, ou télécharger maintenant ?\n\nOK = télécharger, Annuler = patienter.')) return;
-    _docDirectDownload(doc);
-    return;
-  }
+  const isImage = type.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(fname);
+  const isPdf   = type.includes('pdf') || fname.endsWith('.pdf');
+  const isDocx  = ext === 'docx' || type.includes('wordprocessingml');
 
   // ── Overlay plein écran ──
   const overlay = document.createElement('div');
@@ -12093,64 +12093,104 @@ function _openDocViewer(doc){
   overlay.setAttribute('aria-label','Aperçu '+(doc.filename||'document'));
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column';
 
-  // Topbar : nom + badge type + actions
+  // Topbar
   const top = document.createElement('div');
   top.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.7);border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0';
   const title = document.createElement('div');
   title.style.cssText = 'flex:1;min-width:0;display:flex;align-items:center;gap:8px';
-  const badgeLbl = ({image:'IMAGE',pdf:'PDF',office:'OFFICE ONLINE',gview:'GOOGLE VIEWER'})[viewerType] || 'DOC';
-  const badgeCol = ({image:'#3b82f6',pdf:'#dc2626',office:'#0ea5e9',gview:'#10b981'})[viewerType] || '#6b7280';
-  title.innerHTML = '<span style="font-size:9px;font-weight:700;background:'+badgeCol+';color:#fff;padding:3px 7px;border-radius:8px;letter-spacing:.5px;flex-shrink:0">'+badgeLbl+'</span>'+
+  const badge = isImage?['IMAGE','#3b82f6'] : isPdf?['PDF','#dc2626'] : isDocx?['WORD','#0ea5e9'] : ['FICHIER','#6b7280'];
+  title.innerHTML = '<span style="font-size:9px;font-weight:700;background:'+badge[1]+';color:#fff;padding:3px 7px;border-radius:8px;letter-spacing:.5px;flex-shrink:0">'+badge[0]+'</span>'+
     '<div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Inter,sans-serif">'+Validator.sanitize(doc.filename||'Document')+'</div>';
   const dlBtn = document.createElement('button');
-  dlBtn.innerHTML = '⬇️';
-  dlBtn.setAttribute('aria-label','Télécharger '+(doc.filename||'document'));
-  dlBtn.title = 'Télécharger';
+  dlBtn.innerHTML = '⬇️'; dlBtn.title = 'Télécharger'; dlBtn.setAttribute('aria-label','Télécharger');
   dlBtn.style.cssText = 'background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
   dlBtn.addEventListener('click', () => _docDirectDownload(doc));
   const closeBtn = document.createElement('button');
-  closeBtn.innerHTML = '✕';
-  closeBtn.setAttribute('aria-label','Fermer');
+  closeBtn.innerHTML = '✕'; closeBtn.setAttribute('aria-label','Fermer');
   closeBtn.style.cssText = 'background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
   const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = e => { if(e.key === 'Escape') close(); };
   closeBtn.addEventListener('click', close);
   document.addEventListener('keydown', onKey);
-  top.appendChild(title);
-  top.appendChild(dlBtn);
-  top.appendChild(closeBtn);
+  top.appendChild(title); top.appendChild(dlBtn); top.appendChild(closeBtn);
   overlay.appendChild(top);
 
-  // Zone de contenu (image direct ou iframe)
+  // Zone de contenu
   const content = document.createElement('div');
   content.style.cssText = 'flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:8px;background:#1a1a1a;position:relative';
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
 
-  // Spinner de chargement (visible pendant que l'iframe charge)
-  if(viewerType !== 'image'){
-    const spinner = document.createElement('div');
-    spinner.id = '_docViewerSpinner';
-    spinner.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:14px;text-align:center;font-family:Inter,sans-serif';
-    spinner.innerHTML = '<div style="font-size:32px;margin-bottom:10px;animation:spin 1.2s linear infinite">⚙️</div><div>Chargement…</div>';
-    content.appendChild(spinner);
-  }
+  const showMsg = (html) => {
+    content.innerHTML = '<div style="color:#fff;font-size:14px;text-align:center;font-family:Inter,sans-serif;max-width:340px;line-height:1.6">'+html+'</div>';
+  };
+  const showSpinner = (txt) => {
+    content.innerHTML = '<div style="color:#fff;font-size:14px;text-align:center;font-family:Inter,sans-serif"><div style="font-size:32px;margin-bottom:10px;animation:spin 1.2s linear infinite">⚙️</div>'+txt+'</div>';
+  };
 
-  if(viewerType === 'image'){
+  // ── IMAGE : <img> direct ──
+  if(isImage){
     const img = document.createElement('img');
-    img.src = viewerSrc;
+    img.src = localSrc || remoteSrc;
     img.alt = doc.filename || 'image';
     img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
     content.appendChild(img);
-  } else {
-    const iframe = document.createElement('iframe');
-    iframe.src = viewerSrc;
-    iframe.setAttribute('title','Aperçu '+(doc.filename||'document'));
-    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:6px;background:#fff';
-    // Retire le spinner quand l'iframe a chargé
-    iframe.addEventListener('load', () => { document.getElementById('_docViewerSpinner')?.remove(); });
-    content.appendChild(iframe);
+    return;
   }
-  overlay.appendChild(content);
-  document.body.appendChild(overlay);
+
+  // ── PDF : <iframe> natif ──
+  if(isPdf){
+    const iframe = document.createElement('iframe');
+    iframe.src = localSrc || remoteSrc;
+    iframe.setAttribute('title','PDF '+(doc.filename||'document'));
+    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:6px;background:#fff';
+    content.appendChild(iframe);
+    return;
+  }
+
+  // ── DOCX : conversion HTML via Mammoth.js (fiable, in-browser) ──
+  if(isDocx){
+    showSpinner('Conversion du document Word…');
+    (async () => {
+      const ok = await _loadMammoth();
+      if(!ok || !window.mammoth){
+        showMsg('❌ Impossible de charger le convertisseur Word.<br><br>Vérifie ta connexion, ou utilise le bouton ⬇️ pour télécharger le document.');
+        return;
+      }
+      let buf;
+      try { buf = await _docToArrayBuffer(doc); }
+      catch(e){ buf = null; }
+      if(!buf){
+        showMsg('❌ Document Word inaccessible.<br><br>Il n\'est peut-être pas encore synchronisé sur le serveur. Réessaie dans quelques instants ou utilise ⬇️ pour télécharger.');
+        return;
+      }
+      try {
+        const result = await window.mammoth.convertToHtml({ arrayBuffer: buf });
+        const page = document.createElement('div');
+        page.style.cssText = 'background:#fff;color:#1a1a1a;padding:48px 56px;max-width:820px;width:100%;margin:0 auto;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:Calibri,Inter,sans-serif;font-size:15px;line-height:1.6';
+        page.innerHTML = result.value || '<p style="color:#888;font-style:italic">(Document vide ou non convertible)</p>';
+        // Styliser les tableaux/images du rendu Mammoth
+        page.querySelectorAll('table').forEach(t => { t.style.cssText = 'border-collapse:collapse;width:100%;margin:12px 0'; });
+        page.querySelectorAll('td,th').forEach(c => { c.style.cssText = 'border:1px solid #ccc;padding:6px 10px;text-align:left'; });
+        page.querySelectorAll('img').forEach(im => { im.style.cssText = 'max-width:100%;height:auto'; });
+        content.style.alignItems = 'flex-start';
+        content.innerHTML = '';
+        content.appendChild(page);
+      } catch(e){
+        showMsg('❌ Erreur de conversion du document Word.<br><br>'+(e?.message||'')+'<br><br>Utilise ⬇️ pour le télécharger.');
+      }
+    })();
+    return;
+  }
+
+  // ── Autres formats (xlsx, pptx, doc ancien, dwg, zip…) : pas de viewer fiable ──
+  showMsg('📎 <strong>.'+ext.toUpperCase()+'</strong><br><br>Ce format ne peut pas être prévisualisé directement dans l\'application.<br><br>Utilise le bouton ⬇️ en haut pour le télécharger et l\'ouvrir avec le logiciel approprié.');
+  // Gros bouton de téléchargement au centre
+  const bigBtn = document.createElement('button');
+  bigBtn.textContent = '⬇️  Télécharger le document';
+  bigBtn.style.cssText = 'margin-top:18px;background:#0B769F;color:#fff;border:none;padding:12px 22px;border-radius:24px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;font-size:14px';
+  bigBtn.addEventListener('click', () => _docDirectDownload(doc));
+  content.querySelector('div')?.appendChild(bigBtn);
 }
 
 // Téléchargement direct (extrait du viewer pour réutilisation)
