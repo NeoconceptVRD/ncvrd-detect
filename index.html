@@ -1988,7 +1988,7 @@ body::before{
       <span style="font-size:11px;font-weight:800;color:#00b4ff;text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap">☁️ Bibliothèque partagée</span>
       <div style="flex:1;height:1px;background:rgba(0,180,255,.2)"></div>
     </div>
-    <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents mis à disposition par les administrateurs et accessibles à toute l'équipe depuis n'importe quel appareil.</div>
+    <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents mis à disposition par les administrateurs via la base de contrôle, classés par rubrique. Une pastille 🎯 indique un document qui vous est spécifiquement destiné.</div>
 
     <!-- Normes -->
     <div class="acc-section">
@@ -2046,6 +2046,48 @@ body::before{
       </div>
     </div>
 
+    <!-- Habilitations -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#10b981;display:inline-block;opacity:.85;flex-shrink:0"></span>🎓 Habilitations</span><span id="badge-HABIL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Habilitations et formations internes des collaborateurs.</div>
+        <div id="docs-HABIL" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-HABIL" onclick="openAddLinkModal('HABIL')" style="display:none;margin-top:8px;width:100%;background:rgba(16,185,129,.08);border:1.5px dashed rgba(16,185,129,.4);border-radius:10px;padding:12px;color:#10b981;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- AIPR -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff6b35;display:inline-block;opacity:.85;flex-shrink:0"></span>🟠 AIPR</span><span id="badge-AIPR" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents AIPR partagés : guides, supports de formation, attestations types.</div>
+        <div id="docs-AIPR" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-AIPR" onclick="openAddLinkModal('AIPR')" style="display:none;margin-top:8px;width:100%;background:rgba(255,107,53,.08);border:1.5px dashed rgba(255,107,53,.4);border-radius:10px;padding:12px;color:#ff6b35;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
+    <!-- Autres documents -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#94a3b8;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Autres documents</span><span id="badge-AUTRE" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+      </button>
+      <div class="acc-body">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Tout autre document partagé ne relevant pas des rubriques ci-dessus.</div>
+        <div id="docs-AUTRE" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="upload-btn-AUTRE" onclick="openAddLinkModal('AUTRE')" style="display:none;margin-top:8px;width:100%;background:rgba(148,163,184,.1);border:1.5px dashed rgba(148,163,184,.4);border-radius:10px;padding:12px;color:#94a3b8;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          🔗 Ajouter un lien
+        </button>
+      </div>
+    </div>
+
     <!-- ── SECTION 2 : Documents personnels (local) ─────────────────── -->
     <div style="margin:20px 14px 4px;display:flex;align-items:center;gap:10px">
       <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
@@ -2054,52 +2096,22 @@ body::before{
     </div>
     <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents personnels stockés uniquement sur cet appareil (AIPR, habilitations, DT/DICT…). Non visibles par les autres.</div>
 
-    <!-- AIPR -->
+    <!-- Documents (local) -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff6b35;display:inline-block;opacity:.85;flex-shrink:0"></span>🟠 AIPR</span><span id="badge-AIPR" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron open">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Documents</span><span id="badge-LOCAL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron open">▼</span>
       </button>
       <div class="acc-body open">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Autorisation d'Intervention à Proximité des Réseaux : attestations de compétences, cartes AIPR, etc.</div>
-        <div id="docs-AIPR" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('AIPR')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px">Vos documents personnels (AIPR, habilitations, DT/DICT, etc.) — stockés uniquement sur cet appareil.</div>
+        <div id="docs-LOCAL" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button onclick="uploadDocument('LOCAL')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
           ➕ Insérer un document
         </button>
       </div>
     </div>
 
-    <!-- Habilitation électrique -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ffb300;display:inline-block;opacity:.85;flex-shrink:0"></span>⚡ Habilitation électrique</span><span id="badge-ELEC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Titres d'habilitation électrique (B0, H0, BR, BC…), recyclages, formations.</div>
-        <div id="docs-ELEC" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('ELEC')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
-    <!-- DT/DICT -->
-    <div class="acc-section">
-      <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff4757;display:inline-block;opacity:.85;flex-shrink:0"></span>📋 DT/DICT</span><span id="badge-DTDICT" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
-      </button>
-      <div class="acc-body">
-        <div class="info-box" style="margin-bottom:8px;font-size:11px">Déclarations de Travaux et DICT : récépissés, plans de réseaux, formulaires Cerfa.</div>
-        <div id="docs-DTDICT" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('DTDICT')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
-          ➕ Insérer un document
-        </button>
-      </div>
-    </div>
-
-    <!-- Hidden file inputs — local -->
-    <input type="file" id="doc-input-AIPR"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'AIPR')">
-    <input type="file" id="doc-input-ELEC"   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'ELEC')">
-    <input type="file" id="doc-input-DTDICT" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleDocUpload(this,'DTDICT')">
+    <!-- Hidden file input — local -->
+    <input type="file" id="doc-input-LOCAL" style="display:none" onchange="handleDocUpload(this,'LOCAL')">
 
   </div>
 
@@ -2493,30 +2505,35 @@ body::before{
   <div class="screen" id="s-admin">
     <div style="background:linear-gradient(135deg,#050d20,#0a1e3a);padding:22px 16px 18px;border-bottom:1px solid rgba(0,180,255,.2)">
       <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">NCVRD Detect</div>
-      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:2px">⚙️ Panneau Admin</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.65)" id="admin-subtitle">Gestion des régions et utilisateurs</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:2px">🛠️ Base de contrôle</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.65)" id="admin-subtitle">Contrôle de l'application</div>
     </div>
     <!-- Onglets -->
-    <div style="display:flex;border-bottom:1px solid rgba(0,180,255,.15);background:rgba(0,0,0,.3)">
-      <button onclick="adminTab('agencies')" id="atab-agencies" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--blue);border-bottom:3px solid var(--blue);font-family:inherit">🗺️ Régions</button>
-      <button onclick="adminTab('users')" id="atab-users" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit">👤 Utilisateurs</button>
-      <button onclick="adminTab('params')" id="atab-params" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit">⚙️ Paramètres</button>
+    <div style="display:flex;overflow-x:auto;border-bottom:1px solid rgba(0,180,255,.15);background:rgba(0,0,0,.3);-webkit-overflow-scrolling:touch">
+      <button onclick="adminTab('collab')" id="atab-collab" style="flex:1 0 auto;min-width:78px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--blue);border-bottom:3px solid var(--blue);font-family:inherit;white-space:nowrap">👥 Équipe</button>
+      <button onclick="adminTab('chantiers')" id="atab-chantiers" style="flex:1 0 auto;min-width:84px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">🏗️ Chantiers</button>
+      <button onclick="adminTab('documents')" id="atab-documents" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📄 Docs</button>
+      <button onclick="adminTab('params')" id="atab-params" style="flex:1 0 auto;min-width:82px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">⚙️ Réglages</button>
     </div>
-    <!-- Recherche (cachée sur l'onglet Paramètres) -->
+    <!-- Recherche (cachée sur l'onglet Réglages) -->
     <div id="admin-search-bar" style="padding:10px 14px 0">
-      <input id="admin-search" placeholder="🔍 Rechercher un utilisateur ou une région…" oninput="adminSearch(this.value)"
+      <input id="admin-search" placeholder="🔍 Rechercher un collaborateur…" oninput="adminSearch(this.value)"
         style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--input);color:var(--text);box-sizing:border-box;outline:none">
     </div>
-    <!-- Contenu onglet Régions -->
-    <div id="admin-panel-agencies" style="padding:12px 14px 80px">
-      <div id="admin-agencies-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    <!-- Onglet Collaborateurs -->
+    <div id="admin-panel-collab" style="padding:12px 14px 90px">
+      <div id="admin-collab-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
     </div>
-    <!-- Contenu onglet Utilisateurs -->
-    <div id="admin-panel-users" style="display:none;padding:12px 14px 80px">
-      <div id="admin-users-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    <!-- Onglet Chantiers -->
+    <div id="admin-panel-chantiers" style="display:none;padding:12px 14px 90px">
+      <div id="admin-chantiers-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
     </div>
-    <!-- Contenu onglet Paramètres -->
-    <div id="admin-panel-params" style="display:none;padding:12px 14px 80px">
+    <!-- Onglet Documents -->
+    <div id="admin-panel-documents" style="display:none;padding:12px 14px 90px">
+      <div id="admin-documents-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    </div>
+    <!-- Onglet Réglages -->
+    <div id="admin-panel-params" style="display:none;padding:12px 14px 90px">
       <div id="admin-params-content"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
     </div>
   </div>
@@ -2784,6 +2801,104 @@ body::before{
       <div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
         💡 Démarrer le chantier le bascule en statut "actif" et l'agent assigné pourra commencer l'intervention sur le terrain (saisie réseaux, photos, etc.).
       </div>
+    </div>
+  </div>
+
+  <!-- Modal : créer un compte collaborateur (Base de contrôle) -->
+  <div class="modal" id="m-create-account" onclick="if(event.target===this)closeModal('m-create-account')">
+    <div class="modal-box" style="padding:24px">
+      <div class="modal-hdr">
+        <span class="modal-title">➕ Nouveau collaborateur</span>
+        <button class="modal-close" onclick="closeModal('m-create-account')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nom complet *</label>
+        <input class="form-input" id="ca-name" placeholder="Jean Dupont"></div>
+      <div class="form-group"><label class="form-label">Email *</label>
+        <input class="form-input" id="ca-email" type="email" placeholder="prenom.nom@neoconceptvrd.fr"></div>
+      <div class="form-group"><label class="form-label">Mot de passe provisoire *</label>
+        <input class="form-input" id="ca-password" placeholder="Minimum 6 caractères"></div>
+      <div class="form-group"><label class="form-label">Rôle *</label>
+        <select class="form-select" id="ca-role"></select></div>
+      <div class="form-group" id="ca-team-wrap" style="display:none"><label class="form-label">Région</label>
+        <select class="form-select" id="ca-team"></select></div>
+      <div id="ca-error" style="color:#dc2626;font-size:12.5px;margin:4px 0 8px;display:none"></div>
+      <div style="font-size:11px;color:var(--muted);background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.5">💡 Le compte est créé immédiatement, sans vous déconnecter. Communiquez l'email et le mot de passe au collaborateur — il pourra le modifier ensuite via « Mot de passe oublié ».</div>
+      <div class="btn-row" style="margin:0">
+        <button class="btn-big btn-card" style="flex:1" onclick="closeModal('m-create-account')">Annuler</button>
+        <button class="btn-big btn-accent" style="flex:1" id="ca-save-btn" onclick="adminCreateAccount()">✅ Créer le compte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal : déposer un document pour des collaborateurs (Base de contrôle) -->
+  <div class="modal" id="m-admin-doc" onclick="if(event.target===this)closeModal('m-admin-doc')">
+    <div class="modal-box" style="padding:24px">
+      <div class="modal-hdr">
+        <span class="modal-title">📄 Déposer un document</span>
+        <button class="modal-close" onclick="closeModal('m-admin-doc')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nom du document *</label>
+        <input class="form-input" id="ad-name" placeholder="Ex : Plan de prévention — chantier X"></div>
+      <div class="form-group"><label class="form-label">Rubrique</label>
+        <select class="form-select" id="ad-category">
+          <option value="NORME">📐 Normes</option>
+          <option value="FASC">📘 Fascicules</option>
+          <option value="REGL">⚖️ Réglementation</option>
+          <option value="CTST">🏗️ CTST</option>
+          <option value="HABIL">🎓 Habilitations</option>
+          <option value="AIPR">🟠 AIPR</option>
+          <option value="AUTRE">📄 Autres documents</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-select" id="ad-mode" onchange="onAdminDocModeChange()">
+          <option value="lien">🔗 Lien (Drive, URL…)</option>
+          <option value="fichier">📎 Fichier joint</option>
+          <option value="aucun">✏️ Aucun fichier (simple mention)</option>
+        </select></div>
+      <div class="form-group" id="ad-url-wrap"><label class="form-label">URL du document</label>
+        <input class="form-input" id="ad-url" placeholder="https://…"></div>
+      <div class="form-group" id="ad-file-wrap" style="display:none"><label class="form-label">Fichier — tout format, toute taille</label>
+        <input type="file" id="ad-file" style="display:none" onchange="onAdminDocFileSelected(this)">
+        <button class="btn-big btn-card" style="width:100%" onclick="document.getElementById('ad-file').click()">📎 Choisir un fichier</button>
+        <div id="ad-file-preview" style="margin-top:8px;font-size:12px;color:var(--muted)"></div></div>
+      <div class="form-group" id="ad-team-wrap" style="display:none"><label class="form-label">Région</label>
+        <select class="form-select" id="ad-team" onchange="onAdminDocTargetChange()"></select></div>
+      <div class="form-group"><label class="form-label">Destinataires</label>
+        <select class="form-select" id="ad-target" onchange="onAdminDocTargetChange()">
+          <option value="all">👥 Toute la région</option>
+          <option value="specific">🎯 Collaborateurs précis</option>
+        </select></div>
+      <div class="form-group" id="ad-collab-wrap" style="display:none">
+        <label class="form-label">Sélectionner les collaborateurs</label>
+        <div id="ad-collab-list" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px 8px;background:var(--input)"></div>
+      </div>
+      <div id="ad-error" style="color:#dc2626;font-size:12.5px;margin:4px 0 8px;display:none"></div>
+      <div class="btn-row" style="margin:0">
+        <button class="btn-big btn-card" style="flex:1" onclick="closeModal('m-admin-doc')">Annuler</button>
+        <button class="btn-big btn-accent" style="flex:1" id="ad-save-btn" onclick="adminSaveDoc()">✅ Déposer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal : gérer les rôles (Base de contrôle) -->
+  <div class="modal" id="m-roles" onclick="if(event.target===this)closeModal('m-roles')">
+    <div class="modal-box" style="padding:24px">
+      <div class="modal-hdr">
+        <span class="modal-title">🎭 Gérer les rôles</span>
+        <button class="modal-close" onclick="closeModal('m-roles')">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.16);border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.5">🎭 Créez, renommez ou supprimez les rôles. Un rôle « administratif » donne accès à la base de contrôle.</div>
+      <div id="roles-list"></div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+        <div class="form-label" style="margin-bottom:8px">Créer un nouveau rôle</div>
+        <input class="form-input" id="role-new-name" placeholder="Nom du rôle (ex : Chef d'équipe)" style="margin-bottom:8px">
+        <select class="form-select" id="role-new-cat" style="margin-bottom:10px">
+          <option value="tech">Rôle technique (terrain — pas d'accès admin)</option>
+          <option value="admin">Rôle administratif (accès base de contrôle)</option>
+        </select>
+        <button class="btn-big btn-accent" style="width:100%" onclick="addRole()">➕ Créer le rôle</button>
+      </div>
+      <button class="btn-big btn-card" style="width:100%;margin-top:10px" onclick="closeModal('m-roles')">Fermer</button>
     </div>
   </div>
 
@@ -3484,19 +3599,32 @@ body::before{
 <div class="modal" id="m-add-link" onclick="if(event.target===this)closeModal('m-add-link')">
   <div class="modal-box">
     <div class="modal-hdr">
-      <span class="modal-title">🔗 Ajouter un document partagé</span>
+      <span class="modal-title">➕ Ajouter un document partagé</span>
       <button class="modal-close" onclick="closeModal('m-add-link')">✕</button>
     </div>
-    <div class="info-box" style="font-size:11px;margin-bottom:14px">Collez un lien Google Drive, OneDrive, Dropbox ou toute URL directe vers le document.</div>
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select class="form-select" id="link-doc-mode" onchange="onAddLinkModeChange()">
+        <option value="lien">🔗 Lien (Drive, OneDrive, URL…)</option>
+        <option value="fichier">📎 Fichier (Word, PDF, image…)</option>
+      </select>
+    </div>
     <div class="form-group">
       <label class="form-label">Nom du document</label>
       <input class="form-input" id="link-doc-name" placeholder="Ex : Norme NF S70-003 partie 2" type="text">
     </div>
-    <div class="form-group">
+    <div class="form-group" id="link-url-wrap">
       <label class="form-label">Lien URL</label>
       <input class="form-input" id="link-doc-url" placeholder="https://drive.google.com/..." type="url">
     </div>
-    <button class="btn-big btn-accent" style="margin-top:4px" onclick="saveSharedLink()">✅ Enregistrer</button>
+    <div class="form-group" id="link-file-wrap" style="display:none">
+      <label class="form-label">Fichier — tout format, toute taille</label>
+      <input type="file" id="link-doc-file" style="display:none" onchange="onAddLinkFileSelected(this)">
+      <button class="btn-big btn-card" style="width:100%" onclick="document.getElementById('link-doc-file').click()">📎 Choisir un fichier</button>
+      <div id="link-file-preview" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div id="link-doc-error" style="color:#dc2626;font-size:12.5px;margin:4px 0 8px;display:none"></div>
+    <button class="btn-big btn-accent" style="margin-top:4px" id="link-save-btn" onclick="saveSharedLink()">✅ Enregistrer</button>
   </div>
 </div>
 
@@ -7380,29 +7508,27 @@ async function loadDossier(){
 }
 
 function renderDossier(){
-  Object.keys(DOC_CATEGORIES).forEach(cat => {
-    const docs = S_docs.filter(d => d.category === cat);
-    const list = document.getElementById('docs-'+cat);
-    const badge = document.getElementById('badge-'+cat);
-    if(!list) return;
-    if(badge) badge.textContent = docs.length;
-    if(docs.length === 0){
-      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0">Aucun document</div>';
-      return;
-    }
-    list.innerHTML = docs.map(doc => `
-      <div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
-        <div style="font-size:28px;flex-shrink:0">${getDocIcon(doc.fileType)}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${doc.name}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${doc.fileType.toUpperCase()} · ${formatDocSize(doc.size)} · ${doc.uploadedAt}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button onclick="viewDocument('${doc.id}')" style="background:var(--blue);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">👁️</button>
-          <button onclick="deleteDocument('${doc.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🗑️</button>
-        </div>
-      </div>`).join('');
-  });
+  // Une seule rubrique locale « Documents » : on affiche tous les documents personnels.
+  const list = document.getElementById('docs-LOCAL');
+  if(!list) return;
+  const badge = document.getElementById('badge-LOCAL');
+  if(badge) badge.textContent = S_docs.length;
+  if(!S_docs.length){
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0">Aucun document</div>';
+    return;
+  }
+  list.innerHTML = S_docs.map(doc => `
+    <div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px;flex-shrink:0">${getDocIcon(doc.fileType)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(doc.name)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${(doc.fileType||'').toUpperCase()} · ${formatDocSize(doc.size)} · ${doc.uploadedAt||''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="viewDocument('${doc.id}')" style="background:var(--blue);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">👁️</button>
+        <button onclick="deleteDocument('${doc.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🗑️</button>
+      </div>
+    </div>`).join('');
 }
 
 function getDocIcon(fileType){
@@ -8085,44 +8211,78 @@ async function _generateOuvragesWord(ouvrages, filename){
 // ════════════════════════════════════════════
 //  DOCUMENTS PARTAGÉS (liens URL + Firestore)
 // ════════════════════════════════════════════
-const SHARED_CATEGORIES = ['NORME','FASC','REGL','CTST'];
+const SHARED_CATEGORIES = ['NORME','FASC','REGL','CTST','HABIL','AIPR','AUTRE'];
 let S_sharedDocs = [];
 let _addLinkCategory = null;
+let _addLinkFile = null;
 
 function openAddLinkModal(category){
   _addLinkCategory = category;
+  _addLinkFile = null;
   document.getElementById('link-doc-name').value = '';
   document.getElementById('link-doc-url').value  = '';
+  document.getElementById('link-doc-mode').value = 'lien';
+  const prev=document.getElementById('link-file-preview'); if(prev) prev.textContent='';
+  const err=document.getElementById('link-doc-error'); if(err) err.style.display='none';
+  onAddLinkModeChange();
   openModal('m-add-link');
 }
 
+function onAddLinkModeChange(){
+  const mode=document.getElementById('link-doc-mode').value;
+  document.getElementById('link-url-wrap').style.display  = mode==='lien'?'block':'none';
+  document.getElementById('link-file-wrap').style.display = mode==='fichier'?'block':'none';
+}
+
+function onAddLinkFileSelected(input){
+  const f=input.files&&input.files[0];
+  if(!f) return;
+  _addLinkFile={ file:f, filename:f.name, type:f.type||'application/octet-stream', size:f.size };
+  const mb=f.size/1048576;
+  document.getElementById('link-file-preview').innerHTML='📎 '+escHtml(f.name)+' · '+(mb>=1?mb.toFixed(1)+' Mo':Math.round(f.size/1024)+' Ko');
+  if(!document.getElementById('link-doc-name').value.trim()) document.getElementById('link-doc-name').value=f.name.replace(/\.[^.]+$/,'');
+}
+
 async function saveSharedLink(){
+  const err=document.getElementById('link-doc-error'); if(err) err.style.display='none';
   const name = document.getElementById('link-doc-name').value.trim();
+  const mode = document.getElementById('link-doc-mode').value;
   const url  = document.getElementById('link-doc-url').value.trim();
-  const vErr = Validator.check([
-    { val: name, field: 'Nom du document', checks: ['required', {maxLength: 200}] },
-    { val: url, field: 'URL', checks: ['required', 'url'] }
-  ]);
-  if(vErr){ toast('⚠️ ' + vErr); return; }
+  if(!name){ if(err){ err.textContent='Indiquez un nom de document.'; err.style.display='block'; } return; }
+  if(mode==='lien' && !/^https?:\/\//i.test(url)){ if(err){ err.textContent='Indiquez une URL valide (https://…).'; err.style.display='block'; } return; }
+  if(mode==='fichier' && !_addLinkFile){ if(err){ err.textContent='Sélectionnez un fichier à ajouter.'; err.style.display='block'; } return; }
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId){
     toast('⚠️ Connexion Firebase requise'); return;
   }
-  const docId  = uid();
-  const teamId = currentUserProfile.teamId;
-  const meta   = {
-    id: docId, category: _addLinkCategory, name, url,
-    fileType: 'lien',
-    addedAt: new Date().toLocaleDateString('fr-FR'),
-    addedBy: currentUserProfile.displayName || currentUserProfile.email || '-'
-  };
+  const btn=document.getElementById('link-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Enregistrement…'; }
   try {
+    const docId  = uid();
+    const teamId = currentUserProfile.teamId;
+    let fileUrl=url, fileType='lien', filename=name;
+    if(mode==='fichier'){
+      const safe=String(_addLinkFile.filename).replace(/[^a-zA-Z0-9._-]/g,'_');
+      fileUrl=await uploadFileToStorage(_addLinkFile.file, `rapports/_shared/${teamId}/${docId}_${safe}`,
+        pct=>{ if(btn) btn.textContent='⏳ Envoi '+pct+'%'; });
+      if(!fileUrl) throw new Error("Échec de l'envoi vers le stockage.");
+      fileType=_addLinkFile.type; filename=_addLinkFile.filename;
+    }
+    const meta   = {
+      id: docId, category: _addLinkCategory, name, url:fileUrl,
+      fileType, filename,
+      addedAt: new Date().toLocaleDateString('fr-FR'),
+      addedBy: currentUserProfile.displayName || currentUserProfile.email || '-'
+    };
     await fdb.collection('global_shared_docs').doc(docId).set(meta);
     S_sharedDocs.push(meta);
     renderSharedDocs();
     closeModal('m-add-link');
-    toast('✅ Lien ajouté : '+name);
+    toast('✅ '+(mode==='fichier'?'Fichier ajouté : ':'Lien ajouté : ')+name);
   } catch(e){
-    toast('❌ Erreur : '+e.message);
+    if(err){ err.textContent='Erreur : '+(e.message||e.code); err.style.display='block'; }
+    else toast('❌ Erreur : '+e.message);
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='✅ Enregistrer'; }
   }
 }
 
@@ -8147,11 +8307,11 @@ function renderSharedDocs(){
   // Afficher/masquer boutons upload selon le rôle
   SHARED_CATEGORIES.forEach(cat => {
     const btn = document.getElementById('upload-btn-'+cat);
-    if(btn) btn.style.display = isAdmin ? 'flex' : 'none';
+    if(btn){ btn.style.display = isAdmin ? 'flex' : 'none'; btn.textContent = '➕ Ajouter un document'; }
   });
 
   SHARED_CATEGORIES.forEach(cat => {
-    const docs  = S_sharedDocs.filter(d=>d.category===cat);
+    const docs  = S_sharedDocs.filter(d=>d.category===cat && _docVisibleToMe(d));
     const listEl= document.getElementById('docs-'+cat);
     const badge = document.getElementById('badge-'+cat);
     if(!listEl) return;
@@ -8166,36 +8326,50 @@ function renderSharedDocs(){
     if(!docs.length){
       listEl.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0">Aucun document partagé</div>'; return;
     }
-    listEl.innerHTML = docs.map(doc=>`
-      <div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
-        <div style="font-size:28px;flex-shrink:0">🔗</div>
+    listEl.innerHTML = docs.map(doc=>{
+      const isLink = doc.fileType==='lien' || !doc.fileType;
+      const isNote = doc.fileType==='note' || !doc.url;
+      const tgt = (doc.kind==='assigned' && !doc.targetAll) ? '<span style="color:#f59e0b;font-weight:700"> · 🎯 ciblé</span>' : '';
+      const meta = (isLink && doc.url) ? `<div style="font-size:10px;color:#00b4ff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☁️ ${escHtml(doc.url)}</div>` : '';
+      return `<div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px;flex-shrink:0">${_admDocIcon(doc)}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${doc.name}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${doc.addedAt||'-'} · par ${doc.addedBy||'-'}</div>
-          <div style="font-size:10px;color:#00b4ff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☁️ ${doc.url}</div>
+          <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(doc.name||'-')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escHtml(doc.addedAt||'-')} · par ${escHtml(doc.addedBy||'-')}${tgt}</div>
+          ${meta}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button onclick="viewSharedDoc('${doc.id}')" style="background:var(--blue);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">↗️</button>
+          ${isNote?'':`<button onclick="viewSharedDoc('${doc.id}')" style="background:var(--blue);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">${isLink?'↗️':'👁️'}</button>`}
           ${isAdmin?`<button onclick="deleteSharedDoc('${doc.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🗑️</button>`:''}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   });
+}
+
+// Un document est visible : liens publics → tout le monde ; docs déposés (kind:'assigned') → selon la cible
+function _docVisibleToMe(d){
+  if(d.kind!=='assigned') return true;
+  if(d.targetAll) return true;
+  return (d.targetUids||[]).includes(currentUserProfile?.uid);
 }
 
 function viewSharedDoc(docId){
   const doc = S_sharedDocs.find(d=>d.id===docId);
   if(!doc || !doc.url) return;
-  window.open(doc.url, '_blank');
+  if(doc.fileType==='lien' || !doc.fileType){ window.open(doc.url, '_blank', 'noopener'); return; }
+  _openDocViewer({ url:doc.url, filename:doc.filename||doc.name, type:doc.fileType });
 }
 
 async function deleteSharedDoc(docId){
-  if(!confirm('Supprimer ce lien pour toute l\'équipe ?')) return;
+  if(!confirm('Supprimer ce document pour l\'équipe ?')) return;
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   try {
-    await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').doc(docId).delete();
+    await fdb.collection('teams').doc(currentUserProfile.teamId).collection('shared_docs').doc(docId).delete().catch(()=>{});
+    await fdb.collection('global_shared_docs').doc(docId).delete().catch(()=>{});
     S_sharedDocs = S_sharedDocs.filter(d=>d.id!==docId);
     renderSharedDocs();
-    toast('🗑️ Lien supprimé');
+    toast('🗑️ Document supprimé');
   } catch(e){ toast('❌ Erreur suppression'); }
 }
 
@@ -10533,74 +10707,104 @@ function shareCollabInvite(){
 }
 
 // ════════════════════════════════════════════
-//  PANNEAU ADMIN
+//  BASE DE CONTRÔLE — Panneau d'administration
 // ════════════════════════════════════════════
-let _adminData = { teams:[], users:[], loaded:false };
-let _adminCurrentTab = 'agencies';
+let _adminData = { teams:[], users:[], chantiers:[], sharedDocs:[], loaded:false };
+let _adminCurrentTab = 'collab';
 
 async function openAdmin(){
   if(!currentUserProfile || !isAdminRole(currentUserProfile.role)){
     toast('⛔ Accès réservé aux administrateurs'); return;
   }
   showScreen('s-admin');
-  // Sous-titre selon le rôle
   const sub = document.getElementById('admin-subtitle');
   if(sub) sub.textContent = isGlobalAdmin(currentUserProfile.role)
-    ? 'Toutes les régions · Tous les utilisateurs'
+    ? 'Toutes les régions · contrôle global'
     : `Région : ${currentUserProfile.teamName||'-'}`;
-  adminTab('agencies');
+  adminTab('collab');
   await loadAdminData();
-  renderAdminAgencies();
+  renderAdminCurrentTab();
 }
 
 async function loadAdminData(){
   if(!FIREBASE_CONFIGURED) return;
   try {
     const isDG = isGlobalAdmin(currentUserProfile.role);
-    // Charger les agences
+    // Régions
     let teamsSnap;
-    if(isDG){
-      teamsSnap = await fdb.collection('teams').get();
-    } else {
-      teamsSnap = await fdb.collection('teams').where('__name__','==',currentUserProfile.teamId).get();
-    }
+    if(isDG){ teamsSnap = await fdb.collection('teams').get(); }
+    else { teamsSnap = await fdb.collection('teams').where('__name__','==',currentUserProfile.teamId).get(); }
     _adminData.teams = teamsSnap.docs.map(d=>({id:d.id,...d.data()}));
-    // Charger les utilisateurs
+    // Utilisateurs
     let usersSnap;
-    if(isDG){
-      usersSnap = await fdb.collection('users').get();
-    } else {
-      usersSnap = await fdb.collection('users').where('teamId','==',currentUserProfile.teamId).get();
-    }
+    if(isDG){ usersSnap = await fdb.collection('users').get(); }
+    else { usersSnap = await fdb.collection('users').where('teamId','==',currentUserProfile.teamId).get(); }
     _adminData.users = usersSnap.docs.map(d=>({uid:d.id,...d.data()}));
+    // Chantiers + documents partagés (parcours par région)
+    _adminData.chantiers = [];
+    _adminData.sharedDocs = [];
+    for(const t of _adminData.teams){
+      try {
+        const cs = await fdb.collection('teams').doc(t.id).collection('chantiers').get();
+        cs.forEach(d=> _adminData.chantiers.push({ id:d.id, _teamId:t.id, _teamName:t.name, ...d.data() }));
+      } catch(e){ Logger.warn('Admin','chantiers '+t.id, e?.message); }
+      try {
+        const ds = await fdb.collection('teams').doc(t.id).collection('shared_docs').get();
+        ds.forEach(d=> _adminData.sharedDocs.push({ id:d.id, _teamId:t.id, _teamName:t.name, ...d.data() }));
+      } catch(e){ Logger.warn('Admin','shared_docs '+t.id, e?.message); }
+    }
     _adminData.loaded = true;
   } catch(e){
     Logger.error('Admin', 'loadAdminData error', e?.message);
-    _adminData.loaded = true; // avoid infinite "Chargement…"
+    _adminData.loaded = true; // évite un "Chargement…" infini
     toast('⚠️ Erreur de chargement admin: ' + e.message);
   }
 }
 
+const _ADMIN_TABS = {
+  collab:    { panel:'admin-panel-collab',     btn:'atab-collab' },
+  chantiers: { panel:'admin-panel-chantiers',  btn:'atab-chantiers' },
+  documents: { panel:'admin-panel-documents',  btn:'atab-documents' },
+  params:    { panel:'admin-panel-params',     btn:'atab-params' }
+};
+
 function adminTab(tab){
+  if(!_ADMIN_TABS[tab]) tab = 'collab';
   _adminCurrentTab = tab;
-  document.getElementById('admin-panel-agencies').style.display = tab==='agencies'?'block':'none';
-  document.getElementById('admin-panel-users').style.display    = tab==='users'?'block':'none';
-  document.getElementById('admin-panel-params').style.display   = tab==='params'?'block':'none';
+  Object.entries(_ADMIN_TABS).forEach(([k,cfg])=>{
+    const panel = document.getElementById(cfg.panel);
+    if(panel) panel.style.display = (k===tab)?'block':'none';
+    const btn = document.getElementById(cfg.btn);
+    if(btn){
+      const on = (k===tab);
+      btn.style.color = on?'var(--blue)':'var(--muted)';
+      btn.style.borderBottomColor = on?'var(--blue)':'transparent';
+    }
+  });
   const searchBar = document.getElementById('admin-search-bar');
-  if(searchBar) searchBar.style.display = tab==='params'?'none':'block';
-  const aBtn=document.getElementById('atab-agencies'), uBtn=document.getElementById('atab-users'), pBtn=document.getElementById('atab-params');
-  const blue='var(--blue)', muted='var(--muted)';
-  aBtn.style.color=tab==='agencies'?blue:muted; aBtn.style.borderBottomColor=tab==='agencies'?blue:'transparent';
-  uBtn.style.color=tab==='users'?blue:muted;    uBtn.style.borderBottomColor=tab==='users'?blue:'transparent';
-  pBtn.style.color=tab==='params'?blue:muted;   pBtn.style.borderBottomColor=tab==='params'?blue:'transparent';
-  if(tab==='agencies') renderAdminAgencies();
-  else if(tab==='users') renderAdminUsers();
-  else renderAdminParams();
+  if(searchBar) searchBar.style.display = (tab==='params')?'none':'block';
+  const search = document.getElementById('admin-search');
+  if(search){
+    search.placeholder = tab==='chantiers' ? '🔍 Rechercher un chantier…'
+      : tab==='documents' ? '🔍 Rechercher un document…'
+      : '🔍 Rechercher un collaborateur…';
+  }
+  renderAdminCurrentTab();
+}
+
+function renderAdminCurrentTab(){
+  const t = _adminCurrentTab;
+  if(t==='collab') renderAdminCollab();
+  else if(t==='chantiers') renderAdminChantiers();
+  else if(t==='documents') renderAdminDocuments();
+  else if(t==='params') renderAdminParams();
 }
 
 function adminSearch(val){
-  if(_adminCurrentTab==='agencies') renderAdminAgencies(val);
-  else if(_adminCurrentTab==='users') renderAdminUsers(val);
+  const t = _adminCurrentTab;
+  if(t==='collab') renderAdminCollab(val);
+  else if(t==='chantiers') renderAdminChantiers(val);
+  else if(t==='documents') renderAdminDocuments(val);
 }
 
 // ════════════════════════════════════════════
@@ -11029,8 +11233,7 @@ async function adminChangeRole(uid){
     await fdb.collection('users').doc(uid).update({ role: newRole });
     user.role = newRole;
     toast(`✅ Rôle de ${user.displayName||user.email} → ${newRole}`);
-    if(_adminCurrentTab==='agencies') renderAdminAgencies();
-    else renderAdminUsers();
+    renderAdminCollab();
   } catch(e){ Logger.error('Admin', `Erreur changement rôle pour ${uid}`, e?.message); toast('⚠️ Erreur mise à jour rôle'); }
 }
 
@@ -11049,8 +11252,7 @@ async function adminMoveUser(uid){
     await fdb.collection('users').doc(uid).update({ teamId: target.id, teamName: target.name });
     user.teamId = target.id; user.teamName = target.name;
     toast(`✅ ${user.displayName||user.email} déplacé vers ${target.name}`);
-    if(_adminCurrentTab==='agencies') renderAdminAgencies();
-    else renderAdminUsers();
+    renderAdminCollab();
   } catch(e){ Logger.error('Admin', `Erreur déplacement utilisateur ${uid}`, e?.message); toast('⚠️ Erreur déplacement'); }
 }
 
@@ -11060,9 +11262,525 @@ async function adminDeleteUser(uid, displayName){
     await fdb.collection('users').doc(uid).delete();
     _adminData.users = _adminData.users.filter(u=>u.uid!==uid);
     toast(`✅ Utilisateur "${displayName}" supprimé`);
-    if(_adminCurrentTab==='agencies') renderAdminAgencies();
-    else renderAdminUsers();
+    renderAdminCollab();
   } catch(e){ Logger.error('Admin', `Erreur suppression utilisateur ${uid}`, e?.message); toast('⚠️ Erreur suppression'); }
+}
+
+// ──────────────── Onglet COLLABORATEURS (rendu) ────────────────
+function renderAdminCollab(filter=''){
+  const el = document.getElementById('admin-collab-list');
+  if(!el) return;
+  if(!_adminData.loaded){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:30px">Chargement…</div>'; return; }
+  const q = (filter||'').toLowerCase();
+  const users = _adminData.users.filter(u=>!q
+    || (u.displayName||'').toLowerCase().includes(q)
+    || (u.email||'').toLowerCase().includes(q)
+    || (u.role||'').toLowerCase().includes(q)
+    || (u.teamName||'').toLowerCase().includes(q));
+  const createBtn = `<button onclick="openCreateAccount()" style="width:100%;background:linear-gradient(135deg,#059669,#047857);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:8px">➕ Créer un compte collaborateur</button>`
+    + `<button onclick="openRolesManager()" style="width:100%;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#a78bfa;border-radius:12px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px">🎭 Gérer les rôles</button>`;
+  if(!users.length){ el.innerHTML = createBtn + '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Aucun collaborateur trouvé.</div>'; return; }
+  el.innerHTML = createBtn + users.map(u=>{
+    const suspended = !!u.disabled;
+    const statusBadge = suspended
+      ? '<span style="font-size:10px;font-weight:700;background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.3);border-radius:20px;padding:2px 9px">⏸ Suspendu</span>'
+      : '<span style="font-size:10px;font-weight:700;background:rgba(5,150,105,.12);color:#059669;border:1px solid rgba(5,150,105,.3);border-radius:20px;padding:2px 9px">● Actif</span>';
+    const nm = (u.displayName||u.email||'').replace(/'/g,"\\'").replace(/"/g,'');
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;${suspended?'opacity:.72':''}">
+      <div style="min-width:0">
+        <div style="font-size:14px;font-weight:800;color:var(--text)">👤 ${escHtml(u.displayName||'-')}</div>
+        <div style="font-size:11px;color:var(--muted)">${escHtml(u.email||'-')}</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ${roleBadgeHTML(u.role)}
+          <span style="font-size:11px;color:var(--muted)">🗺️ ${escHtml(u.teamName||'-')}</span>
+          ${statusBadge}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <button onclick="adminChangeRole('${u.uid}')" style="flex:1;min-width:82px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Rôle</button>
+        <button onclick="adminMoveUser('${u.uid}')" style="flex:1;min-width:82px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">🗺️ Région</button>
+        <button onclick="adminToggleSuspend('${u.uid}')" style="flex:1;min-width:82px;background:${suspended?'rgba(5,150,105,.1)':'rgba(217,119,6,.1)'};border:1px solid ${suspended?'rgba(5,150,105,.3)':'rgba(217,119,6,.3)'};color:${suspended?'#10b981':'#f59e0b'};border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">${suspended?'▶️ Réactiver':'⏸ Suspendre'}</button>
+        <button onclick="adminDeleteUser('${u.uid}','${nm}')" style="flex:1;min-width:82px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">🗑️ Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adminToggleSuspend(uid){
+  const u = _adminData.users.find(x=>x.uid===uid);
+  if(!u){ toast('Collaborateur introuvable'); return; }
+  if(uid === currentUserProfile.uid){ toast('⚠️ Vous ne pouvez pas suspendre votre propre accès'); return; }
+  const newState = !u.disabled;
+  if(newState && !confirm(`Suspendre l'accès de "${u.displayName||u.email}" ?\n\nLa personne sera déconnectée et ne pourra plus se connecter tant que l'accès n'est pas rétabli.`)) return;
+  try {
+    await fdb.collection('users').doc(uid).update({ disabled: newState });
+    u.disabled = newState;
+    toast(newState ? `⏸ Accès suspendu : ${u.displayName||u.email}` : `▶️ Accès rétabli : ${u.displayName||u.email}`);
+    renderAdminCollab();
+  } catch(e){ Logger.error('Admin', `Erreur suspension ${uid}`, e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+// ──────────────── Création de compte collaborateur ────────────────
+function openCreateAccount(){
+  const roleSel = document.getElementById('ca-role');
+  if(roleSel){
+    roleSel.innerHTML = '<option value="">— Sélectionner —</option>'
+      + ROLES_TECH.map(r=>`<option>${escHtml(r)}</option>`).join('')
+      + ROLES_ADMIN_LIST.map(r=>`<option>${escHtml(r)}</option>`).join('');
+  }
+  const teamWrap = document.getElementById('ca-team-wrap');
+  const teamSel = document.getElementById('ca-team');
+  if(isGlobalAdmin(currentUserProfile.role) && _adminData.teams.length>1){
+    teamWrap.style.display='block';
+    teamSel.innerHTML = _adminData.teams.map(t=>`<option value="${t.id}">${escHtml(t.name||t.id)}</option>`).join('');
+    teamSel.value = currentUserProfile.teamId || _adminData.teams[0].id;
+  } else {
+    teamWrap.style.display='none';
+  }
+  ['ca-name','ca-email','ca-password'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  const err=document.getElementById('ca-error'); if(err) err.style.display='none';
+  openModal('m-create-account');
+}
+
+async function adminCreateAccount(){
+  const name  = document.getElementById('ca-name').value.trim();
+  const email = document.getElementById('ca-email').value.trim();
+  const pwd   = document.getElementById('ca-password').value;
+  const role  = document.getElementById('ca-role').value;
+  const err   = document.getElementById('ca-error');
+  err.style.display='none';
+  const vErr = Validator.check([
+    { val:name,  field:'Nom complet',   checks:['required',{minLength:2},{maxLength:100}] },
+    { val:email, field:'Email',         checks:['required','email'] },
+    { val:pwd,   field:'Mot de passe',  checks:['required',{minLength:6}] },
+    { val:role,  field:'Rôle',          checks:['required'] }
+  ]);
+  if(vErr){ err.textContent=vErr; err.style.display='block'; return; }
+  let teamId = currentUserProfile.teamId, teamName = currentUserProfile.teamName;
+  const teamWrap = document.getElementById('ca-team-wrap');
+  if(teamWrap && teamWrap.style.display!=='none'){
+    teamId = document.getElementById('ca-team').value;
+    const t = _adminData.teams.find(x=>x.id===teamId);
+    teamName = t ? (t.name||t.id) : teamName;
+  }
+  if(!teamId){ err.textContent="Aucune région associée à votre compte."; err.style.display='block'; return; }
+  const btn = document.getElementById('ca-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Création…'; }
+  try {
+    let secApp;
+    try { secApp = firebase.app('secondary'); }
+    catch(_){ secApp = firebase.initializeApp(FIREBASE_CONFIG, 'secondary'); }
+    const secAuth = secApp.auth();
+    const cred = await secAuth.createUserWithEmailAndPassword(email, pwd);
+    await cred.user.updateProfile({ displayName:name });
+    const profile = { displayName:name, email, teamId, teamName, role, createdAt:Date.now(), createdByAdmin:true };
+    await secApp.firestore().collection('users').doc(cred.user.uid).set(profile);
+    await secAuth.signOut();
+    _adminData.users.push({ uid:cred.user.uid, ...profile });
+    closeModal('m-create-account');
+    renderAdminCollab();
+    toast('✅ Compte créé : '+name);
+    setTimeout(()=>alert(`Compte créé avec succès ✅\n\nCollaborateur : ${name}\nEmail : ${email}\nMot de passe : ${pwd}\nRôle : ${role}\nRégion : ${teamName}\n\nCommuniquez ces identifiants au collaborateur. Il pourra changer son mot de passe via « Mot de passe oublié ? ».`), 300);
+  } catch(e){
+    const msgs = {
+      'auth/email-already-in-use':'Un compte existe déjà avec cet email.',
+      'auth/invalid-email':'Email invalide.',
+      'auth/weak-password':'Mot de passe trop faible (min. 6 caractères).'
+    };
+    Logger.error('Admin','création compte', e?.code||e?.message);
+    err.textContent = msgs[e.code] || ('Erreur : '+(e.message||e.code)); err.style.display='block';
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='✅ Créer le compte'; }
+  }
+}
+
+// ──────────────── Onglet CHANTIERS ────────────────
+function _adminUserName(uid){
+  const u = _adminData.users.find(x=>x.uid===uid);
+  return u ? (u.displayName||u.email||uid) : (uid||'—');
+}
+
+function renderAdminChantiers(filter=''){
+  const el = document.getElementById('admin-chantiers-list');
+  if(!el) return;
+  if(!_adminData.loaded){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:30px">Chargement…</div>'; return; }
+  const q = (filter||'').toLowerCase();
+  let list = _adminData.chantiers.filter(c=>!q
+    || (c.name||'').toLowerCase().includes(q)
+    || (c.client||'').toLowerCase().includes(q)
+    || (c.address||c.adresse||'').toLowerCase().includes(q)
+    || _adminUserName(c.createdBy).toLowerCase().includes(q));
+  list = list.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const actifs = list.filter(c=>!c.deletedAt);
+  const corbeille = list.filter(c=>c.deletedAt);
+  if(!list.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Aucun chantier.</div>'; return; }
+  const card = c=>{
+    const del = !!c.deletedAt;
+    const statusMap = { actif:['#059669','Actif'], prep:['#d97706','En préparation'], preparation:['#d97706','En préparation'], termine:['#3b82f6','Terminé'] };
+    const st = statusMap[(c.status||'').toLowerCase()] || ['#64748b', c.status||'—'];
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;${del?'border-left:3px solid #dc2626':''}">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">🏗️ ${escHtml(c.name||'Sans nom')}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${escHtml(c.client||'-')} · ${escHtml(c.address||c.adresse||'-')}</div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:700;background:${st[0]}22;color:${st[0]};border:1px solid ${st[0]}55;border-radius:20px;padding:2px 9px">${st[1]}</span>
+        <span style="font-size:11px;color:var(--muted)">👤 ${escHtml(_adminUserName(c.createdBy))}</span>
+        <span style="font-size:11px;color:var(--muted)">🗺️ ${escHtml(c._teamName||'-')}</span>
+      </div>
+      ${del?`<div style="font-size:11px;color:#f87171;margin-top:6px">🗑️ En corbeille depuis le ${new Date(c.deletedAt).toLocaleDateString('fr-FR')}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        ${del
+          ? `<button onclick="adminRestoreChantier('${c._teamId}','${c.id}')" style="flex:1;background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.3);color:#10b981;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">♻️ Restaurer</button><button onclick="adminDeleteChantierForever('${c._teamId}','${c.id}')" style="flex:1;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#dc2626;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">🗑️ Supprimer</button>`
+          : `<button onclick="adminTrashChantier('${c._teamId}','${c.id}')" style="flex:1;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:8px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">🗑️ Mettre à la corbeille</button>`
+        }
+      </div>
+    </div>`;
+  };
+  el.innerHTML =
+    (actifs.length?`<div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin:2px 0 8px">Chantiers actifs (${actifs.length})</div>`+actifs.map(card).join(''):'')
+   +(corbeille.length?`<div style="font-size:11px;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px">Corbeille (${corbeille.length})</div>`+corbeille.map(card).join(''):'');
+}
+
+function _adminSyncLocalChantier(id, patch){
+  try {
+    if(typeof S==='undefined' || !S.chantiers) return;
+    const local = S.chantiers.find(x=>String(x.id)===String(id));
+    if(!local) return;
+    if(patch && patch._restore){ delete local.deletedAt; delete local.deletedBy; }
+    else if(patch) Object.assign(local, patch);
+    db.put('chantiers', local).catch(()=>{});
+  } catch(_){}
+}
+
+async function adminTrashChantier(teamId, id){
+  const c = _adminData.chantiers.find(x=>String(x.id)===String(id) && x._teamId===teamId);
+  if(!c) return;
+  if(!confirm(`Mettre le chantier "${c.name||''}" à la corbeille ?\n\nLe collaborateur ne le verra plus. Il reste restaurable.`)) return;
+  try {
+    await fdb.collection('teams').doc(teamId).collection('chantiers').doc(String(id)).update({ deletedAt:Date.now(), deletedBy:currentUserProfile.uid, updatedAt:Date.now() });
+    c.deletedAt = Date.now(); c.deletedBy = currentUserProfile.uid;
+    _adminSyncLocalChantier(id, { deletedAt:c.deletedAt, deletedBy:c.deletedBy });
+    renderAdminChantiers();
+    toast('🗑️ Chantier mis à la corbeille');
+  } catch(e){ Logger.error('Admin','trash chantier', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+async function adminRestoreChantier(teamId, id){
+  const c = _adminData.chantiers.find(x=>String(x.id)===String(id) && x._teamId===teamId);
+  if(!c) return;
+  try {
+    const FV = firebase.firestore.FieldValue;
+    await fdb.collection('teams').doc(teamId).collection('chantiers').doc(String(id)).update({ deletedAt:FV.delete(), deletedBy:FV.delete(), updatedAt:Date.now() });
+    delete c.deletedAt; delete c.deletedBy;
+    _adminSyncLocalChantier(id, { _restore:true });
+    renderAdminChantiers();
+    toast('♻️ Chantier restauré');
+  } catch(e){ Logger.error('Admin','restore chantier', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+async function adminDeleteChantierForever(teamId, id){
+  if(!confirm('Supprimer DÉFINITIVEMENT ce chantier et son rapport ?\n\nCette action est IRRÉVERSIBLE.')) return;
+  try {
+    await fdb.collection('teams').doc(teamId).collection('chantiers').doc(String(id)).delete();
+    await fdb.collection('teams').doc(teamId).collection('rapports').doc(String(id)).delete().catch(()=>{});
+    _adminData.chantiers = _adminData.chantiers.filter(x=>!(String(x.id)===String(id) && x._teamId===teamId));
+    try { await db._idb.del('chantiers', id); await db._idb.del('rapports', id); } catch(_){}
+    if(typeof S!=='undefined' && S.chantiers) S.chantiers = S.chantiers.filter(x=>String(x.id)!==String(id));
+    renderAdminChantiers();
+    toast('🗑️ Chantier supprimé définitivement');
+  } catch(e){ Logger.error('Admin','delete chantier', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+// ──────────────── Onglet DOCUMENTS ────────────────
+function _admDocIcon(d){
+  if(d.category==='HABIL') return '🎓';
+  const t=(d.fileType||d.type||'').toLowerCase();
+  if(t==='lien') return '🔗';
+  if(t==='note') return '📝';
+  if(t.includes('pdf')) return '📄';
+  if(t.includes('image')||/jpe?g|png|gif|webp/.test(t)) return '🖼️';
+  if(t.includes('word')||t.includes('officedocument')) return '📝';
+  return '📎';
+}
+
+function renderAdminDocuments(filter=''){
+  const el = document.getElementById('admin-documents-list');
+  if(!el) return;
+  if(!_adminData.loaded){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:30px">Chargement…</div>'; return; }
+  const q=(filter||'').toLowerCase();
+  let docs = _adminData.sharedDocs.filter(d=>d.kind==='assigned');
+  docs = docs.filter(d=>!q || (d.name||'').toLowerCase().includes(q));
+  docs.sort((a,b)=>(b.addedTs||0)-(a.addedTs||0));
+  const addBtn = `<button onclick="openAdminDocModal()" style="width:100%;background:linear-gradient(135deg,#0B769F,#0e6088);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px">➕ Déposer un document</button>`;
+  const info = `<div style="font-size:11px;color:var(--muted);background:rgba(11,118,159,.07);border:1px solid rgba(11,118,159,.18);border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5">📄 Les documents déposés ici apparaissent dans la rubrique choisie de l'écran « Documents » des collaborateurs ciblés.</div>`;
+  if(!docs.length){ el.innerHTML = addBtn + info + '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Aucun document déposé.</div>'; return; }
+  el.innerHTML = addBtn + info + docs.map(d=>{
+    const target = d.targetAll ? `Toute la région ${escHtml(d._teamName||'')}` : `${(d.targetUids||[]).length} collaborateur(s)`;
+    const RUB={NORME:'📐 Normes',FASC:'📘 Fascicules',REGL:'⚖️ Réglementation',CTST:'🏗️ CTST',HABIL:'🎓 Habilitations',AIPR:'🟠 AIPR',AUTRE:'📄 Autres documents'};
+    const isHab = d.category==='HABIL';
+    const catBadge = `<span style="font-size:9px;font-weight:700;background:${isHab?'rgba(16,185,129,.14)':'rgba(11,118,159,.14)'};color:${isHab?'#10b981':'#0B769F'};border-radius:6px;padding:2px 7px">${RUB[d.category]||'📄 Document'}</span>`;
+    const hasContent = d.fileType!=='note' && d.url;
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">
+      <div style="font-size:26px;flex-shrink:0">${_admDocIcon(d)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(d.name||'-')}</div>
+        <div style="margin-top:3px">${catBadge}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">🎯 ${target}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${escHtml(d.addedAt||'-')} · par ${escHtml(d.addedBy||'-')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        ${hasContent?`<button onclick="adminViewDoc('${d._teamId}','${d.id}')" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#10b981;border-radius:8px;padding:6px 9px;font-size:13px;cursor:pointer;font-family:inherit">👁️</button>`:''}
+        <button onclick="adminDeleteDoc('${d._teamId}','${d.id}')" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#dc2626;border-radius:8px;padding:6px 9px;font-size:13px;cursor:pointer;font-family:inherit">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let _admDocFile = null;
+
+function _admFileToDataURL(file){
+  return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(fr.error); fr.readAsDataURL(file); });
+}
+
+function _admDocTeamId(){
+  const teamWrap=document.getElementById('ad-team-wrap');
+  if(teamWrap && teamWrap.style.display!=='none') return document.getElementById('ad-team').value;
+  return currentUserProfile.teamId;
+}
+
+function openAdminDocModal(){
+  _admDocFile = null;
+  ['ad-name','ad-url'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('ad-mode').value='lien';
+  document.getElementById('ad-category').value='NORME';
+  document.getElementById('ad-target').value='all';
+  document.getElementById('ad-file-preview').textContent='';
+  const err=document.getElementById('ad-error'); if(err) err.style.display='none';
+  const teamWrap=document.getElementById('ad-team-wrap');
+  const teamSel=document.getElementById('ad-team');
+  if(isGlobalAdmin(currentUserProfile.role) && _adminData.teams.length>1){
+    teamWrap.style.display='block';
+    teamSel.innerHTML=_adminData.teams.map(t=>`<option value="${t.id}">${escHtml(t.name||t.id)}</option>`).join('');
+    teamSel.value=currentUserProfile.teamId||_adminData.teams[0].id;
+  } else { teamWrap.style.display='none'; }
+  onAdminDocModeChange();
+  onAdminDocTargetChange();
+  openModal('m-admin-doc');
+}
+
+function onAdminDocModeChange(){
+  const mode=document.getElementById('ad-mode').value;
+  document.getElementById('ad-url-wrap').style.display  = mode==='lien'?'block':'none';
+  document.getElementById('ad-file-wrap').style.display = mode==='fichier'?'block':'none';
+}
+
+function onAdminDocTargetChange(){
+  const specific = document.getElementById('ad-target').value==='specific';
+  const wrap=document.getElementById('ad-collab-wrap');
+  wrap.style.display = specific?'block':'none';
+  if(specific){
+    const tid=_admDocTeamId();
+    const users=_adminData.users.filter(u=>u.teamId===tid);
+    document.getElementById('ad-collab-list').innerHTML = users.length
+      ? users.map(u=>`<label style="display:flex;align-items:center;gap:8px;padding:7px 4px;font-size:13px;cursor:pointer;color:var(--text)"><input type="checkbox" class="ad-collab-cb" value="${u.uid}" style="width:16px;height:16px">${escHtml(u.displayName||u.email)}</label>`).join('')
+      : '<div style="font-size:12px;color:var(--muted);padding:6px">Aucun collaborateur dans cette région.</div>';
+  }
+}
+
+function onAdminDocFileSelected(input){
+  const f=input.files&&input.files[0];
+  if(!f) return;
+  // Aucune limite de taille : le fichier est envoyé directement à Firebase Storage (upload résumable).
+  _admDocFile={ file:f, filename:f.name, type:f.type||'application/octet-stream', size:f.size };
+  const mb=f.size/1048576;
+  document.getElementById('ad-file-preview').innerHTML = `📎 ${escHtml(f.name)} · ${mb>=1?mb.toFixed(1)+' Mo':Math.round(f.size/1024)+' Ko'}`;
+  if(!document.getElementById('ad-name').value.trim()) document.getElementById('ad-name').value=f.name.replace(/\.[^.]+$/,'');
+}
+
+// Upload direct d'un fichier (Blob/File) vers Storage — gère les gros fichiers (upload résumable)
+function uploadFileToStorage(file, path, onProgress){
+  return new Promise((resolve,reject)=>{
+    if(!fstorage){ reject(new Error('Stockage Firebase indisponible')); return; }
+    try {
+      const task=fstorage.ref(path).put(file, { contentType:file.type||'application/octet-stream' });
+      task.on('state_changed',
+        snap=>{ if(onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100)); },
+        err=>reject(err),
+        ()=>task.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
+      );
+    } catch(e){ reject(e); }
+  });
+}
+
+async function adminSaveDoc(){
+  const err=document.getElementById('ad-error'); err.style.display='none';
+  const name=document.getElementById('ad-name').value.trim();
+  const mode=document.getElementById('ad-mode').value;
+  const url=document.getElementById('ad-url').value.trim();
+  const rubrique=document.getElementById('ad-category').value;
+  const targetMode=document.getElementById('ad-target').value;
+  if(!name){ err.textContent='Indiquez un nom de document.'; err.style.display='block'; return; }
+  if(mode==='lien' && !/^https?:\/\//i.test(url)){ err.textContent='Indiquez une URL valide (https://…).'; err.style.display='block'; return; }
+  if(mode==='fichier' && !_admDocFile){ err.textContent='Sélectionnez un fichier à déposer.'; err.style.display='block'; return; }
+  const teamId=_admDocTeamId();
+  const team=_adminData.teams.find(t=>t.id===teamId);
+  let targetUids=[], targetAll=true;
+  if(targetMode==='specific'){
+    targetUids=[...document.querySelectorAll('.ad-collab-cb:checked')].map(cb=>cb.value);
+    if(!targetUids.length){ err.textContent='Sélectionnez au moins un collaborateur.'; err.style.display='block'; return; }
+    targetAll=false;
+  }
+  const btn=document.getElementById('ad-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Dépôt…'; }
+  try {
+    const docId=uid();
+    let fileUrl='', fileType='note', filename=name;
+    if(mode==='lien'){ fileUrl=url; fileType='lien'; }
+    else if(mode==='fichier'){
+      const safe=String(_admDocFile.filename).replace(/[^a-zA-Z0-9._-]/g,'_');
+      fileUrl=await uploadFileToStorage(_admDocFile.file, `rapports/_shared/${teamId}/${docId}_${safe}`,
+        pct=>{ if(btn) btn.textContent='⏳ Envoi '+pct+'%'; });
+      if(!fileUrl) throw new Error("Échec de l'envoi vers le stockage.");
+      fileType=_admDocFile.type; filename=_admDocFile.filename;
+    }
+    const meta={
+      id:docId, kind:'assigned', category:rubrique,
+      name, url:fileUrl, fileType, filename,
+      targetAll, targetUids,
+      addedAt:new Date().toLocaleDateString('fr-FR'), addedTs:Date.now(),
+      addedBy:currentUserProfile.displayName||currentUserProfile.email||'-',
+      addedByUid:currentUserProfile.uid
+    };
+    await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(docId).set(meta);
+    _adminData.sharedDocs.push({ ...meta, _teamId:teamId, _teamName: team?(team.name||team.id):'' });
+    closeModal('m-admin-doc');
+    renderAdminDocuments();
+    toast('✅ '+(rubrique==='HABIL'?'Habilitation déposée':'Document déposé'));
+  } catch(e){
+    Logger.error('Admin','dépôt document', e?.message);
+    err.textContent='Erreur : '+(e.message||e.code); err.style.display='block';
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='✅ Déposer'; }
+  }
+}
+
+function adminViewDoc(teamId, id){
+  const d=_adminData.sharedDocs.find(x=>x.id===id && x._teamId===teamId);
+  if(!d){ toast('Document introuvable'); return; }
+  if(d.fileType==='lien'){ window.open(d.url,'_blank','noopener'); return; }
+  _openDocViewer({ url:d.url, filename:d.filename||d.name, type:d.fileType });
+}
+
+async function adminDeleteDoc(teamId, id){
+  if(!confirm('Supprimer ce document pour les collaborateurs concernés ?')) return;
+  try {
+    await fdb.collection('teams').doc(teamId).collection('shared_docs').doc(id).delete();
+    _adminData.sharedDocs=_adminData.sharedDocs.filter(x=>!(x.id===id && x._teamId===teamId));
+    renderAdminDocuments();
+    toast('🗑️ Document supprimé');
+  } catch(e){ Logger.error('Admin','suppression document', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+// ──────────────── GESTION DES RÔLES ────────────────
+let _rolesEditList = [];
+
+function openRolesManager(){
+  if(!currentUserProfile || !isAdminRole(currentUserProfile.role)){ toast('⛔ Réservé aux administrateurs'); return; }
+  const n=document.getElementById('role-new-name'); if(n) n.value='';
+  const c=document.getElementById('role-new-cat'); if(c) c.value='tech';
+  renderRolesList();
+  openModal('m-roles');
+}
+
+function _roleUserCount(role){ return _adminData.users.filter(u=>u.role===role).length; }
+
+function renderRolesList(){
+  const el=document.getElementById('roles-list');
+  if(!el) return;
+  const tech=DynLists.rolesTech||[], admin=DynLists.rolesAdmin||[];
+  _rolesEditList = [...tech.map(r=>({name:r,cat:'tech'})), ...admin.map(r=>({name:r,cat:'admin'}))];
+  const adminSet=DynLists.adminRolesSet, globalSet=DynLists.globalRolesSet;
+  const techRows=[], adminRows=[];
+  _rolesEditList.forEach((ro,i)=>{
+    const n=_roleUserCount(ro.name);
+    const isGlob=globalSet.has(ro.name), isAdm=adminSet.has(ro.name);
+    const tag = isGlob?' · 🌍 accès global':isAdm?' · 🛠️ admin':'';
+    const html=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(ro.name)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${n} collaborateur(s)${tag}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button onclick="renameRoleAt(${i})" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer;font-family:inherit">✏️</button>
+        <button onclick="deleteRoleAt(${i})" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);color:#dc2626;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer;font-family:inherit">🗑️</button>
+      </div>
+    </div>`;
+    (ro.cat==='tech'?techRows:adminRows).push(html);
+  });
+  const group=(title,items)=> items.length?`<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin:4px 0 6px">${title}</div>`+items.join(''):'';
+  el.innerHTML = group('Rôles techniques',techRows) + group('Rôles administratifs',adminRows);
+}
+
+async function addRole(){
+  const name=document.getElementById('role-new-name').value.trim();
+  const cat=document.getElementById('role-new-cat').value;
+  if(!name){ toast('⚠️ Saisissez un nom de rôle'); return; }
+  if(DynLists.allRoles.includes(name)){ toast('⚠️ Ce rôle existe déjà'); return; }
+  try {
+    if(cat==='tech'){
+      await DynLists.save('roles_tech', [...DynLists.rolesTech, name]);
+    } else {
+      await DynLists.save('roles_admin', [...DynLists.rolesAdmin, name]);
+      await DynLists.save('admin_roles', [...DynLists.get('admin_roles'), name]);
+    }
+    DynLists.populateSelects();
+    document.getElementById('role-new-name').value='';
+    renderRolesList();
+    toast('✅ Rôle « '+name+' » créé');
+  } catch(e){ Logger.error('Admin','création rôle', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+async function renameRoleAt(i){
+  const ro=_rolesEditList[i];
+  if(!ro) return;
+  const input=prompt('Nouveau nom pour le rôle « '+ro.name+' » :', ro.name);
+  if(!input || !input.trim() || input.trim()===ro.name) return;
+  const nn=input.trim();
+  if(DynLists.allRoles.includes(nn)){ toast('⚠️ Ce rôle existe déjà'); return; }
+  try {
+    await DynLists.save('roles_tech',  DynLists.rolesTech.map(r=>r===ro.name?nn:r));
+    await DynLists.save('roles_admin', DynLists.rolesAdmin.map(r=>r===ro.name?nn:r));
+    await DynLists.save('admin_roles', (DynLists.get('admin_roles')||[]).map(r=>r===ro.name?nn:r));
+    await DynLists.save('global_roles',(DynLists.get('global_roles')||[]).map(r=>r===ro.name?nn:r));
+    const colors={...DynLists.roleColors};
+    if(colors[ro.name]){ colors[nn]=colors[ro.name]; delete colors[ro.name]; await DynLists.save('role_colors', colors); }
+    // Cascade : réaffecter les collaborateurs ayant l'ancien rôle
+    const affected=_adminData.users.filter(u=>u.role===ro.name);
+    for(const u of affected){
+      try { await fdb.collection('users').doc(u.uid).update({ role:nn }); u.role=nn; }
+      catch(e){ Logger.warn('Admin','maj rôle utilisateur '+u.uid, e?.message); }
+    }
+    DynLists.populateSelects();
+    renderRolesList();
+    if(_adminCurrentTab==='collab') renderAdminCollab();
+    toast('✅ Rôle renommé'+(affected.length?` (${affected.length} collaborateur(s) mis à jour)`:''));
+  } catch(e){ Logger.error('Admin','renommage rôle', e?.message); toast('⚠️ Erreur : '+e.message); }
+}
+
+async function deleteRoleAt(i){
+  const ro=_rolesEditList[i];
+  if(!ro) return;
+  const n=_roleUserCount(ro.name);
+  if(n>0){ toast("⚠️ "+n+" collaborateur(s) ont ce rôle — réaffectez-les avant de le supprimer"); return; }
+  if(!confirm('Supprimer le rôle « '+ro.name+' » ?')) return;
+  try {
+    await DynLists.save('roles_tech',  DynLists.rolesTech.filter(r=>r!==ro.name));
+    await DynLists.save('roles_admin', DynLists.rolesAdmin.filter(r=>r!==ro.name));
+    await DynLists.save('admin_roles', (DynLists.get('admin_roles')||[]).filter(r=>r!==ro.name));
+    await DynLists.save('global_roles',(DynLists.get('global_roles')||[]).filter(r=>r!==ro.name));
+    DynLists.populateSelects();
+    renderRolesList();
+    toast('🗑️ Rôle « '+ro.name+' » supprimé');
+  } catch(e){ Logger.error('Admin','suppression rôle', e?.message); toast('⚠️ Erreur : '+e.message); }
 }
 
 // ════════════════════════════════════════════
@@ -12201,6 +12919,13 @@ async function init(){
         currentUserProfile.uid = user.uid; // toujours forcer l'uid
         if(currentUserProfile.teamId) db.setTeam(currentUserProfile.teamId);
       } catch(e){ currentUserProfile = {uid:user.uid, displayName:user.displayName||user.email, email:user.email, teamId:null}; }
+      // ── Accès suspendu par un administrateur (base de contrôle) ──
+      if(currentUserProfile && currentUserProfile.disabled){
+        toast('⛔ Votre accès a été suspendu par un administrateur.', 7000);
+        currentUser = null; currentUserProfile = null;
+        try { await fauth.signOut(); } catch(_){}
+        return;
+      }
       if(nav) nav.style.display='';
       if(topbar) topbar.style.display='';
       await initApp();
