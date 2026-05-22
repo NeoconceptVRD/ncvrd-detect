@@ -2444,7 +2444,7 @@ body::before{
         <div style="font-size:16px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="prof-company">-</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <button class="prof-edit-btn" onclick="openEditAgence()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:#fff">✏️ Changer</button>
+        <button id="prof-agence-btn" class="prof-edit-btn" onclick="openEditAgence()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:#fff;display:none">✏️ Changer</button>
         <div style="font-family:monospace;font-size:13px;font-weight:800;color:rgba(255,255,255,.8);letter-spacing:2px;cursor:pointer" id="prof-invite-code" onclick="copyInviteCode()">-</div>
       </div>
     </div>
@@ -5024,6 +5024,9 @@ async function updateProfileScreen(){
   // Bouton Admin dans la nav : visible seulement pour les rôles admin
   const navAdmin = document.getElementById('nav-admin');
   if(navAdmin) navAdmin.style.display = isAdminRole(p.role) ? 'flex' : 'none';
+  // Bouton « Changer l'agence » : réservé aux administrateurs
+  const agBtn = document.getElementById('prof-agence-btn');
+  if(agBtn) agBtn.style.display = isAdminRole(p.role) ? '' : 'none';
   // Badge agence dans l'accueil
   const badge = document.getElementById('home-agency-badge');
   const agName = document.getElementById('home-agency-name');
@@ -12088,12 +12091,20 @@ function handleProfilePhotoChange(event){
 
 // ════════ PROFIL : AGENCE ════════
 function openEditAgence(){
+  if(!currentUserProfile || !isAdminRole(currentUserProfile.role)){
+    toast("⛔ Seul un administrateur peut modifier l'agence");
+    return;
+  }
   const inp = document.getElementById('edit-agence-input');
   if(inp) inp.value = (currentUserProfile && currentUserProfile.teamName) || '';
   openModal('m-edit-agence');
 }
 
 async function saveProfileAgence(){
+  if(!currentUserProfile || !isAdminRole(currentUserProfile.role)){
+    toast("⛔ Seul un administrateur peut modifier l'agence");
+    closeModal('m-edit-agence'); return;
+  }
   const inp = document.getElementById('edit-agence-input');
   const newName = inp ? inp.value.trim() : '';
   if(!newName){ toast('Veuillez saisir le nom de l\'agence'); return; }
