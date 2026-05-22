@@ -608,6 +608,18 @@ select option{background:#1a1f2e;color:#f1f5f9}
   .sec-hdr{padding:14px 12px 8px}
 }
 
+/* ── RESPONSIVE DESKTOP : l'app occupe tout l'écran (fini le "format téléphone") ──
+   Le body est limité à 480px par défaut (mobile-first). Sur grand écran (> 900px),
+   on retire cette limite : la nav latérale + le contenu prennent toute la largeur.
+   Le contenu des écrans reste centré à une largeur de lecture confortable. */
+@media screen and (min-width: 901px) {
+  body{ max-width:none !important; width:100% !important; }
+  /* Le contenu des écrans : large mais pas étiré à l'extrême (lisibilité formulaires) */
+  #app .screen{ max-width:1200px; margin-left:auto; margin-right:auto; }
+  /* La topbar reste pleine largeur */
+  #topbar{ max-width:none; }
+}
+
 /* ── PRINT ────────────────────────────── */
 @media print {
   body{background:white;color:black;max-width:none;overflow:visible}
@@ -12313,7 +12325,7 @@ function _renderPrepList(){
     card.setAttribute('aria-label',(isStarted?'Chantier déjà démarré : ':'Ouvrir le chantier en préparation : ')+(c.name||'sans nom'));
     card.onclick = () => openPrep(c.id);
     const docs = (c.prepDocs||[]).length;
-    const collabs = (c.collaborators||[]).length;
+    const collabs = ((c.prepAgents&&c.prepAgents.length) ? c.prepAgents : (c.collaborators||[])).length;
     const badge = isStarted
       ? '<span style="font-size:11px;background:#059669;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">✅ DÉMARRÉ</span>'
       : '<span style="font-size:11px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">EN PRÉPA</span>';
@@ -12343,6 +12355,7 @@ function openNewPrep(){
     respNom: '', respPoste: '', respContact: '',
     opDetection: [], opGeo: [],
     prepDocs: [],
+    prepAgents: [],      // agents invités (deviennent collaborators au démarrage)
     collaborators: [],
     createdAt: Date.now(), updatedAt: Date.now(),
     createdBy: currentUserProfile?.uid || 'local'
@@ -12390,16 +12403,30 @@ async function openPrep(id){
   // Garantir les arrays
   c.prepDocs = c.prepDocs || [];
   c.collaborators = c.collaborators || [];
+  c.prepAgents = c.prepAgents || [];
   c.opDetection = c.opDetection || [];
   c.opGeo = c.opGeo || [];
   _currentPrep = c;
   _populatePrepForm(c);
   showScreen('s-preparation-form');
-  // Tâche de fond : upload des docs encore en base64 sans URL Storage (cas après refresh)
+  // Tâche de fond : rattraper les uploads Storage manquants (docs + plan)
+  // — utile pour les docs/plans ajoutés avant le fix CORS qui n'ont jamais été uploadés.
   if(navigator.onLine && fstorage){
     _uploadPrepDocsToStorage(c).catch(e =>
-      Logger.warn('Prep', 'upload Storage différé échoué', e?.message)
+      Logger.warn('Prep', 'upload Storage docs différé échoué', e?.message)
     );
+    // Plan de situation : si base64 présent mais pas d'URL Storage → ré-upload
+    if(c.planSituation && c.planSituation.startsWith('data:') && !c._planUrl){
+      uploadPhotoToStorage(c.planSituation, `rapports/${c.id}/prep/plan_situation.jpg`)
+        .then(async url => {
+          if(url){
+            c._planUrl = url;
+            try { await db.put('chantiers', c); } catch(_){}
+            Logger.info('Prep', 'Plan situation ré-uploadé en Storage (rattrapage)');
+          }
+        })
+        .catch(e => Logger.warn('Prep', 'ré-upload plan situation échoué', e?.message));
+    }
   }
 }
 
@@ -12492,7 +12519,7 @@ async function prepUploadPlan(input){
     toast('🗺️ Plan de situation ajouté — upload Storage en cours…');
     // Upload Storage en arrière-plan
     if(fstorage && FIREBASE_CONFIGURED){
-      uploadPhotoToStorage(dataUrl, `chantiers/${_currentPrep.id}/prep/plan_situation.jpg`)
+      uploadPhotoToStorage(dataUrl, `rapports/${_currentPrep.id}/prep/plan_situation.jpg`)
         .then(async url => {
           if(url){
             _currentPrep._planUrl = url;
@@ -12636,13 +12663,18 @@ function _renderPrepOpList(type){
   });
 }
 
-// Partage : ajoute un agent collaborateur via uid Firebase
+// Partage : ajoute un agent via uid Firebase.
+// ⚠️ Pendant la préparation, les agents sont stockés dans `prepAgents[]` (PAS `collaborators[]`).
+//    Raison : un chantier en statut 'preparation' n'est lisible que par son créateur (règle
+//    Firestore). Si on mettait les agents dans `collaborators`, leur requête `where collaborators
+//    array-contains uid` planterait entièrement (Firestore rejette toute la requête si un doc
+//    viole les règles). Au démarrage, `startChantierFromPrep` copie prepAgents → collaborators.
 async function prepShareAgent(sel){
   if(!_currentPrep || !sel.value) return;
   const uid = sel.value;
-  if(!_currentPrep.collaborators) _currentPrep.collaborators = [];
-  if(_currentPrep.collaborators.includes(uid)){ sel.value = ''; toast('Agent déjà invité'); return; }
-  _currentPrep.collaborators.push(uid);
+  if(!_currentPrep.prepAgents) _currentPrep.prepAgents = [];
+  if(_currentPrep.prepAgents.includes(uid)){ sel.value = ''; toast('Agent déjà invité'); return; }
+  _currentPrep.prepAgents.push(uid);
   sel.value = '';
   // Sauvegarder + notifier
   await savePrep();
@@ -12670,14 +12702,15 @@ async function prepShareAgent(sel){
 }
 function _prepRemoveCollab(uid){
   if(!_currentPrep) return;
-  _currentPrep.collaborators = (_currentPrep.collaborators||[]).filter(u => u !== uid);
+  _currentPrep.prepAgents = (_currentPrep.prepAgents||[]).filter(u => u !== uid);
   savePrep();
   _renderPrepCollabs();
 }
 function _renderPrepCollabs(){
   const container = document.getElementById('prep-collab-list');
   if(!container || !_currentPrep) return;
-  const collabs = _currentPrep.collaborators || [];
+  // Agents invités en prep : prepAgents (+ collaborators si chantier déjà démarré, pour compat)
+  const collabs = _currentPrep.prepAgents || _currentPrep.collaborators || [];
   container.innerHTML = '';
   if(!collabs.length){
     container.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">Aucun agent invité</div>';
@@ -12748,7 +12781,7 @@ async function _uploadPrepDocsToStorage(c, onlyDocs){
     if(d.url) continue;                          // déjà uploadé
     if(!d.dataUrl?.startsWith('data:')) continue;
     const safe = String(d.filename||'doc').replace(/[^a-zA-Z0-9._-]/g,'_');
-    const path = `chantiers/${c.id}/prep/${d.id}_${safe}`;
+    const path = `rapports/${c.id}/prep/${d.id}_${safe}`;
     try {
       const url = await uploadPhotoToStorage(d.dataUrl, path); // fonction générique (gère tous mimes)
       if(url){ d.url = url; uploaded++; }
@@ -12844,6 +12877,10 @@ async function startChantierFromPrep(){
   c.updatedAt = Date.now();
   c.startedAt = Date.now();
   c.fromPrep = true; // garder la trace dans l'écran Prépa après démarrage
+  // ── Le partage prend effet maintenant : prepAgents → collaborators ──
+  //    (le chantier devient lisible par les agents invités une fois démarré)
+  const _pendingAgents = c.prepAgents || [];
+  c.collaborators = [...new Set([...(c.collaborators||[]), ..._pendingAgents])];
   try {
     // 1) Sauver le chantier
     await db.put('chantiers', c);
