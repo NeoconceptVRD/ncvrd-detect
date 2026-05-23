@@ -124,6 +124,28 @@ body > *{position:relative;z-index:1}
 .home-welcome .hw-ag-k{font-family:var(--font-mono);font-size:9px;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase}
 .home-welcome .hw-ag-v{font-size:12px;font-weight:600;color:var(--text)}
 .home-welcome .hw-ag-sep{width:1px;height:22px;background:rgba(255,255,255,.1)}
+/* En-tête de page unifié (modèle 5) — Préparation, Ouvrages, SRESST… */
+.ph{position:sticky;top:0;z-index:20;background:rgba(12,17,19,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:16px 16px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph-text{flex:1;min-width:0}
+.ph-lab{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.ph-lab::before{content:'';width:14px;height:1.5px;background:#33d4c6}
+.ph-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:var(--text);display:flex;align-items:center;gap:8px;line-height:1.15}
+.ph-sub{font-size:11.5px;color:var(--text2);margin-top:5px;font-weight:500}
+.ph-back{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);border-radius:11px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.ph-back:hover{background:rgba(255,255,255,.08)}
+.ph-action{background:linear-gradient(135deg,#22cdbb,#16a89a);color:#04201d;border:none;border-radius:11px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 18px rgba(22,168,154,.28);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;transition:transform .2s var(--ease)}
+.ph-action:hover{transform:translateY(-1px)}
+.ph-action.secondary{background:rgba(255,255,255,.06);color:var(--text);box-shadow:none;border:1px solid var(--border)}
+
+/* Bandeau "agence" (Profil — modèle 5) */
+.prof-agency{margin:14px 14px 0;background:linear-gradient(135deg,#16252a,#0f1a1c);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;border:1px solid rgba(22,168,154,.22)}
+.prof-agency .pa-ic{width:42px;height:42px;border-radius:11px;background:rgba(22,168,154,.18);border:1px solid rgba(22,168,154,.3);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.prof-agency .pa-mid{flex:1;min-width:0}
+.prof-agency .pa-k{font-family:var(--font-mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#7d8b8a;margin-bottom:2px}
+.prof-agency .pa-v{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prof-agency .pa-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0}
+.prof-agency .pa-code{font-family:var(--font-mono);font-size:12px;font-weight:600;color:#33d4c6;letter-spacing:1.5px;cursor:pointer}
+
 /* Cartes chantier (modèle 5) */
 .ch-card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:14px 16px;margin:0 14px 11px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:transform .2s var(--ease),border-color .2s var(--ease)}
 .ch-card:hover{border-color:rgba(22,168,154,.3);transform:translateY(-1px)}
@@ -155,6 +177,15 @@ body > *{position:relative;z-index:1}
 .ch-delwrap{border-top:1px solid var(--border);padding-top:9px;margin-top:3px}
 .ch-del{width:100%;background:rgba(229,83,75,.08);border:1.5px solid rgba(229,83,75,.3);color:#f08278;border-radius:10px;padding:8px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
 .ch-del:hover{background:rgba(229,83,75,.18)}
+/* Badge statut Préparation (modèle 5) */
+.prep-tb{font-family:var(--font-mono);font-size:10px;letter-spacing:.7px;font-weight:600;display:inline-flex;align-items:center;gap:7px;text-transform:uppercase;padding:4px 10px;border-radius:7px;border:1px solid transparent}
+.prep-tb::before{content:'';width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.prep-tb.prep{background:rgba(217,138,61,.13);color:#e0a567;border-color:rgba(217,138,61,.3)}
+.prep-tb.prep::before{background:#d98a3d}
+.prep-tb.demarre{background:rgba(63,185,95,.13);color:#7dd590;border-color:rgba(63,185,95,.3)}
+.prep-tb.demarre::before{background:#3fb95f}
+.prep-meta-mono{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.ch-card.prep-card{margin:0}
 
 /* Actions rapides */
 .home-qa{margin:18px 14px 14px}
@@ -2168,13 +2199,13 @@ body::before{
 
   <!-- ══════════════════ SCREEN OUVRAGES (liste) ══════════════════ -->
   <div class="screen" id="s-ouvrages" style="display:none;padding-bottom:80px">
-    <div style="background:linear-gradient(135deg,#050d20,#0a1e3a);padding:22px 16px 18px;border-bottom:1px solid rgba(100,180,255,.15)">
-      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">NCVRD Detect</div>
-      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:2px">🏗️ Ouvrages</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.6)">Fiches caractéristiques d'ouvrages VRD</div>
-    </div>
-    <div style="padding:14px 14px 0;display:flex;gap:8px">
-      <button onclick="openNewOuvrage()" style="flex:1;padding:13px;background:linear-gradient(135deg,var(--accent),#0070cc);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">➕ Nouvel ouvrage</button>
+    <div class="ph">
+      <div class="ph-text">
+        <div class="ph-lab">Ouvrages</div>
+        <div class="ph-title">🏗️ Fiches d'ouvrages</div>
+        <div class="ph-sub">Caractéristiques d'ouvrages VRD</div>
+      </div>
+      <button class="ph-action" onclick="openNewOuvrage()">➕ Nouvel ouvrage</button>
     </div>
     <div id="ouvrages-count" style="padding:8px 16px 0;font-size:12px;color:var(--muted)"></div>
     <div id="ouvrages-list" style="padding:10px 14px 4px"></div>
@@ -2405,15 +2436,15 @@ body::before{
     </div>
 
     <!-- Bandeau Agence -->
-    <div style="margin:10px 14px 0;background:linear-gradient(135deg,#050d20,#0a1e3a);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;border:1px solid rgba(0,180,255,.2)">
-      <div style="width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏢</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.6)">Mon agence</div>
-        <div style="font-size:16px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="prof-company">-</div>
+    <div class="prof-agency">
+      <div class="pa-ic">🏢</div>
+      <div class="pa-mid">
+        <div class="pa-k">Mon agence</div>
+        <div class="pa-v" id="prof-company">-</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <button id="prof-agence-btn" class="prof-edit-btn" onclick="openEditAgence()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:#fff;display:none">✏️ Changer</button>
-        <div style="font-family:monospace;font-size:13px;font-weight:800;color:rgba(255,255,255,.8);letter-spacing:2px;cursor:pointer" id="prof-invite-code" onclick="copyInviteCode()">-</div>
+      <div class="pa-right">
+        <button id="prof-agence-btn" class="prof-edit-btn" onclick="openEditAgence()" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);display:none;padding:5px 10px;border-radius:9px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit">✏️ Changer</button>
+        <div class="pa-code" id="prof-invite-code" onclick="copyInviteCode()">-</div>
       </div>
     </div>
 
@@ -2602,12 +2633,13 @@ body::before{
   <!-- ══════════════════ SCREEN PRÉPARATION CHANTIER ══════════════════ -->
   <!-- Liste des chantiers en préparation + bouton "Nouveau" -->
   <div class="screen" id="s-preparation" style="display:none;padding-bottom:80px">
-    <div style="position:sticky;top:0;z-index:20;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <div>
-        <div style="font-size:17px;font-weight:800;color:#fff">📝 Préparation</div>
-        <div style="font-size:11px;color:var(--muted)">Chantiers en amont de l'intervention</div>
+    <div class="ph">
+      <div class="ph-text">
+        <div class="ph-lab">Préparation</div>
+        <div class="ph-title">📝 Mes chantiers en amont</div>
+        <div class="ph-sub">Partie administrative · DT/DICT · partage équipe</div>
       </div>
-      <button class="btn-accent" style="padding:9px 18px;font-size:13px;border-radius:20px;font-weight:700" onclick="openNewPrep()" aria-label="Nouveau chantier en préparation">➕ Nouveau</button>
+      <button class="ph-action" onclick="openNewPrep()" aria-label="Nouveau chantier en préparation">➕ Nouveau</button>
     </div>
     <div style="padding:16px">
       <div id="prep-empty" style="display:none;padding:32px 16px;text-align:center;color:var(--muted);font-size:13px">
@@ -2840,12 +2872,13 @@ body::before{
 
     <!-- ─── VUE LISTE ─── -->
     <div id="sresst-list-view">
-      <div style="position:sticky;top:0;z-index:20;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:17px;font-weight:800;color:#fff">🦺 SRESST</div>
-          <div style="font-size:11px;color:var(--muted)">Remontée d'événements sécurité</div>
+      <div class="ph">
+        <div class="ph-text">
+          <div class="ph-lab">Sécurité</div>
+          <div class="ph-title">🦺 SRESST</div>
+          <div class="ph-sub">Remontée d'événements sécurité</div>
         </div>
-        <button class="btn-accent" style="padding:9px 18px;font-size:13px;border-radius:20px;font-weight:700" onclick="openSRESSTNew()">➕ Nouvelle fiche</button>
+        <button class="ph-action" onclick="openSRESSTNew()">➕ Nouvelle fiche</button>
       </div>
       <div style="padding:12px 14px">
         <div id="sresst-list"></div>
@@ -13223,28 +13256,31 @@ function _renderPrepList(){
   preps.sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0));
   preps.forEach(c => {
     const isStarted = c.status !== 'preparation'; // démarré (status=active) mais fromPrep=true
+    const docs = (c.prepDocs||[]).length;
+    const collabs = ((c.prepAgents&&c.prepAgents.length) ? c.prepAgents : (c.collaborators||[])).length;
+    const badgeCls = isStarted ? 'demarre' : 'prep';
+    const badgeLbl = isStarted ? '✅ DÉMARRÉ' : 'EN PRÉPA';
+    const metaParts = [];
+    if(docs) metaParts.push('📎 '+docs+' DOC'+(docs>1?'S':''));
+    if(collabs) metaParts.push('👥 '+collabs+' AGENT'+(collabs>1?'S':''));
+    if(c.dtNum) metaParts.push('📋 DT '+Validator.sanitize(c.dtNum));
+
     const card = document.createElement('div');
-    card.className = 'card';
-    card.style.cssText = 'padding:14px 16px;cursor:pointer;border-left:3px solid '+(isStarted?'#059669':'#f59e0b');
+    card.className = 'ch-card prep-card';
     card.setAttribute('role','button');
     card.setAttribute('aria-label',(isStarted?'Chantier déjà démarré : ':'Ouvrir le chantier en préparation : ')+(c.name||'sans nom'));
     card.onclick = () => openPrep(c.id);
-    const docs = (c.prepDocs||[]).length;
-    const collabs = ((c.prepAgents&&c.prepAgents.length) ? c.prepAgents : (c.collaborators||[])).length;
-    const badge = isStarted
-      ? '<span style="font-size:11px;background:#059669;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">✅ DÉMARRÉ</span>'
-      : '<span style="font-size:11px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">EN PRÉPA</span>';
-    card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
-      badge+
-      '<span style="font-size:11px;color:var(--muted)">'+(c.dateDebut||'—')+'</span>'+
+    card.innerHTML =
+      '<div class="ch-top">'+
+        '<span class="prep-tb '+badgeCls+'">'+badgeLbl+'</span>'+
+        '<span class="ch-time">'+Validator.sanitize(c.dateDebut||'—')+'</span>'+
       '</div>'+
-      '<div style="font-weight:700;color:#fff;font-size:15px;margin-bottom:4px">'+Validator.sanitize(c.name||'Sans nom')+'</div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">'+Validator.sanitize(c.client||'-')+' · '+Validator.sanitize(c.address||c.adresse||'-')+'</div>'+
-      '<div style="display:flex;gap:14px;font-size:11px;color:var(--muted);flex-wrap:wrap">'+
-        (docs?'<span>📎 '+docs+' doc'+(docs>1?'s':'')+'</span>':'')+
-        (collabs?'<span>👥 '+collabs+' agent'+(collabs>1?'s':'')+'</span>':'')+
-        (c.dtNum?'<span>📋 DT '+Validator.sanitize(c.dtNum)+'</span>':'')+
-      '</div>';
+      '<div class="ch-title">📍 '+Validator.sanitize(c.name||'Sans nom')+'</div>'+
+      '<div class="ch-meta">'+
+        '<span class="cl">👤 '+Validator.sanitize(c.client||'—')+'</span>'+
+        '<span class="cl">📌 '+Validator.sanitize(c.address||c.adresse||'—')+'</span>'+
+      '</div>'+
+      (metaParts.length ? '<div class="prep-meta-mono">'+metaParts.join(' · ')+'</div>' : '');
     container.appendChild(card);
   });
 }
