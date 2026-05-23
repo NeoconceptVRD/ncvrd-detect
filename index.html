@@ -105,25 +105,36 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
   pointer-events:none}
 body > *{position:relative;z-index:1}
 
-/* ── DÉCOR — formes organiques animées (motion design) ── */
-#bg-decor{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-#bg-decor .blob{position:absolute}
-#bg-decor .b1{width:62vmin;height:62vmin;top:-20vmin;left:-18vmin;
-  border-radius:46% 54% 60% 40% / 52% 44% 56% 48%;
-  background:radial-gradient(circle at 42% 42%,rgba(22,168,154,.22),transparent 70%);
-  animation:blobA 30s var(--ease) infinite alternate}
-#bg-decor .b2{width:50vmin;height:50vmin;bottom:-16vmin;right:-16vmin;
-  border-radius:58% 42% 38% 62% / 46% 56% 44% 54%;
-  background:radial-gradient(circle at 50% 50%,rgba(51,212,198,.16),transparent 70%);
-  animation:blobB 38s var(--ease) infinite alternate}
-#bg-decor .b3{width:40vmin;height:40vmin;top:48%;right:-14vmin;
-  border-radius:50% 50% 44% 56% / 56% 48% 52% 44%;
-  background:radial-gradient(circle,rgba(95,147,160,.15),transparent 72%);
-  animation:blobC 34s var(--ease) infinite alternate}
-@keyframes blobA{from{transform:translate(0,0) rotate(0deg) scale(1)}to{transform:translate(7vmin,5vmin) rotate(38deg) scale(1.14)}}
-@keyframes blobB{from{transform:translate(0,0) rotate(0deg) scale(1)}to{transform:translate(-6vmin,-6vmin) rotate(-32deg) scale(1.1)}}
-@keyframes blobC{from{transform:translate(0,0) rotate(0deg) scale(1)}to{transform:translate(-8vmin,7vmin) rotate(46deg) scale(1.18)}}
-@media(prefers-reduced-motion:reduce){#bg-decor .blob{animation:none}}
+/* ── HOME — Bannière & accueil (modèle 5) ── */
+.home-banner{margin:0 14px 14px;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#0c1113;line-height:0}
+.home-banner img{display:block;width:100%;height:auto;object-fit:cover}
+.home-welcome{padding:0 14px 4px}
+.home-welcome .hw-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.home-welcome .hw-brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text)}
+.home-welcome .hw-brand::before{content:'';width:7px;height:7px;border-radius:50%;background:#33d4c6;box-shadow:0 0 8px rgba(51,212,198,.7)}
+.home-welcome .hw-brand i{font-style:italic;font-weight:500;color:var(--text2)}
+.home-welcome .hw-gps{background:rgba(255,255,255,.04);border:1px solid var(--border);padding:6px 11px;border-radius:9px;font-family:var(--font-mono);font-size:10.5px;color:var(--text2);white-space:nowrap}
+.home-welcome .hw-lab{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.home-welcome .hw-lab::before{content:'';width:16px;height:1.5px;background:#33d4c6}
+.home-welcome .hw-title{font-size:24px;font-weight:800;letter-spacing:-.4px;line-height:1.2;color:var(--text)}
+.home-welcome .hw-title em{font-style:italic;color:#33d4c6;font-weight:700}
+.home-welcome .hw-agency{display:inline-flex;align-items:center;gap:12px;background:rgba(20,27,29,.7);border:1px solid var(--border);border-radius:12px;padding:9px 14px;margin-top:14px;flex-wrap:wrap}
+.home-welcome .hw-ag-ic{width:28px;height:28px;border-radius:8px;background:rgba(22,168,154,.15);display:flex;align-items:center;justify-content:center;font-size:13px}
+.home-welcome .hw-ag-col{display:flex;flex-direction:column;gap:1px}
+.home-welcome .hw-ag-k{font-family:var(--font-mono);font-size:9px;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase}
+.home-welcome .hw-ag-v{font-size:12px;font-weight:600;color:var(--text)}
+.home-welcome .hw-ag-sep{width:1px;height:22px;background:rgba(255,255,255,.1)}
+/* Actions rapides */
+.home-qa{margin:18px 14px 14px}
+.home-qa-lab{font-family:var(--font-mono);font-size:10px;letter-spacing:2.2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.home-qa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.home-qac{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s var(--ease);color:var(--text2);font-family:inherit}
+.home-qac:hover{border-color:rgba(255,255,255,.13);transform:translateY(-1px)}
+.home-qac .ic{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.04);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px}
+.home-qac .lab{font-size:12.5px;font-weight:600}
+.home-qac.p{background:linear-gradient(180deg,rgba(22,168,154,.13),rgba(22,168,154,.04));border-color:rgba(22,168,154,.4)}
+.home-qac.p .ic{background:linear-gradient(135deg,#22cdbb,#16a89a);border-color:transparent;color:#04201d;font-weight:700;font-size:20px}
+.home-qac.p .lab{color:#33d4c6}
 
 /* ── TOP BAR ─────────────────────────── */
 #topbar{
@@ -1473,7 +1484,6 @@ body::before{
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
-<div id="bg-decor" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
 <div class="corner-accent-br"></div>
 
 <!-- ─── TOP BAR ─────────────────────────── -->
@@ -1540,120 +1550,23 @@ body::before{
 
   <!-- ══════════════════ SCREEN HOME ══════════════════ -->
   <div class="screen active" id="screen-home">
-    <!-- ═══ HERO BANNER — INFRASTRUCTURE HOLOGRAPHIQUE ═══ -->
-    <div style="position:relative;margin:0;padding:0;overflow:hidden;background:#010810;min-height:172px">
-      <!-- Fond nuit profond -->
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,#010810 0%,#020d1e 70%,#010810 100%)"></div>
-      <!-- Glow bleu bas (sol éclairé façon chantier nuit) -->
-      <div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:radial-gradient(ellipse at 50% 100%,rgba(0,80,220,.22) 0%,transparent 70%);pointer-events:none"></div>
-      <!-- Glow bleu top-right subtil -->
-      <div style="position:absolute;top:0;right:0;width:180px;height:120px;background:radial-gradient(ellipse at 100% 0%,rgba(0,140,255,.15) 0%,transparent 70%);pointer-events:none"></div>
+    <!-- ═══ BANNIÈRE D'ACCUEIL ═══ -->
+    <div class="home-banner"><img src="assets/hero-banner.png" alt="Détection de réseaux NCVRD" loading="eager"></div>
 
-      <!-- SVG : Réseau souterrain holographique (style image 4) -->
-      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 390 172" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          <filter id="glow-strong"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-
-        <!-- Ondes de données en arrière-plan (style image 5) -->
-        <path d="M0,140 Q80,110 160,130 Q240,150 320,120 Q360,105 390,115" fill="none" stroke="#0050cc" stroke-width="0.6" opacity="0.25" stroke-dasharray="8 4"/>
-        <path d="M0,155 Q100,130 200,148 Q300,165 390,140" fill="none" stroke="#0060dd" stroke-width="0.5" opacity="0.2" stroke-dasharray="6 5"/>
-
-        <!-- Grille de fond (coordonnées terrain style image 1) -->
-        <line x1="0" y1="86" x2="390" y2="86" stroke="#0055bb" stroke-width="0.4" opacity="0.2"/>
-        <line x1="195" y1="0" x2="195" y2="172" stroke="#0055bb" stroke-width="0.4" opacity="0.2"/>
-
-        <!-- Réseau de canalisations souterraines (section droite, style image 4) -->
-        <!-- Tronçon principal horizontal -->
-        <line x1="210" y1="90" x2="380" y2="90" stroke="#0090ff" stroke-width="1.8" opacity="0.55" filter="url(#glow)"/>
-        <!-- Dérivation verticale montante -->
-        <line x1="270" y1="90" x2="270" y2="45" stroke="#0090ff" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
-        <line x1="340" y1="90" x2="340" y2="55" stroke="#0090ff" stroke-width="1.2" opacity="0.45" filter="url(#glow)"/>
-        <!-- Dérivation verticale descendante -->
-        <line x1="305" y1="90" x2="305" y2="130" stroke="#0080ee" stroke-width="1.2" opacity="0.4" filter="url(#glow)"/>
-        <!-- Tronçon secondaire horizontal -->
-        <line x1="250" y1="65" x2="355" y2="65" stroke="#0070dd" stroke-width="1" opacity="0.35"/>
-        <line x1="270" y1="65" x2="270" y2="45" stroke="#0070dd" stroke-width="1" opacity="0.35"/>
-        <!-- Noeuds de jonction lumineux -->
-        <circle cx="270" cy="90" r="3.5" fill="#00aaff" opacity="0.9" filter="url(#glow-strong)"/>
-        <circle cx="305" cy="90" r="3" fill="#0090ff" opacity="0.85" filter="url(#glow)"/>
-        <circle cx="340" cy="90" r="3" fill="#0090ff" opacity="0.85" filter="url(#glow)"/>
-        <circle cx="270" cy="65" r="2.5" fill="#0080ee" opacity="0.7" filter="url(#glow)"/>
-        <circle cx="270" cy="45" r="2" fill="#0070cc" opacity="0.6"/>
-        <circle cx="340" cy="55" r="2" fill="#0070cc" opacity="0.6"/>
-        <circle cx="305" cy="130" r="2" fill="#0070cc" opacity="0.5"/>
-        <!-- Collecteur principal (tube large) -->
-        <line x1="210" y1="110" x2="390" y2="110" stroke="#0060cc" stroke-width="2.5" opacity="0.25"/>
-
-        <!-- Lignes de données/coordonnées flottantes (style image 1) -->
-        <line x1="220" y1="52" x2="258" y2="52" stroke="#0080ff" stroke-width="0.6" opacity="0.4"/>
-        <line x1="220" y1="52" x2="220" y2="86" stroke="#0080ff" stroke-width="0.6" opacity="0.35"/>
-        <rect x="220" y="48" width="38" height="8" fill="none" stroke="#0070ee" stroke-width="0.5" opacity="0.3"/>
-
-        <!-- Particules (noeuds réseau style image 1 bas) -->
-        <circle cx="215" cy="150" r="1.5" fill="#0070dd" opacity="0.5"/>
-        <circle cx="245" cy="160" r="1.2" fill="#0060cc" opacity="0.4"/>
-        <circle cx="280" cy="155" r="1.5" fill="#0080ee" opacity="0.45"/>
-        <circle cx="320" cy="162" r="1.2" fill="#0060cc" opacity="0.4"/>
-        <circle cx="360" cy="148" r="1.5" fill="#0070dd" opacity="0.5"/>
-        <line x1="215" y1="150" x2="245" y2="160" stroke="#0060cc" stroke-width="0.5" opacity="0.25"/>
-        <line x1="245" y1="160" x2="280" y2="155" stroke="#0060cc" stroke-width="0.5" opacity="0.25"/>
-        <line x1="280" y1="155" x2="320" y2="162" stroke="#0060cc" stroke-width="0.5" opacity="0.25"/>
-        <line x1="320" y1="162" x2="360" y2="148" stroke="#0060cc" stroke-width="0.5" opacity="0.25"/>
-
-        <!-- Scan line animé (détection active) -->
-        <rect x="0" y="0" width="390" height="1.5" fill="#00aaff" opacity="0.18" style="animation:scanline 8s linear infinite"/>
-      </svg>
-
-      <!-- Contenu principal -->
-      <div style="position:relative;z-index:1;padding:22px 20px 18px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between">
-          <div style="flex:1;min-width:0;padding-right:8px">
-            <div style="font-size:9px;font-weight:700;color:rgba(0,160,255,.65);letter-spacing:3.5px;text-transform:uppercase;margin-bottom:9px;font-family:var(--font)">NEOCONCEPT VRD</div>
-            <div style="font-size:30px;font-weight:900;color:#e8f4ff;letter-spacing:-.8px;line-height:1.05;font-family:var(--font);display:flex;align-items:flex-start;gap:8px">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00aaff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:4px;opacity:.7;filter:drop-shadow(0 0 4px rgba(0,170,255,.5))"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
-              <div>Détection<br>
-              <span style="background:linear-gradient(90deg,#00aaff 0%,#60d0ff 40%,#00aaff 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite">de Réseaux</span></div>
-            </div>
-            <div style="font-size:10px;color:rgba(160,210,255,.45);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:6px;font-family:var(--font);letter-spacing:1px;text-transform:uppercase">
-              <span style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 10px rgba(0,255,136,.9)"></span>
-              Système actif · Terrain
-            </div>
-          </div>
-          <!-- Badge coordonnées style image 1 -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;opacity:.7">
-            <div style="font-size:7px;font-family:var(--font);color:#0090ff;letter-spacing:.5px">48°52'14.3&quot;N</div>
-            <div style="font-size:7px;font-family:var(--font);color:#0090ff;letter-spacing:.5px">2°21'03.5&quot;E</div>
-            <div style="width:36px;height:36px;border:1px solid rgba(0,120,255,.5);border-radius:4px;display:flex;align-items:center;justify-content:center;background:rgba(0,60,180,.15);margin-top:2px">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <circle cx="11" cy="11" r="9" fill="none" stroke="#0090ff" stroke-width="0.8" stroke-dasharray="3 2" opacity=".6"/>
-                <circle cx="11" cy="11" r="5" fill="none" stroke="#00aaff" stroke-width="0.8" opacity=".8"/>
-                <circle cx="11" cy="11" r="1.5" fill="#00ccff"/>
-                <line x1="11" y1="1" x2="11" y2="5" stroke="#0090ff" stroke-width="0.8" opacity=".7"/>
-                <line x1="11" y1="17" x2="11" y2="21" stroke="#0090ff" stroke-width="0.8" opacity=".7"/>
-                <line x1="1" y1="11" x2="5" y2="11" stroke="#0090ff" stroke-width="0.8" opacity=".7"/>
-                <line x1="17" y1="11" x2="21" y2="11" stroke="#0090ff" stroke-width="0.8" opacity=".7"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        <!-- Badge agence redesigné -->
-        <div id="home-agency-badge" style="display:none;margin-top:13px;display:inline-flex;align-items:center;gap:10px;background:rgba(0,60,180,.12);border:1px solid rgba(0,120,255,.3);border-radius:8px;padding:7px 12px;backdrop-filter:blur(16px);box-shadow:0 0 16px rgba(0,100,255,.1),inset 0 1px 0 rgba(255,255,255,.04)">
-          <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,100,255,.15);border:1px solid rgba(0,140,255,.35);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:0 0 8px rgba(0,120,255,.25)">📡</div>
-          <div>
-            <div style="font-size:8px;font-weight:700;color:rgba(0,160,255,.7);text-transform:uppercase;letter-spacing:2px;line-height:1;margin-bottom:3px;font-family:var(--font)">Agence</div>
-            <div style="font-size:12px;font-weight:800;color:#d0eaff;letter-spacing:.3px" id="home-agency-name">-</div>
-          </div>
-          <div style="width:1px;height:24px;background:linear-gradient(180deg,transparent,rgba(0,120,255,.4),transparent);flex-shrink:0"></div>
-          <div>
-            <div style="font-size:8px;font-weight:700;color:rgba(0,160,255,.7);text-transform:uppercase;letter-spacing:2px;line-height:1;margin-bottom:3px;font-family:var(--font)" id="home-user-role">Rôle</div>
-            <div style="font-size:12px;font-weight:700;color:#d0eaff" id="home-user-name">-</div>
-          </div>
-        </div>
+    <!-- ═══ BLOC D'ACCUEIL ═══ -->
+    <div class="home-welcome">
+      <div class="hw-top">
+        <div class="hw-brand">NCVRD <i>Detect</i></div>
+        <div class="hw-gps">📍 48°52'14"N · 2°21'03"E</div>
       </div>
-      <!-- Ligne néon bas -->
-      <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,120,255,.6) 40%,rgba(0,200,255,.5) 60%,transparent);opacity:.8"></div>
+      <div class="hw-lab">Détection de réseaux</div>
+      <h1 class="hw-title">Bonjour, <em><span id="home-greeting-name">—</span></em></h1>
+      <div id="home-agency-badge" class="hw-agency" style="display:none">
+        <div class="hw-ag-ic">🏢</div>
+        <div class="hw-ag-col"><span class="hw-ag-k">Agence</span><span class="hw-ag-v" id="home-agency-name">-</span></div>
+        <div class="hw-ag-sep"></div>
+        <div class="hw-ag-col"><span class="hw-ag-k" id="home-user-role">Rôle</span><span class="hw-ag-v" id="home-user-name">-</span></div>
+      </div>
     </div>
     <div class="search-box">
       <input class="search-inp" id="search-chantier" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
@@ -1707,13 +1620,16 @@ body::before{
       <div id="load-more-count" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
     </div>
     <span id="count-badge" style="display:none">0</span>
-    <div class="divider"></div>
-    <div class="sec-hdr">Actions</div>
-    <button class="btn-big btn-accent" onclick="createChantierDirect()">➕ Nouveau chantier</button>
-    <button class="btn-big btn-card" onclick="showScreen('s-dossier')">📄 Documents</button>
-    <!-- Datalist clients pour auto-complétion -->
-    <button class="btn-big btn-card" onclick="showScreen('s-consignes')">📋 Consignes de sécurité</button>
-    <button class="btn-big btn-card" onclick="showScreen('s-ouvrages')">🏗️ Ouvrages</button>
+    <!-- Actions rapides (modèle 5) -->
+    <div class="home-qa">
+      <div class="home-qa-lab">Actions rapides</div>
+      <div class="home-qa-grid">
+        <button type="button" class="home-qac p" onclick="createChantierDirect()"><div class="ic">+</div><div class="lab">Nouveau chantier</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-dossier')"><div class="ic">📄</div><div class="lab">Documents</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-consignes')"><div class="ic">📋</div><div class="lab">Consignes</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-ouvrages')"><div class="ic">🏗️</div><div class="lab">Ouvrages</div></button>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════════ SCREEN RAPPORT ══════════════════ -->
@@ -4994,6 +4910,9 @@ async function updateProfileScreen(){
   // Bouton « Changer l'agence » : réservé aux administrateurs
   const agBtn = document.getElementById('prof-agence-btn');
   if(agBtn) agBtn.style.display = isAdminRole(p.role) ? '' : 'none';
+  // Salutation accueil (modèle 5)
+  const greetName = document.getElementById('home-greeting-name');
+  if(greetName) greetName.textContent = p.displayName || '—';
   // Badge agence dans l'accueil
   const badge = document.getElementById('home-agency-badge');
   const agName = document.getElementById('home-agency-name');
