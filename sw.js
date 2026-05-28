@@ -1,5 +1,5 @@
-// Service Worker for NCVRD Detect PWA — v4
-const CACHE_NAME = 'ncvrd-detect-v4';
+// Service Worker for NCVRD Detect PWA — v5
+const CACHE_NAME = 'ncvrd-detect-v5';
 
 // Ressources locales à cacher obligatoirement
 const LOCAL_ASSETS = [
@@ -99,24 +99,33 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Stratégie pour les ressources locales (stale-while-revalidate) :
-  //   → sert le cache INSTANTANÉMENT si présent (rapide, même en 3G/hors-ligne)
-  //   → rafraîchit la ressource en arrière-plan pour la prochaine ouverture
-  // La bannière de mise à jour ("Nouvelle version — Recharger") prévient l'utilisateur
-  // quand un nouveau service worker (bump CACHE_NAME) est prêt.
+  // Images locales (bannière, fond login…) : rarement modifiées → CACHE-FIRST
+  //   (gros gain de vitesse + économie de données, sans risque de contenu périmé)
+  if(url.startsWith(self.location.origin) && /\.(png|jpe?g|webp|svg|gif|ico)$/i.test(url.split('?')[0])){
+    event.respondWith(
+      caches.match(event.request).then(cached => cached || fetch(event.request).then(res => {
+        if(res && res.status === 200){
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+
+  // index.html / manifest / autres ressources locales : NETWORK-FIRST
+  //   → "actualiser" récupère TOUJOURS la dernière version (attente utilisateur)
+  //   → repli sur le cache uniquement hors-ligne
   if(url.startsWith(self.location.origin)){
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        const network = fetch(event.request).then(res => {
-          if(res && res.status === 200){
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
-          return res;
-        }).catch(() => cached);
-        // Cache d'abord (instantané), réseau en repli si pas encore caché
-        return cached || network;
-      })
+      fetch(event.request).then(res => {
+        if(res && res.status === 200){
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }

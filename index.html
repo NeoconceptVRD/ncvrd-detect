@@ -5670,8 +5670,14 @@ async function deleteChantierForever(id, silent){
       await _cRef.delete();
       // Vérification côté serveur : avec offline persistence, delete() résout même si le serveur refuse.
       // On force une lecture depuis le serveur pour confirmer la suppression réelle.
+      // ⚠️ Bornée par un timeout : sur réseau lent/instable (chantier), get({source:'server'})
+      //    pouvait bloquer indéfiniment et figer une suppression en masse (corbeille) après 1 item.
+      //    En cas de timeout → on garde le tombstone (comportement sûr) et on continue.
       try {
-        const _check = await _cRef.get({ source: 'server' });
+        const _check = await Promise.race([
+          _cRef.get({ source: 'server' }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('verify-timeout')), 4000))
+        ]);
         if(_check.exists){
           // Firestore serveur a encore le document → règle Firestore bloque le delete
           Logger.warn('Delete', `Suppression Firestore rejetée côté serveur pour ${id} — règles Firestore ?`);
@@ -5797,11 +5803,14 @@ async function viderCorbeille(){
             + 'Cette action est IRRÉVERSIBLE — aucune récupération possible.')) return;
   // Snapshot des IDs (deleteChantierForever modifie S.chantiers au fur et à mesure)
   const ids = trashed.map(c => c.id);
+  // Parallèle + allSettled : une suppression lente ou échouée ne bloque PAS les autres
+  // (corrige : la boucle séquentielle se figeait sur le 2e item si Firestore traînait → 1 seul supprimé)
+  const results = await Promise.allSettled(ids.map(id => deleteChantierForever(id, true))); // silent : pas de toast par item
   let ok = 0, fail = 0;
-  for(const id of ids){
-    try { await deleteChantierForever(id, true); ok++; }   // silent : pas de toast par item
-    catch(e){ fail++; Logger.warn('Corbeille', 'vidage '+id, e?.message); }
-  }
+  results.forEach((r, i) => {
+    if(r.status === 'fulfilled') ok++;
+    else { fail++; Logger.warn('Corbeille', 'vidage '+ids[i], r.reason?.message); }
+  });
   renderChantiers(S.chantiers);
   if(fail) toast('⚠️ '+ok+' supprimé'+(ok>1?'s':'')+', '+fail+' échec'+(fail>1?'s':''), 6000);
   else     toast('🗑️ Corbeille vidée — '+ok+' chantier'+(ok>1?'s':'')+' supprimé'+(ok>1?'s':'')+' définitivement');
