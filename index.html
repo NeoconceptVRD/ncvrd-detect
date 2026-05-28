@@ -126,7 +126,7 @@ body > *{position:relative;z-index:1}
 .home-welcome .hw-ag-v{font-size:12px;font-weight:600;color:var(--text)}
 .home-welcome .hw-ag-sep{width:1px;height:22px;background:rgba(255,255,255,.1)}
 /* En-tête de page unifié (modèle 5) — Préparation, Ouvrages, SRESST… */
-.ph{position:sticky;top:0;z-index:20;background:rgba(12,17,19,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:16px 16px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph{position:sticky;top:0;z-index:20;background:#0c1113;padding:16px 16px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ph-text{flex:1;min-width:0}
 .ph-lab{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .ph-lab::before{content:'';width:14px;height:1.5px;background:#33d4c6}
@@ -204,7 +204,7 @@ body > *{position:relative;z-index:1}
 #topbar{
   position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
   padding:10px 16px;
-  background:rgba(12,17,19,.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  background:#0c1113;  /* opaque : plus de backdrop-filter (lag scroll sur PC) */
   border-bottom:1px solid var(--border);
   flex-shrink:0;
 }
@@ -218,7 +218,7 @@ body > *{position:relative;z-index:1}
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
   color:var(--accent);font-size:16px;width:36px;height:36px;border-radius:12px;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(12px);transition:all .25s var(--ease);
+  transition:all .25s var(--ease);
 }
 .back-btn:hover{background:rgba(255,255,255,.1);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 .back-btn:active{background:rgba(255,255,255,.14);transform:scale(.95)}
@@ -226,7 +226,7 @@ body > *{position:relative;z-index:1}
   font-size:10px;font-weight:700;padding:5px 10px;border-radius:20px;
   display:flex;align-items:center;gap:5px;letter-spacing:.3px;
   font-family:var(--font);
-  background:rgba(255,255,255,.05);backdrop-filter:blur(12px);
+  background:rgba(255,255,255,.05);
 }
 .sync-pill.online{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.25)}
 .sync-pill.offline{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
@@ -242,7 +242,7 @@ body > *{position:relative;z-index:1}
 /* ── LEFT NAV SIDEBAR ────────────────── */
 #bottom-nav{
   width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0;
-  background:rgba(12,17,19,.93);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  background:#0c1113;  /* opaque : plus de backdrop-filter (lag scroll sur PC) */
   border-right:1px solid var(--border);
   flex-shrink:0;position:relative;z-index:50;
 }
@@ -283,7 +283,7 @@ body > *{position:relative;z-index:1}
 }
 /* ── CARDS ────────────────────────────── */
 .card{
-  background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  background:var(--glass);/* backdrop-filter retiré : fond opaque (--glass) → flou invisible + lag scroll PC */
   border:1px solid var(--glass-border);border-radius:20px;margin:0 14px 12px;
   box-shadow:var(--shadow-sm);transition:all .3s var(--ease);position:relative;overflow:hidden;
   cursor:pointer;animation:cardIn .45s ease both;
@@ -331,7 +331,6 @@ body > *{position:relative;z-index:1}
   background:rgba(255,255,255,.06);color:var(--text);
   border:1px solid rgba(255,255,255,.08);
   box-shadow:var(--shadow-sm);
-  backdrop-filter:blur(12px);
 }
 .btn-card:hover{border-color:rgba(255,255,255,.15);box-shadow:var(--shadow-md)}
 .btn-green{
@@ -357,7 +356,6 @@ body > *{position:relative;z-index:1}
   border-radius:16px;cursor:pointer;text-align:center;
   transition:all .25s var(--ease);font-family:var(--font);
   box-shadow:var(--shadow-sm);
-  backdrop-filter:blur(12px);
 }
 .btn-icon-big:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .btn-icon-big:active{transform:scale(.95)}
@@ -384,7 +382,6 @@ body > *{position:relative;z-index:1}
   font-size:15px;padding:13px 14px;
   font-family:var(--font);outline:none;
   transition:all .3s var(--ease);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
 }
 .form-input:focus,.form-textarea:focus,.form-select:focus{
   border-color:var(--accent);outline:none;
@@ -409,7 +406,7 @@ select option{background:#1a1f2e;color:#f1f5f9}
 
 /* ── ACCORDION ───────────────────────── */
 .acc-section{
-  background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  background:var(--glass);/* backdrop-filter retiré : fond opaque (--glass) → flou invisible + lag scroll PC */
   border-radius:16px;
   border:1px solid var(--glass-border);
   margin:0 14px 10px;overflow:hidden;
@@ -679,8 +676,7 @@ select option{background:#1a1f2e;color:#f1f5f9}
     border:1px solid rgba(255,255,255,.08);
     border-radius:20px;
     box-shadow:0 4px 24px rgba(0,0,0,.4);
-    background:rgba(5,10,21,.8) !important;
-    backdrop-filter:blur(40px) !important;-webkit-backdrop-filter:blur(40px) !important;
+    background:#080d18 !important;  /* opaque : plus de blur(40px) (lag scroll PC ≤900px) */
     padding:4px 0;
     gap:0;
     overflow-x:auto;
@@ -858,7 +854,7 @@ select option{background:#1a1f2e;color:#f1f5f9}
 /* Glassmorphism panel */
 .glass-panel {
   background:var(--glass);
-  backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  /* backdrop-filter retiré : fond opaque (--glass) → flou invisible + lag scroll PC */
   border:1px solid var(--glass-border);
   border-radius:20px;
   box-shadow:var(--shadow-md);
@@ -926,7 +922,7 @@ select option{background:#1a1f2e;color:#f1f5f9}
 
 .person-card {
   background:var(--glass);
-  backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  /* backdrop-filter retiré : fond opaque (--glass) → flou invisible + lag scroll PC */
   border:1px solid var(--glass-border);
   border-radius:16px;
   padding:14px;
@@ -1301,7 +1297,7 @@ html[data-terrain="1"] {
 .sr-chip:has(input:checked){background:rgba(22,168,154,.18);border-color:var(--accent);color:#fff}
 .sr-chip input{display:none}
 /* Cartes liste SRESST */
-.sresst-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+.sresst-card{background:var(--glass);/* backdrop-filter retiré : fond opaque (--glass) → flou invisible + lag scroll PC */
   border:1px solid var(--glass-border);border-radius:14px;
   padding:0;margin-bottom:10px;cursor:pointer;
   transition:background .15s,border-color .15s;box-shadow:var(--shadow-sm);
@@ -1325,14 +1321,15 @@ body::before{
     radial-gradient(ellipse 75% 95% at 90% 10%, rgba(95,147,160,.16) 0%, transparent 55%),
     radial-gradient(ellipse 60% 50% at 50% 50%, rgba(56,178,196,.09) 0%, transparent 50%),
     radial-gradient(ellipse 50% 65% at 75% 75%, rgba(45,212,191,.07) 0%, transparent 45%);
-  animation:meshFloat 32s ease-in-out infinite alternate;
+  /* meshFloat retiré : animation continue d'un layer plein écran = lag GPU sur PC.
+     Les gradients restent statiques (look identique au repos). */
 }
 
 /* ── Topbar title — shimmer plus vivid ── */
 .tb-title{
   background:linear-gradient(90deg,var(--accent) 0%,var(--purple) 35%,var(--teal) 65%,var(--accent) 100%);
   background-size:300% auto;
-  animation:textShimmer 5s linear infinite;
+  /* textShimmer retiré : animation background-position = repaint continu du titre (lag PC) */
   letter-spacing:1.5px;font-size:15px;
 }
 
@@ -1345,7 +1342,7 @@ body::before{
 }
 
 /* ── Sync pill — subtle online pulse ── */
-.sync-pill.online{animation:onlinePulse 3s ease-in-out infinite}
+.sync-pill.online{/* onlinePulse retiré : animation box-shadow = repaint continu (lag PC) */}
 @keyframes onlinePulse{
   0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.0)}
   50%{box-shadow:0 0 0 5px rgba(34,197,94,.08)}
