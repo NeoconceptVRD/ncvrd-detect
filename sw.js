@@ -1,11 +1,13 @@
-// Service Worker for NCVRD Detect PWA — v3
-const CACHE_NAME = 'ncvrd-detect-v3';
+// Service Worker for NCVRD Detect PWA — v4
+const CACHE_NAME = 'ncvrd-detect-v4';
 
 // Ressources locales à cacher obligatoirement
 const LOCAL_ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './assets/hero-banner.jpg',
+  './assets/login-bg.jpg'
 ];
 
 // Ressources CDN critiques (Firebase + Fonts) — cachées au premier usage
@@ -14,7 +16,8 @@ const CDN_ASSETS = [
   'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
   'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap'
+  // Polices réellement utilisées par l'app : IBM Plex Sans + IBM Plex Mono
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap'
 ];
 
 // Libs chargées à la demande (docx, jszip) — cachées au premier usage
@@ -96,16 +99,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Stratégie pour les ressources locales (network-first, fallback cache)
+  // Stratégie pour les ressources locales (stale-while-revalidate) :
+  //   → sert le cache INSTANTANÉMENT si présent (rapide, même en 3G/hors-ligne)
+  //   → rafraîchit la ressource en arrière-plan pour la prochaine ouverture
+  // La bannière de mise à jour ("Nouvelle version — Recharger") prévient l'utilisateur
+  // quand un nouveau service worker (bump CACHE_NAME) est prêt.
   if(url.startsWith(self.location.origin)){
     event.respondWith(
-      fetch(event.request).then(res => {
-        if(res && res.status === 200){
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match(event.request))
+      caches.match(event.request).then(cached => {
+        const network = fetch(event.request).then(res => {
+          if(res && res.status === 200){
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          return res;
+        }).catch(() => cached);
+        // Cache d'abord (instantané), réseau en repli si pas encore caché
+        return cached || network;
+      })
     );
     return;
   }

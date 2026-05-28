@@ -23,8 +23,9 @@
 /* ═══════════════════════════════════════
    NCVRD DETECT — Design System v4 DASHBOARD
    Police : IBM Plex Sans + IBM Plex Mono
+   (chargée via <link> dans le <head> — pas de @import ici pour éviter
+    un double téléchargement render-blocking)
 ═══════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   /* ═══ PALETTE — Dashboard sombre, teal / pétrole ═══ */
@@ -1543,8 +1544,8 @@ body::before{
   box-shadow:0 4px 20px rgba(0,0,0,.3);
 }
 </style>
-<!-- EmailJS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- EmailJS SDK retiré : l'app envoie les mails via Google Apps Script (GAS_MAIL_URL), pas EmailJS.
+     Ce script était render-blocking et jamais appelé. -->
 </head>
 <body>
 <div class="corner-accent-br"></div>
@@ -1614,7 +1615,7 @@ body::before{
   <!-- ══════════════════ SCREEN HOME ══════════════════ -->
   <div class="screen active" id="screen-home">
     <!-- ═══ BANNIÈRE D'ACCUEIL ═══ -->
-    <div class="home-banner"><img src="assets/hero-banner.png" alt="Détection de réseaux NCVRD" loading="eager"></div>
+    <div class="home-banner"><img src="assets/hero-banner.jpg" alt="Détection de réseaux NCVRD" loading="eager" width="1769" height="481"></div>
 
     <!-- ═══ BLOC D'ACCUEIL ═══ -->
     <div class="home-welcome">
@@ -5740,8 +5741,14 @@ function _renderCorbeille(el, list){
   // Bandeau info (classe grid-full → prend toute la ligne en mode grille desktop)
   const info = document.createElement('div');
   info.className = 'grid-full';
-  info.style.cssText = 'margin:8px 14px;padding:10px 12px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5';
-  info.innerHTML = '🗑️ Les chantiers en corbeille sont <strong>supprimés définitivement après 30 jours</strong>. Tu peux les restaurer avant cette échéance.';
+  info.style.cssText = 'margin:8px 14px;padding:10px 12px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+  info.innerHTML = '<span style="flex:1;min-width:170px">🗑️ Les chantiers en corbeille sont <strong>supprimés définitivement après 30 jours</strong>. Tu peux les restaurer avant cette échéance.</span>';
+  const emptyBtn = document.createElement('button');
+  emptyBtn.textContent = '🗑️ Vider la corbeille ('+list.length+')';
+  emptyBtn.setAttribute('aria-label','Vider toute la corbeille — supprime définitivement tous les chantiers');
+  emptyBtn.style.cssText = 'background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 2px 8px rgba(220,38,38,.3)';
+  emptyBtn.onclick = viderCorbeille;
+  info.appendChild(emptyBtn);
   el.appendChild(info);
   list.forEach(c => {
     const ageJours = c.deletedAt ? Math.floor((Date.now() - c.deletedAt)/DAY) : 0;
@@ -5771,6 +5778,27 @@ function _renderCorbeille(el, list){
     card.appendChild(row);
     el.appendChild(card);
   });
+}
+
+// ── Vider toute la corbeille : suppression définitive en masse ──
+async function viderCorbeille(){
+  const trashed = (S.chantiers||[]).filter(c => !!c.deletedAt);
+  const n = trashed.length;
+  if(!n){ toast('🗑️ La corbeille est déjà vide'); return; }
+  if(!confirm('Vider la corbeille ?\n\n'
+            + n + ' chantier' + (n>1?'s':'') + ' et leur' + (n>1?'s':'') + ' rapport'
+            + ' seront supprimés DÉFINITIVEMENT.\n\n'
+            + 'Cette action est IRRÉVERSIBLE — aucune récupération possible.')) return;
+  // Snapshot des IDs (deleteChantierForever modifie S.chantiers au fur et à mesure)
+  const ids = trashed.map(c => c.id);
+  let ok = 0, fail = 0;
+  for(const id of ids){
+    try { await deleteChantierForever(id, true); ok++; }   // silent : pas de toast par item
+    catch(e){ fail++; Logger.warn('Corbeille', 'vidage '+id, e?.message); }
+  }
+  renderChantiers(S.chantiers);
+  if(fail) toast('⚠️ '+ok+' supprimé'+(ok>1?'s':'')+', '+fail+' échec'+(fail>1?'s':''), 6000);
+  else     toast('🗑️ Corbeille vidée — '+ok+' chantier'+(ok>1?'s':'')+' supprimé'+(ok>1?'s':'')+' définitivement');
 }
 
 // ── Purge automatique : supprime définitivement les chantiers en corbeille > 30 jours ──
