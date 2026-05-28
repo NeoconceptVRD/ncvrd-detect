@@ -2685,6 +2685,9 @@ body::before{
             <input class="form-input" type="date" id="prep-dt-date" oninput="prepChanged()"></div>
           <div class="form-group"><label class="form-label">Numéro de téléservice</label>
             <input class="form-input" id="prep-dt-num" placeholder="Ex : 2026040078967" oninput="prepChanged()"></div>
+          <div class="form-group" style="margin-bottom:0"><label class="form-label">Récapitulatif des DT reçues</label>
+            <textarea class="form-textarea" id="prep-recap-dt" style="min-height:90px" placeholder="Ex : DT n°2026-00001 — ENEDIS — reçue le 01/04/2026&#10;DT n°2026-00002 — GRDF — reçue le 01/04/2026&#10;…" oninput="prepChanged()"></textarea>
+            <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Repris automatiquement dans le rapport (Annexe A) au démarrage du chantier.</div></div>
         </div>
       </div>
       <!-- §3 Nature + Rédacteur -->
@@ -13380,6 +13383,7 @@ function _populatePrepForm(c){
   setVal('prep-reference', c.reference);
   setVal('prep-dt-date', c.dtDate);
   setVal('prep-dt-num', c.dtNum);
+  setVal('prep-recap-dt', c.recapDT);
   // Nature des opérations : essayer de matcher dans la liste prédéfinie,
   // sinon basculer en mode "Autre" + texte libre
   const natSel = document.getElementById('prep-nature');
@@ -13509,6 +13513,7 @@ function prepChanged(){
   c.reference = get('prep-reference');
   c.dtDate = get('prep-dt-date');
   c.dtNum = get('prep-dt-num');
+  c.recapDT = get('prep-recap-dt');
   // Nature des opérations : si "Autre" sélectionné, lire l'input texte libre
   const _natSel = get('prep-nature');
   if(_natSel === '__autre__'){
@@ -13848,6 +13853,7 @@ async function startChantierFromPrep(){
         logiciels: (typeof DynLists !== 'undefined' ? DynLists.defaultLogiciels : []) || [],
         conclusions: (typeof DynLists !== 'undefined' && DynLists.defaultConclusion) ? DynLists.defaultConclusion : '',
         observations: '',
+        recapDT: c.recapDT || '',  // récap DT saisi en préparation → Annexe A du rapport
         conclusionPhotos: [],
         _regionPrefilled: true,    // empêche openChantier de re-fill l'équipe régionale
         opDetection: [{nom:'',poste:''},{nom:'',poste:''}],
@@ -13858,6 +13864,8 @@ async function startChantierFromPrep(){
       };
     } else {
       rapport._regionPrefilled = true;
+      // Reprend le récap DT de la prépa s'il n'a pas déjà été saisi dans le rapport
+      if(!rapport.recapDT && c.recapDT) rapport.recapDT = c.recapDT;
       rapport.lastModifiedAt = Date.now();
       rapport.updatedAt = Date.now();
     }
