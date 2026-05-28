@@ -5110,7 +5110,13 @@ function showScreen(id){
   if(id==='s-ouvrage-form'){_renderOuvrageCanalisations();}
   if(id==='s-profil'){updateProfile(); if(FIREBASE_CONFIGURED && currentUserProfile) updateProfileScreen();}
   if(id==='s-camera'){initCamera()}
-  if(id==='screen-home'){stopCamera()}
+  if(id==='screen-home'){
+    stopCamera();
+    // Rafraîchir la liste des chantiers à chaque retour sur l'accueil
+    // (corrige : un chantier créé n'apparaissait qu'après actualisation/changement d'onglet)
+    if(typeof applyFilters === 'function') applyFilters();
+    else renderChantiers(S.chantiers);
+  }
 }
 
 function goBack(){
