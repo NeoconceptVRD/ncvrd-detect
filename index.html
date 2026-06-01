@@ -10371,7 +10371,11 @@ async function syncChantierToFirebase(c){
   if(!FIREBASE_CONFIGURED || !currentUserProfile?.teamId) return;
   if(!navigator.onLine){ addToSyncQueue('chantier', c.id); return; }
   const teamId = c._teamId || currentUserProfile.teamId;
-  let data = {...c}; delete data._teamId;
+  // 1) Strip lourd : retire les base64 (PDF récap DT, plan situation, prepDocs…) qui dépasseraient
+  //    la limite 1 Mo/doc de Firestore. Préserve les URLs Storage déjà uploadées.
+  let data = _stripChantierForFirestore(c);
+  delete data._teamId;
+  // 2) Sanitize : retire les undefined (interdits par Firestore)
   data = sanitizeForFirestore(data);
   try {
     // Backup automatique avant sync
@@ -10490,6 +10494,14 @@ async function _writeRapportToFirestore(r, teamId){
       delete nClean._photosUrls;
       return nClean;
     });
+  }
+  // Récap DT : vire les base64 (PDF source + aperçus image) — sinon dépasse 1 Mo Firestore.
+  // L'URL Storage (recapDTUrl) suffit ; les aperçus seront re-rendus à la demande à l'export Word.
+  const isB64x = s => typeof s === 'string' && s.startsWith('data:');
+  if(isB64x(firestoreData.recapDTFile))    delete firestoreData.recapDTFile;
+  if(isB64x(firestoreData.recapDTPreview)) delete firestoreData.recapDTPreview;
+  if(Array.isArray(firestoreData.recapDTPreviews) && firestoreData.recapDTPreviews.some(isB64x)){
+    delete firestoreData.recapDTPreviews;
   }
   firestoreData.lastModifiedBy   = currentUserProfile.uid;
   firestoreData.lastModifiedName = currentUserProfile.displayName || currentUserProfile.email || '-';
