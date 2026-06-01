@@ -6111,7 +6111,10 @@ const _RAPPORT_ADMIN_FIELDS = [
   'client', 'adresse', 'dateDebut', 'dateFin',
   'dtDate', 'dtNum', 'natureOperations',
   'reference', 'respNom', 'respPoste', 'respContact',
-  'entite', 'planSituation', '_planUrl'
+  'entite', 'planSituation', '_planUrl',
+  // Récap DT : doit aussi suivre le chantier → sinon le rapport perd l'image au reload
+  'recapDT', 'recapDTFile', 'recapDTFileName', 'recapDTFileType',
+  'recapDTPreview', 'recapDTPreviews', 'recapDTUrl'
 ];
 
 function _syncRapportAdminFromChantier(){
@@ -6128,10 +6131,11 @@ function _syncRapportAdminFromChantier(){
       c[k] = r[k]; changed = true;
     }
   }
-  // Opérateurs : array
+  // Opérateurs : array — enrichis avec le nom de famille déduit de l'email (retro-fix)
   const hasOps = arr => Array.isArray(arr) && arr.some(o => o && (o.nom || o.poste));
+  const mapOp = o => ({nom: (typeof _enrichOpName === 'function' ? _enrichOpName(o) : (o.nom || '')), poste: o.poste || ''});
   if(hasOps(c.opDetection)){
-    r.opDetection = c.opDetection.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    r.opDetection = c.opDetection.map(mapOp);
     while(r.opDetection.length < 2) r.opDetection.push({nom:'',poste:''});
     changed = true;
   } else if(hasOps(r.opDetection)){
@@ -6139,12 +6143,21 @@ function _syncRapportAdminFromChantier(){
     changed = true;
   }
   if(hasOps(c.opGeo)){
-    r.opGeo = c.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
+    r.opGeo = c.opGeo.map(mapOp);
     if(r.opGeo.length === 0) r.opGeo.push({nom:'',poste:''});
     changed = true;
   } else if(hasOps(r.opGeo)){
     c.opGeo = r.opGeo.map(o => ({nom: o.nom || '', poste: o.poste || ''}));
     changed = true;
+  }
+  // Chef de projet (respNom) : enrichit le nom de famille rétroactivement
+  if(c.respNom && !/\s/.test(String(c.respNom).trim()) && c.respContact && typeof _composeFullName === 'function'){
+    const enriched = _composeFullName(c.respNom, c.respContact);
+    if(enriched !== c.respNom){
+      c.respNom = enriched;
+      r.respNom = enriched;
+      changed = true;
+    }
   }
   return changed;
 }
@@ -9806,12 +9819,45 @@ async function doWordDocx(){
     children.push(annexHeader('A','Récapitulatif des DT reçues'));
     children.push(sp(180));
     // Priorité 1 : image(s)/PDF uploadé (aperçus générés au moment de l'upload)
-    // Format nouveau : recapDTPreviews = tableau (1 entrée par page de récap détectée)
-    // Format ancien  : recapDTPreview  = string (1 seule page) — rétrocompat
+    // Cascade de résolution :  rapport → chantier (mémoire) → IDB → re-fetch Storage
+    // Nécessaire parce que les base64 sont strippés à chaque sync Firestore.
     let recapEmbedded = false;
-    const recapPages = (Array.isArray(r.recapDTPreviews) && r.recapDTPreviews.length)
+    let recapPages = (Array.isArray(r.recapDTPreviews) && r.recapDTPreviews.length)
       ? r.recapDTPreviews
       : (r.recapDTPreview ? [r.recapDTPreview] : []);
+    // Fallback 1 : chantier en mémoire
+    if(!recapPages.length && S.currentChantier){
+      const c2 = S.currentChantier;
+      if(Array.isArray(c2.recapDTPreviews) && c2.recapDTPreviews.length) recapPages = c2.recapDTPreviews;
+      else if(c2.recapDTPreview) recapPages = [c2.recapDTPreview];
+    }
+    // Fallback 2 : IDB local (peut contenir les base64 strippés de Firestore)
+    if(!recapPages.length && S.currentChantier){
+      try {
+        const idbC = await db._idb.get('chantiers', S.currentChantier.id).catch(()=>null);
+        if(idbC){
+          if(Array.isArray(idbC.recapDTPreviews) && idbC.recapDTPreviews.length) recapPages = idbC.recapDTPreviews;
+          else if(idbC.recapDTPreview) recapPages = [idbC.recapDTPreview];
+        }
+      } catch(_){}
+    }
+    // Fallback 3 : re-télécharger le fichier source depuis Storage et re-rendre les pages
+    if(!recapPages.length){
+      const recapUrl = r.recapDTUrl || (S.currentChantier && S.currentChantier.recapDTUrl) || '';
+      if(recapUrl){
+        try {
+          const blob = await fetch(recapUrl).then(res => res.blob());
+          const dataUrl = await new Promise((res, rej) => {
+            const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob);
+          });
+          const isPdf = (blob.type === 'application/pdf') || /\.pdf(\?|$)/i.test(recapUrl);
+          recapPages = isPdf
+            ? await _extractRecapPagesFromPdf(dataUrl, 1200)
+            : [dataUrl];
+          Logger.info('Export', `Récap DT re-téléchargé depuis Storage : ${recapPages.length} page(s)`);
+        } catch(e){ Logger.warn('Export', 'recap DT re-fetch', e?.message); }
+      }
+    }
     if(recapPages.length){
       try {
         for(let idx = 0; idx < recapPages.length; idx++){
@@ -13794,7 +13840,7 @@ function prepChanged(){
   if(respEmail){
     const contact = (NCVRD_CONTACTS||[]).find(x => x.email === respEmail);
     if(contact){
-      c.respNom = contact.prenom;
+      c.respNom = _composeFullName(contact.prenom, contact.email);  // "Rachid Andouri"
       c.respContact = contact.email;
       if(!c.respPoste) c.respPoste = 'Responsable de projet'; // défaut modifiable dans le rapport
       // Auto-invitation : si le chef a un compte Firebase dans l'équipe, ajout à prepAgents
@@ -13865,6 +13911,37 @@ function _findTeamUserByEmail(email){
   return _prepTeamUsers.find(u => String(u.email||'').toLowerCase().trim() === lc);
 }
 
+// ── Extraction du nom de famille depuis l'email (ex: rachid.andouri@... → "Andouri")
+// Retourne '' si l'email est introuvable, ou si le dernier segment est une initiale (1 lettre),
+// ou si le dernier segment est identique au prénom (cas du genre "F.muhammad" + prenom="Muhammad").
+function _extractFamilyName(email, prenom){
+  if(!email) return '';
+  const local = String(email).split('@')[0];
+  const parts = local.split('.');
+  const last = String(parts[parts.length - 1] || '').trim();
+  if(last.length <= 1) return '';                                                  // ex: "florian.b" → 'b'
+  if(prenom && last.toLowerCase() === String(prenom).toLowerCase().trim()) return ''; // ex: "f.muhammad" + prenom="Muhammad"
+  return last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
+}
+
+// Compose un nom complet "Prenom NomDeFamille" depuis un prénom + email (fallback : juste le prénom)
+function _composeFullName(prenom, email){
+  prenom = String(prenom || '').trim();
+  if(!prenom) return '';
+  const family = _extractFamilyName(email, prenom);
+  return family ? `${prenom} ${family}` : prenom;
+}
+
+// Enrichit le `nom` d'un opérateur en y intégrant son nom de famille déduit de l'email.
+// Idempotent : si le nom contient déjà un espace, on le considère déjà complet (n'enrichit pas).
+function _enrichOpName(o){
+  const nom = String(o?.nom || '').trim();
+  if(!nom) return '';
+  if(/\s/.test(nom)) return nom;  // déjà composé → ne pas toucher
+  if(!o.email) return nom;        // pas d'email → impossible d'enrichir
+  return _composeFullName(nom, o.email);
+}
+
 // Envoie une notification Firestore pour informer un agent qu'il a été invité (fire-and-forget)
 function _sendPrepInviteNotification(toUid){
   if(!FIREBASE_CONFIGURED || !fdb || !currentUserProfile || !_currentPrep || !toUid) return;
@@ -13890,7 +13967,9 @@ function _prepAddOp(sel, type){
   if(arr.find(o => o.email === contact.email)){ sel.value = ''; toast('Déjà ajouté'); return; }
   // Poste par défaut selon le type (modifiable ensuite dans le rapport)
   const defaultPoste = type === 'det' ? 'Opérateur de détection' : 'Opérateur de géoréférencement';
-  arr.push({nom: contact.prenom, email: contact.email, agence: contact.agence, poste: defaultPoste});
+  // Nom complet "Prenom NomDeFamille" déduit de l'email (rachid.andouri@... → "Rachid Andouri")
+  const fullName = _composeFullName(contact.prenom, contact.email);
+  arr.push({nom: fullName, email: contact.email, agence: contact.agence, poste: defaultPoste});
   sel.value = '';
   _renderPrepOpList(type);
   // Auto-invitation : si l'opérateur a un compte Firebase dans l'équipe, on l'ajoute à prepAgents
