@@ -13796,6 +13796,16 @@ function prepChanged(){
     if(contact){
       c.respNom = contact.prenom;
       c.respContact = contact.email;
+      if(!c.respPoste) c.respPoste = 'Responsable de projet'; // défaut modifiable dans le rapport
+      // Auto-invitation : si le chef a un compte Firebase dans l'équipe, ajout à prepAgents
+      const tu = _findTeamUserByEmail(contact.email);
+      if(tu && tu.uid){
+        c.prepAgents = c.prepAgents || [];
+        if(!c.prepAgents.includes(tu.uid)){
+          c.prepAgents.push(tu.uid);
+          if(typeof _renderPrepCollabs === 'function') _renderPrepCollabs();
+        }
+      }
     }
   }
   c.updatedAt = Date.now();
@@ -13846,15 +13856,36 @@ async function deletePrep(){
 // Ajoute un opérateur (détection ou géo) depuis le select
 function prepAddOpDet(sel){ _prepAddOp(sel, 'det'); }
 function prepAddOpGeo(sel){ _prepAddOp(sel, 'geo'); }
+
+// Cherche un utilisateur Firebase de l'équipe par email (insensible à la casse)
+function _findTeamUserByEmail(email){
+  if(!email || !Array.isArray(_prepTeamUsers)) return null;
+  const lc = String(email).toLowerCase().trim();
+  return _prepTeamUsers.find(u => String(u.email||'').toLowerCase().trim() === lc);
+}
+
 function _prepAddOp(sel, type){
   if(!_currentPrep || !sel.value) return;
   const contact = (NCVRD_CONTACTS||[]).find(x => x.email === sel.value);
   if(!contact){ sel.value = ''; return; }
   const arr = type === 'det' ? (_currentPrep.opDetection = _currentPrep.opDetection || []) : (_currentPrep.opGeo = _currentPrep.opGeo || []);
   if(arr.find(o => o.email === contact.email)){ sel.value = ''; toast('Déjà ajouté'); return; }
-  arr.push({nom: contact.prenom, email: contact.email, agence: contact.agence, poste: ''});
+  // Poste par défaut selon le type (modifiable ensuite dans le rapport)
+  const defaultPoste = type === 'det' ? 'Opérateur de détection' : 'Opérateur de géoréférencement';
+  arr.push({nom: contact.prenom, email: contact.email, agence: contact.agence, poste: defaultPoste});
   sel.value = '';
   _renderPrepOpList(type);
+  // Auto-invitation : si l'opérateur a un compte Firebase dans l'équipe, on l'ajoute à prepAgents
+  // (devient collaborateur au démarrage du chantier — pas besoin de l'inviter une 2e fois)
+  const tu = _findTeamUserByEmail(contact.email);
+  if(tu && tu.uid){
+    _currentPrep.prepAgents = _currentPrep.prepAgents || [];
+    if(!_currentPrep.prepAgents.includes(tu.uid)){
+      _currentPrep.prepAgents.push(tu.uid);
+      toast('✅ ' + contact.prenom + ' ajouté et invité au chantier');
+      if(typeof _renderPrepCollabs === 'function') _renderPrepCollabs();
+    }
+  }
   prepChanged();
 }
 function _prepRemoveOp(type, email){
