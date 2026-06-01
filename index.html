@@ -13803,6 +13803,7 @@ function prepChanged(){
         c.prepAgents = c.prepAgents || [];
         if(!c.prepAgents.includes(tu.uid)){
           c.prepAgents.push(tu.uid);
+          _sendPrepInviteNotification(tu.uid);
           if(typeof _renderPrepCollabs === 'function') _renderPrepCollabs();
         }
       }
@@ -13864,6 +13865,23 @@ function _findTeamUserByEmail(email){
   return _prepTeamUsers.find(u => String(u.email||'').toLowerCase().trim() === lc);
 }
 
+// Envoie une notification Firestore pour informer un agent qu'il a été invité (fire-and-forget)
+function _sendPrepInviteNotification(toUid){
+  if(!FIREBASE_CONFIGURED || !fdb || !currentUserProfile || !_currentPrep || !toUid) return;
+  const senderName = currentUserProfile.displayName || currentUserProfile.email || 'Un collègue';
+  fdb.collection('notifications').add({
+    toUid: toUid,
+    fromUid: currentUserProfile.uid || null,
+    fromName: senderName,
+    type: 'chantier_invite',
+    chantierId: _currentPrep.id,
+    chantierName: _currentPrep.name || 'Sans titre',
+    message: senderName + ' vous a invité sur le chantier "' + (_currentPrep.name || 'Sans titre') + '"',
+    read: false,
+    createdAt: Date.now()
+  }).catch(e => Logger.warn('Prep', 'auto-invite notif', e?.message));
+}
+
 function _prepAddOp(sel, type){
   if(!_currentPrep || !sel.value) return;
   const contact = (NCVRD_CONTACTS||[]).find(x => x.email === sel.value);
@@ -13883,6 +13901,7 @@ function _prepAddOp(sel, type){
     if(!_currentPrep.prepAgents.includes(tu.uid)){
       _currentPrep.prepAgents.push(tu.uid);
       toast('✅ ' + contact.prenom + ' ajouté et invité au chantier');
+      _sendPrepInviteNotification(tu.uid);
       if(typeof _renderPrepCollabs === 'function') _renderPrepCollabs();
     }
   }
@@ -14028,22 +14047,26 @@ async function prepAddDocs(input){
 async function _uploadPrepDocsToStorage(c, onlyDocs){
   if(!fstorage || !FIREBASE_CONFIGURED || !c?.prepDocs?.length) return;
   const targets = onlyDocs && onlyDocs.length ? onlyDocs : c.prepDocs;
+  // Filtrer : on ne s'occupe que des docs pas encore uploadés et avec un dataUrl base64
+  const toUpload = targets.filter(d => !d.url && d.dataUrl?.startsWith('data:'));
+  if(!toUpload.length) return;
+  // ── Upload PARALLÈLE (Promise.allSettled) ──
+  // Avant : boucle séquentielle → 4 fichiers × Xs réseau chacun = 4·X total (lent)
+  // Maintenant : parallèle → temps total ≈ max(Xs des fichiers)
   let uploaded = 0, failed = 0;
-  for(const d of targets){
-    if(d.url) continue;                          // déjà uploadé
-    if(!d.dataUrl?.startsWith('data:')) continue;
+  const results = await Promise.allSettled(toUpload.map(d => {
     const safe = String(d.filename||'doc').replace(/[^a-zA-Z0-9._-]/g,'_');
     const path = `rapports/${c.id}/prep/${d.id}_${safe}`;
-    try {
-      const url = await uploadPhotoToStorage(d.dataUrl, path); // fonction générique (gère tous mimes)
-      if(url){ d.url = url; uploaded++; }
-      else { failed++; }
-    } catch(e){ failed++; Logger.warn('Prep', 'upload '+d.filename, e?.message); }
-  }
+    return uploadPhotoToStorage(d.dataUrl, path).then(url => ({ doc: d, url }));
+  }));
+  results.forEach((r, i) => {
+    if(r.status === 'fulfilled' && r.value?.url){ r.value.doc.url = r.value.url; uploaded++; }
+    else { failed++; Logger.warn('Prep', 'upload ' + (toUpload[i].filename || '?'), r.reason?.message); }
+  });
   if(uploaded){
     // Sauver les URLs en IDB local + re-sync Firestore (avec strip auto)
     try { await db.put('chantiers', c); } catch(_){}
-    Logger.info('Prep', `Storage : ${uploaded}/${targets.length} doc(s) uploadé(s)`);
+    Logger.info('Prep', `Storage : ${uploaded}/${toUpload.length} doc(s) uploadé(s) en parallèle`);
     if(_currentPrep?.id === c.id) _renderPrepDocs();
     toast('✅ '+uploaded+' document'+(uploaded>1?'s':'')+' uploadé'+(uploaded>1?'s':'')+' sur Storage');
   }
