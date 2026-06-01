@@ -2684,8 +2684,10 @@ body::before{
           <div class="form-group"><label class="form-label">Numéro de téléservice</label>
             <input class="form-input" id="prep-dt-num" placeholder="Ex : 2026040078967" oninput="prepChanged()"></div>
           <div class="form-group" style="margin-bottom:0"><label class="form-label">Récapitulatif des DT reçues</label>
-            <textarea class="form-textarea" id="prep-recap-dt" style="min-height:90px" placeholder="Ex : DT n°2026-00001 — ENEDIS — reçue le 01/04/2026&#10;DT n°2026-00002 — GRDF — reçue le 01/04/2026&#10;…" oninput="prepChanged()"></textarea>
-            <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Repris automatiquement dans le rapport (Annexe A) au démarrage du chantier.</div></div>
+            <input type="file" id="prep-recap-dt-input" accept="application/pdf,image/*" style="display:none" onchange="prepUploadRecapDT(this)">
+            <div id="prep-recap-dt-preview" style="display:none;margin-bottom:8px"></div>
+            <button type="button" class="btn-big btn-card" style="width:100%" onclick="document.getElementById('prep-recap-dt-input').click()" aria-label="Ajouter le récap DT (PDF ou image)">📎 Choisir le récap DT (PDF ou image)</button>
+            <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Charge le récap officiel Protys (PDF ou capture). Au démarrage du chantier, il s'affichera dans l'Annexe A du rapport ; le fichier reste consultable depuis le chantier.</div></div>
         </div>
       </div>
       <!-- §3 Nature + Rédacteur -->
@@ -4156,6 +4158,10 @@ function _stripChantierForFirestore(c){
     if(c._planUrl) d.planSituation = c._planUrl;
   }
   delete d._planUrl; // métadonnée locale-only
+  // Récap DT : vire les base64 (PDF source + aperçus image), garde URL Storage + métadonnées légères
+  if(isB64(d.recapDTFile))    delete d.recapDTFile;
+  if(isB64(d.recapDTPreview)) delete d.recapDTPreview;
+  if(Array.isArray(d.recapDTPreviews) && d.recapDTPreviews.some(isB64)) delete d.recapDTPreviews;
   // Documents joints : vire les base64, garde id/filename/url Storage
   if(Array.isArray(d.prepDocs)){
     d.prepDocs = d.prepDocs.map(doc => {
@@ -4177,6 +4183,10 @@ function _stripRapportForFirestore(r){
   // Plan de situation : base64 → vire, garde URL Storage si présente
   if(isB64(d.planSituation)) delete d.planSituation;
   if(r._planUrl && !d.planSituation) d.planSituation = r._planUrl;
+  // Récap DT : vire les base64 (lourds), garde URL Storage + métadonnées
+  if(isB64(d.recapDTFile))    delete d.recapDTFile;
+  if(isB64(d.recapDTPreview)) delete d.recapDTPreview;
+  if(Array.isArray(d.recapDTPreviews) && d.recapDTPreviews.some(isB64)) delete d.recapDTPreviews;
   // Signatures : toujours locales (jamais partagées)
   delete d.signature;
   delete d.signatureVeri;
@@ -5969,6 +5979,7 @@ async function openChantier(id){
             ['client','adresse','natureOperations','dateDebut','dateFin','dtDate','dtNum',
              'reference','respNom','respPoste','respContact','redacteur','veriNom',
              'conclusions','observations','recapDT','recapLin',
+             'recapDTFile','recapDTFileName','recapDTFileType','recapDTPreview','recapDTPreviews','recapDTUrl',
              'opDetection','opGeo','materiels','logiciels','prepDocs'].forEach(preferNonEmpty);
             // _regionPrefilled local : à préserver pour éviter le re-fill régional
             if(rapport._regionPrefilled) remote._regionPrefilled = true;
@@ -9794,13 +9805,58 @@ async function doWordDocx(){
     children.push(new Paragraph({pageBreakBefore:true,spacing:{before:0,after:0},children:[]}));
     children.push(annexHeader('A','Récapitulatif des DT reçues'));
     children.push(sp(180));
-    const recapDT = (r.recapDT||'').trim();
-    if(recapDT){
-      recapDT.split('\n').filter(Boolean).forEach(line=>{
-        children.push(new Paragraph({spacing:{before:40,after:0},indent:{left:200},children:[mkRun(line,{size:20,color:TEXT_DARK})]}));
-      });
-    } else {
-      children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40,after:0},children:[mkRun('- Aucun récapitulatif DT renseigné -',{size:20,italics:true,color:TEXT_LIGHT})]}));
+    // Priorité 1 : image(s)/PDF uploadé (aperçus générés au moment de l'upload)
+    // Format nouveau : recapDTPreviews = tableau (1 entrée par page de récap détectée)
+    // Format ancien  : recapDTPreview  = string (1 seule page) — rétrocompat
+    let recapEmbedded = false;
+    const recapPages = (Array.isArray(r.recapDTPreviews) && r.recapDTPreviews.length)
+      ? r.recapDTPreviews
+      : (r.recapDTPreview ? [r.recapDTPreview] : []);
+    if(recapPages.length){
+      try {
+        for(let idx = 0; idx < recapPages.length; idx++){
+          const recapSrc = await toJpegForDocx(await ensureDataUrl(recapPages[idx]));
+          const recapImg = parseImg(recapSrc);
+          if(!recapImg) continue;
+          // Lire les dimensions natives pour préserver le ratio (portrait OU paysage)
+          const dims = await new Promise(resolve => {
+            const im = new Image();
+            im.onload = () => resolve({ w: im.naturalWidth, h: im.naturalHeight });
+            im.onerror = () => resolve({ w: 1200, h: 1697 });
+            im.src = recapSrc;
+          });
+          // Zone utile A4 portrait sous marges 1" : ~454 × ~642 points
+          const MAX_W = 454, MAX_H = 642;
+          const srcRatio = (dims.w || 1) / (dims.h || 1);
+          let w, h;
+          if(srcRatio >= 1){
+            w = MAX_W; h = w / srcRatio;
+            if(h > MAX_H){ h = MAX_H; w = h * srcRatio; }
+          } else {
+            h = MAX_H; w = h * srcRatio;
+            if(w > MAX_W){ w = MAX_W; h = w / srcRatio; }
+          }
+          // Saut de page entre les pages de récap (sauf avant la 1re, qui suit déjà le titre Annexe A)
+          children.push(new Paragraph({
+            pageBreakBefore: idx > 0,
+            spacing:{before:0,after:60},
+            alignment:AlignmentType.CENTER,
+            children:[new ImageRun({type:recapImg.type,data:recapImg.data,transformation:{width:Math.round(w),height:Math.round(h)},altText:{title:`Récap DT page ${idx+1}`,description:'Récapitulatif des DT reçues',name:`recap_dt_${idx+1}`}})]
+          }));
+          recapEmbedded = true;
+        }
+      } catch(e){ Logger.warn('Export', 'recap DT image(s)', e?.message); }
+    }
+    // Fallback : ancien format texte
+    if(!recapEmbedded){
+      const recapDT = (r.recapDT||'').trim();
+      if(recapDT){
+        recapDT.split('\n').filter(Boolean).forEach(line=>{
+          children.push(new Paragraph({spacing:{before:40,after:0},indent:{left:200},children:[mkRun(line,{size:20,color:TEXT_DARK})]}));
+        });
+      } else {
+        children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40,after:0},children:[mkRun('- Aucun récapitulatif DT renseigné -',{size:20,italics:true,color:TEXT_LIGHT})]}));
+      }
     }
     children.push(sp(280));
 
@@ -13423,7 +13479,8 @@ function _populatePrepForm(c){
   setVal('prep-reference', c.reference);
   setVal('prep-dt-date', c.dtDate);
   setVal('prep-dt-num', c.dtNum);
-  setVal('prep-recap-dt', c.recapDT);
+  // Récap DT : la textarea a été remplacée par un upload fichier — on rend l'aperçu
+  _renderPrepRecapDT();
   // Nature des opérations : essayer de matcher dans la liste prédéfinie,
   // sinon basculer en mode "Autre" + texte libre
   const natSel = document.getElementById('prep-nature');
@@ -13526,6 +13583,177 @@ function prepRemovePlan(){
   savePrep();
 }
 
+// ════════════════════════════════════════════
+//  RÉCAP DT — upload PDF ou image, rendu 1re page pour l'Annexe A
+// ════════════════════════════════════════════
+
+// PDF.js chargé à la demande (uniquement quand un PDF récap est uploadé)
+let _pdfJsLoadingPromise = null;
+async function _ensurePdfJs(){
+  if(_pdfJsLoadingPromise) return _pdfJsLoadingPromise;
+  _pdfJsLoadingPromise = new Promise((resolve, reject) => {
+    if(window.pdfjsLib){ resolve(window.pdfjsLib); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      if(window.pdfjsLib){
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      } else { reject(new Error('pdfjsLib introuvable après chargement')); }
+    };
+    s.onerror = () => reject(new Error('Échec chargement PDF.js'));
+    document.head.appendChild(s);
+  });
+  return _pdfJsLoadingPromise;
+}
+
+// Rend UNE page d'un PDF en JPG dataUrl (helper interne)
+async function _renderPdfPageToJpg(page, maxWidth = 1400){
+  const baseVp = page.getViewport({ scale: 1 });
+  const scale = Math.min(maxWidth / baseVp.width, 2.5);
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(vp.width);
+  canvas.height = Math.round(vp.height);
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+  return canvas.toDataURL('image/jpeg', 0.88);
+}
+
+// Extrait TOUTES les pages de récap Protys d'un PDF (peut être 1, 2 voire 3 pages)
+// Détecte les pages contenant le marqueur "Récapitulatif - Déclarations et Récépissés".
+// Renvoie un tableau de JPG dataUrls. Fallback : 1re page si aucun marqueur détecté.
+async function _extractRecapPagesFromPdf(pdfDataUrl, maxWidth = 1400, maxPages = 5){
+  const pdfjs = await _ensurePdfJs();
+  const b64 = pdfDataUrl.split(',')[1];
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const doc = await pdfjs.getDocument({ data: bytes }).promise;
+  const RECAP_MARKER = /R[ée]capitulatif\s*[-–]\s*D[ée]clarations\s+et\s+R[ée]c[ée]piss[ée]s/i;
+  const previews = [];
+  const total = Math.min(doc.numPages, maxPages);
+  for(let i = 1; i <= total; i++){
+    const page = await doc.getPage(i);
+    let isRecap = false;
+    try {
+      const txt = await page.getTextContent();
+      const pageText = txt.items.map(t => t.str).join(' ');
+      isRecap = RECAP_MARKER.test(pageText);
+    } catch(_){ /* extraction texte échouée → on tente quand même la 1re page */ }
+    if(isRecap){
+      previews.push(await _renderPdfPageToJpg(page, maxWidth));
+    } else {
+      // Pages de récap supposées contiguës en début de PDF → on arrête au 1er non-récap
+      break;
+    }
+  }
+  // Fallback : si aucun marqueur détecté (Protys ancienne version, marqueur absent…), prend la 1re page
+  if(!previews.length){
+    const page = await doc.getPage(1);
+    previews.push(await _renderPdfPageToJpg(page, maxWidth));
+  }
+  return previews;
+}
+
+// Handler du file input — accepte PDF ou image
+async function prepUploadRecapDT(input){
+  if(!input.files.length || !_currentPrep) return;
+  const file = input.files[0];
+  input.value = '';
+  const isImage = (file.type || '').startsWith('image/');
+  const isPdf   = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if(!isImage && !isPdf){ toast('❌ Format invalide — PDF ou image requis'); return; }
+  toast('⏳ Traitement du récap DT…');
+  try {
+    // 1) Lecture en base64
+    const dataUrl = await new Promise((res, rej) => {
+      const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file);
+    });
+    // 2) Génération des aperçus (toutes les pages de récap pour un PDF, l'image elle-même sinon)
+    let previews;
+    if(isImage){
+      const single = (typeof compressImage === 'function') ? await compressImage(file, 1400) : dataUrl;
+      previews = [single];
+    } else {
+      previews = await _extractRecapPagesFromPdf(dataUrl, 1400);
+    }
+    // 3) Stockage sur la prépa
+    _currentPrep.recapDTFile     = dataUrl;
+    _currentPrep.recapDTFileName = file.name;
+    _currentPrep.recapDTFileType = file.type || (isPdf ? 'application/pdf' : 'image/*');
+    _currentPrep.recapDTPreviews = previews;                  // tableau de JPG (1 par page de récap)
+    _currentPrep.recapDTPreview  = previews[0] || '';         // rétrocompat (1re page seulement)
+    delete _currentPrep.recapDTUrl; // upload Storage à refaire
+    _renderPrepRecapDT();
+    await savePrep();
+    const nPages = previews.length;
+    toast(isPdf
+      ? `✅ Récap DT ajouté (${nPages} page${nPages>1?'s':''} de récap extraite${nPages>1?'s':''} pour l'Annexe A)`
+      : '✅ Récap DT ajouté');
+    // 4) Upload Storage en arrière-plan (fire-and-forget)
+    if(typeof fstorage !== 'undefined' && fstorage && FIREBASE_CONFIGURED){
+      const safeExt = isPdf ? 'pdf' : ((file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,''));
+      uploadPhotoToStorage(dataUrl, `rapports/${_currentPrep.id}/prep/recap_dt.${safeExt}`)
+        .then(async url => {
+          if(url){
+            _currentPrep.recapDTUrl = url;
+            try { await db.put('chantiers', _currentPrep); } catch(_){}
+            Logger.info('Prep', 'Récap DT uploadé en Storage');
+          }
+        })
+        .catch(e => Logger.warn('Prep', 'upload récap DT échoué', e?.message));
+    }
+  } catch(e){
+    toast('❌ Erreur traitement récap DT : ' + (e?.message || e));
+    Logger.error('Prep', 'recap DT upload', e?.message);
+  }
+}
+
+function prepRemoveRecapDT(){
+  if(!_currentPrep) return;
+  if(!confirm('Supprimer le récap DT ?')) return;
+  delete _currentPrep.recapDTFile;
+  delete _currentPrep.recapDTFileName;
+  delete _currentPrep.recapDTFileType;
+  delete _currentPrep.recapDTPreview;
+  delete _currentPrep.recapDTPreviews;
+  delete _currentPrep.recapDTUrl;
+  _renderPrepRecapDT();
+  savePrep();
+}
+
+function _renderPrepRecapDT(){
+  const preview = document.getElementById('prep-recap-dt-preview');
+  if(!preview || !_currentPrep) return;
+  const c = _currentPrep;
+  // Normaliser : recapDTPreviews (nouveau, tableau) OU recapDTPreview (ancien, single) → tableau
+  const previews = (Array.isArray(c.recapDTPreviews) && c.recapDTPreviews.length)
+    ? c.recapDTPreviews
+    : (c.recapDTPreview ? [c.recapDTPreview] : []);
+  if(!previews.length){
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    return;
+  }
+  const isPdf = (c.recapDTFileType || '').startsWith('application/pdf');
+  const fileLabel = (isPdf ? '📄 ' : '🖼️ ') + (c.recapDTFileName || (isPdf ? 'récap.pdf' : 'récap.jpg'));
+  const pagesInfo = previews.length > 1
+    ? ` · ${previews.length} pages de récap détectées`
+    : '';
+  preview.style.display = 'block';
+  preview.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:8px;padding:8px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.03)">' +
+      previews.map((src, i) =>
+        '<div style="position:relative">' +
+          (previews.length > 1 ? '<div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;font-family:var(--font-mono,monospace);letter-spacing:.5px">PAGE '+(i+1)+'/'+previews.length+'</div>' : '') +
+          '<img src="' + src + '" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;background:#fff" alt="Aperçu du récap DT page '+(i+1)+'">' +
+        '</div>'
+      ).join('') +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)">' +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + Validator.sanitize(fileLabel) + Validator.sanitize(pagesInfo) + '</span>' +
+        '<button type="button" onclick="prepRemoveRecapDT()" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#f87171;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️ Retirer</button>' +
+      '</div>' +
+    '</div>';
+}
+
 // Bascule entre select et texte libre quand "Autre" est choisi pour la nature des opérations
 function onPrepNatureChange(){
   const sel = document.getElementById('prep-nature');
@@ -13553,7 +13781,7 @@ function prepChanged(){
   c.reference = get('prep-reference');
   c.dtDate = get('prep-dt-date');
   c.dtNum = get('prep-dt-num');
-  c.recapDT = get('prep-recap-dt');
+  // Récap DT : géré via upload de fichier (prepUploadRecapDT), pas via input texte ici
   // Nature des opérations : si "Autre" sélectionné, lire l'input texte libre
   const _natSel = get('prep-nature');
   if(_natSel === '__autre__'){
@@ -13893,7 +14121,13 @@ async function startChantierFromPrep(){
         logiciels: (typeof DynLists !== 'undefined' ? DynLists.defaultLogiciels : []) || [],
         conclusions: (typeof DynLists !== 'undefined' && DynLists.defaultConclusion) ? DynLists.defaultConclusion : '',
         observations: '',
-        recapDT: c.recapDT || '',  // récap DT saisi en préparation → Annexe A du rapport
+        recapDT: c.recapDT || '',                    // fallback texte (ancien format) → Annexe A
+        recapDTFile: c.recapDTFile || '',            // fichier source (PDF ou image)
+        recapDTFileName: c.recapDTFileName || '',
+        recapDTFileType: c.recapDTFileType || '',
+        recapDTPreview: c.recapDTPreview || '',      // rétrocompat (1ʳᵉ page)
+        recapDTPreviews: Array.isArray(c.recapDTPreviews) ? c.recapDTPreviews.slice() : (c.recapDTPreview ? [c.recapDTPreview] : []),  // toutes les pages de récap → Annexe A
+        recapDTUrl: c.recapDTUrl || '',              // URL Storage Firebase
         conclusionPhotos: [],
         _regionPrefilled: true,    // empêche openChantier de re-fill l'équipe régionale
         opDetection: [{nom:'',poste:''},{nom:'',poste:''}],
@@ -13904,7 +14138,18 @@ async function startChantierFromPrep(){
       };
     } else {
       rapport._regionPrefilled = true;
-      // Reprend le récap DT de la prépa s'il n'a pas déjà été saisi dans le rapport
+      // Reprend le récap DT de la prépa s'il n'a pas déjà été saisi dans le rapport (priorité au fichier multi-pages)
+      const cHasPreview = (Array.isArray(c.recapDTPreviews) && c.recapDTPreviews.length) || c.recapDTPreview;
+      const rHasPreview = (Array.isArray(rapport.recapDTPreviews) && rapport.recapDTPreviews.length) || rapport.recapDTPreview;
+      if(!rHasPreview && cHasPreview){
+        rapport.recapDTFile     = c.recapDTFile     || '';
+        rapport.recapDTFileName = c.recapDTFileName || '';
+        rapport.recapDTFileType = c.recapDTFileType || '';
+        rapport.recapDTPreview  = c.recapDTPreview  || '';
+        rapport.recapDTPreviews = Array.isArray(c.recapDTPreviews) ? c.recapDTPreviews.slice() : (c.recapDTPreview ? [c.recapDTPreview] : []);
+        rapport.recapDTUrl      = c.recapDTUrl      || '';
+      }
+      // Fallback texte (ancien format) si pas déjà présent
       if(!rapport.recapDT && c.recapDT) rapport.recapDT = c.recapDT;
       rapport.lastModifiedAt = Date.now();
       rapport.updatedAt = Date.now();

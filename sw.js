@@ -1,5 +1,5 @@
-// Service Worker for NCVRD Detect PWA — v5
-const CACHE_NAME = 'ncvrd-detect-v5';
+// Service Worker for NCVRD Detect PWA — v6
+const CACHE_NAME = 'ncvrd-detect-v6';
 
 // Ressources locales à cacher obligatoirement
 const LOCAL_ASSETS = [
@@ -20,10 +20,12 @@ const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap'
 ];
 
-// Libs chargées à la demande (docx, jszip) — cachées au premier usage
+// Libs chargées à la demande (docx, jszip, pdf.js) — cachées au premier usage
 const LAZY_CDN = [
   'https://unpkg.com/docx@8.5.0/build/index.umd.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
 
 // ── Install : cacher les ressources locales + CDN critiques ──
