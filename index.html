@@ -1195,7 +1195,7 @@ html[data-terrain="1"] {
 
 /* ── PROFILE GRADIENT RING ───────────── */
 @keyframes profileRingSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.profile-ring-svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);animation:profileRingSpin 6s linear infinite;pointer-events:none}
+.profile-ring-svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);pointer-events:none}
 
 /* ── SPLASH RADAR SWEEP ──────────────── */
 @keyframes radarSweep{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -1462,7 +1462,8 @@ body::before{
 .profile-avatar-wrap::before{
   content:'';position:absolute;inset:-3px;border-radius:50%;
   background:conic-gradient(var(--accent),var(--purple),var(--teal),var(--accent));
-  animation:ringRotate 5s linear infinite;z-index:0;
+  /* rotation infinie retirée : boucle décorative = batterie/CPU sur tablette */
+  z-index:0;
 }
 .profile-avatar-wrap::after{
   content:'';position:absolute;inset:-1px;border-radius:50%;
@@ -1537,6 +1538,52 @@ body::before{
   transform:translateX(3px);
   box-shadow:0 4px 20px rgba(0,0,0,.3);
 }
+
+/* ═══════════════════════════════════════════════════════
+   ICÔNES SVG (nav + actions rapides) — stroke = currentColor
+   ═══════════════════════════════════════════════════════ */
+.nav-ico svg{width:22px;height:22px;display:block;margin:0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.home-qac .ic svg{width:24px;height:24px;display:block;margin:0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ═══════════════════════════════════════════════════════
+   MODE TERRAIN — compléments écran accueil (onglets, héros,
+   recherche unifiée, actions rapides)
+   ═══════════════════════════════════════════════════════ */
+[data-terrain="1"] #home-tabs{
+  background:#e2e8f0 !important;
+  border:2px solid #94a3b8 !important;
+}
+[data-terrain="1"] .hw-lab{ color:#334155 !important; font-size:11px !important; }
+[data-terrain="1"] .hw-lab::before{ background:#0f766e !important; }
+[data-terrain="1"] .hw-title{ color:#0a0f1e !important; }
+[data-terrain="1"] .hw-title em{ color:#0f766e !important; }
+[data-terrain="1"] .home-qa-lab{ color:#334155 !important; }
+[data-terrain="1"] .home-qac{
+  background:#ffffff !important;
+  border:2px solid #cbd5e1 !important;
+}
+[data-terrain="1"] .home-qac .lab{ color:#0f172a !important; font-weight:800 !important; }
+[data-terrain="1"] .home-qac.p{
+  background:#ecfdf5 !important;
+  border:2px solid #0f766e !important;
+}
+[data-terrain="1"] .home-qac.p .lab{ color:#0f766e !important; }
+[data-terrain="1"] #search-scope{
+  background:#ffffff !important;
+  border:2px solid #475569 !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACCESSIBILITÉ — préférence "réduire les animations"
+   ═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+    scroll-behavior:auto !important;
+  }
+}
 </style>
 <!-- EmailJS SDK retiré : l'app envoie les mails via Google Apps Script (GAS_MAIL_URL), pas EmailJS.
      Ce script était render-blocking et jamais appelé. -->
@@ -1593,14 +1640,16 @@ body::before{
 
 <!-- ─── LEFT NAV ──────────────────────────── -->
 <div id="bottom-nav" style="display:none">
-  <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')"><span class="nav-ico">🏗️</span><span class="nav-lbl">Accueil</span></button>
-  <button class="nav-btn" id="nav-preparation" onclick="showScreen('s-preparation');loadPreparationScreen()"><span class="nav-ico">📝</span><span class="nav-lbl">Prépa</span></button>
-  <button class="nav-btn" id="nav-ouvrages" onclick="showScreen('s-ouvrages')"><span class="nav-ico">🔩</span><span class="nav-lbl">Ouvrages</span></button>
-  <button class="nav-btn" id="nav-sresst" onclick="showScreen('s-sresst');loadSRESSTScreen()"><span class="nav-ico">🦺</span><span class="nav-lbl">SRESST</span></button>
-  <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')"><span class="nav-ico">📋</span><span class="nav-lbl">Consignes</span></button>
-  <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')"><span class="nav-ico">📂</span><span class="nav-lbl">Docs</span></button>
-  <button class="nav-btn" id="nav-profil" onclick="showScreen('s-profil')"><span class="nav-ico">👤</span><span class="nav-lbl">Profil</span></button>
-  <button class="nav-btn" id="nav-admin" onclick="openAdmin()" style="display:none"><span class="nav-ico">⚙️</span><span class="nav-lbl">Admin</span></button>
+  <!-- Icônes : SVG inline (style Lucide, stroke=currentColor → suit la couleur du bouton),
+       rendu identique sur tous les appareils contrairement aux emojis -->
+  <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-lbl">Accueil</span></button>
+  <button class="nav-btn" id="nav-preparation" onclick="showScreen('s-preparation');loadPreparationScreen()"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg></span><span class="nav-lbl">Prépa</span></button>
+  <button class="nav-btn" id="nav-ouvrages" onclick="showScreen('s-ouvrages')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span class="nav-lbl">Ouvrages</span></button>
+  <button class="nav-btn" id="nav-sresst" onclick="showScreen('s-sresst');loadSRESSTScreen()"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg></span><span class="nav-lbl">SRESST</span></button>
+  <button class="nav-btn" id="nav-consignes" onclick="showScreen('s-consignes')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></span><span class="nav-lbl">Consignes</span></button>
+  <button class="nav-btn" id="nav-dossier" onclick="showScreen('s-dossier')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="nav-lbl">Docs</span></button>
+  <button class="nav-btn" id="nav-profil" onclick="showScreen('s-profil')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span class="nav-lbl">Profil</span></button>
+  <button class="nav-btn" id="nav-admin" onclick="openAdmin()" style="display:none"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></span><span class="nav-lbl">Admin</span></button>
 </div>
 
 <!-- ─── APP CONTAINER ─────────────────────── -->
@@ -1618,7 +1667,7 @@ body::before{
         <div class="hw-gps">📍 48°52'14"N · 2°21'03"E</div>
       </div>
       <div class="hw-lab">Détection de réseaux</div>
-      <h1 class="hw-title">Bonjour, <em><span id="home-greeting-name">—</span></em></h1>
+      <h1 class="hw-title">Bonjour<span id="home-greeting-sep" style="display:none">,</span> <em><span id="home-greeting-name">👋</span></em></h1>
       <div id="home-agency-badge" class="hw-agency" style="display:none">
         <div class="hw-ag-ic">🏢</div>
         <div class="hw-ag-col"><span class="hw-ag-k">Agence</span><span class="hw-ag-v" id="home-agency-name">-</span></div>
@@ -1626,15 +1675,15 @@ body::before{
         <div class="hw-ag-col"><span class="hw-ag-k" id="home-user-role">Rôle</span><span class="hw-ag-v" id="home-user-name">-</span></div>
       </div>
     </div>
-    <div class="search-box">
-      <input class="search-inp" id="search-chantier" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
-    </div>
-
-    <!-- ═════════════════════════════════════════════════════════════
-         RECHERCHE RAPPORTS — Feature 2
-         ═════════════════════════════════════════════════════════════ -->
-    <div class="search-box" style="margin-top:6px">
-      <input class="search-inp" id="search-rapports" placeholder="🔍 Rechercher dans les rapports…" oninput="searchRapports(this.value)">
+    <!-- Recherche unifiée : une seule barre + sélecteur de portée (Chantiers | Rapports).
+         Les deux inputs d'origine sont conservés (ids/handlers intacts), un seul est visible. -->
+    <div class="search-box" style="display:flex;gap:6px;align-items:center">
+      <input class="search-inp" id="search-chantier" style="flex:1;min-width:0" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
+      <input class="search-inp" id="search-rapports" style="flex:1;min-width:0;display:none" placeholder="🔍 Rechercher dans les rapports…" oninput="searchRapports(this.value)">
+      <div id="search-scope" style="display:flex;background:var(--card2,rgba(255,255,255,.05));border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px;flex-shrink:0">
+        <button type="button" id="scope-chantiers" onclick="setSearchScope('chantiers')" style="border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff">Chantiers</button>
+        <button type="button" id="scope-rapports" onclick="setSearchScope('rapports')" style="border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:transparent;color:var(--muted)">Rapports</button>
+      </div>
     </div>
     <div id="search-rapports-results" style="display:none;padding:8px 14px;background:var(--card);border:1px solid var(--border);margin:0 14px 8px;border-radius:10px;max-height:300px;overflow-y:auto"></div>
 
@@ -1654,7 +1703,7 @@ body::before{
       <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 12px;background:rgba(232,98,10,.12);border:1px solid rgba(232,98,10,.3);color:#E8620A;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">✕ Réinitialiser</button>
     </div>
     <!-- Onglets En cours / Terminés / Partagés -->
-    <div style="display:flex;gap:0;margin:8px 14px 0;background:rgba(10,16,36,.6);border-radius:13px;padding:4px;border:1px solid rgba(0,229,255,.12)">
+    <div id="home-tabs" style="display:flex;gap:0;margin:8px 14px 0;background:rgba(10,16,36,.6);border-radius:13px;padding:4px;border:1px solid rgba(0,229,255,.12)">
       <button id="tab-encours" onclick="switchTab('encours')"
         style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .25s;background:linear-gradient(135deg,#005fa3,#00aacc,#00e5ff);color:#fff;box-shadow:0 4px 18px rgba(0,229,255,.35);letter-spacing:.3px">
         🟢 En cours <span id="badge-encours" style="background:rgba(255,255,255,.2);color:#fff;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px">0</span>
@@ -1682,10 +1731,10 @@ body::before{
     <div class="home-qa">
       <div class="home-qa-lab">Actions rapides</div>
       <div class="home-qa-grid">
-        <button type="button" class="home-qac p" onclick="createChantierDirect()"><div class="ic">+</div><div class="lab">Nouveau chantier</div></button>
-        <button type="button" class="home-qac" onclick="showScreen('s-dossier')"><div class="ic">📄</div><div class="lab">Documents</div></button>
-        <button type="button" class="home-qac" onclick="showScreen('s-consignes')"><div class="ic">📋</div><div class="lab">Consignes</div></button>
-        <button type="button" class="home-qac" onclick="showScreen('s-ouvrages')"><div class="ic">🏗️</div><div class="lab">Ouvrages</div></button>
+        <button type="button" class="home-qac p" onclick="createChantierDirect()"><div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></div><div class="lab">Nouveau chantier</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-dossier')"><div class="ic"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="lab">Documents</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-consignes')"><div class="ic"><svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></div><div class="lab">Consignes</div></button>
+        <button type="button" class="home-qac" onclick="showScreen('s-ouvrages')"><div class="ic"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="lab">Ouvrages</div></button>
       </div>
     </div>
   </div>
@@ -3879,6 +3928,8 @@ function toggleTerrainMode(){
     if(btn){ btn.title='Désactiver le mode terrain'; btn.style.background='#fef9c3'; btn.style.border='2px solid #ca8a04'; }
     toast('☀️ Mode terrain activé — haute visibilité');
   }
+  // Re-styler les onglets d'accueil (leurs couleurs inline dépendent du thème)
+  try { if(typeof switchTab === 'function' && typeof activeTab !== 'undefined') switchTab(activeTab); } catch(_){}
 }
 
 // Mettre à jour l'apparence du bouton au chargement
@@ -3888,6 +3939,9 @@ function updateTerrainBtn(){
   const isOn = document.documentElement.getAttribute('data-terrain') === '1';
   if(isOn){ btn.style.background='#fef9c3'; btn.style.border='2px solid #ca8a04'; btn.title='Désactiver le mode terrain'; }
   else     { btn.style.background='rgba(0,140,255,.1)'; btn.style.border='1px solid rgba(0,140,255,.25)'; btn.title='Mode terrain (haute visibilité soleil)'; }
+  // Au boot en mode terrain, les styles inline des onglets (défauts sombres du HTML)
+  // doivent être recalculés pour le fond clair
+  try { if(isOn && typeof switchTab === 'function' && typeof activeTab !== 'undefined') switchTab(activeTab); } catch(_){}
 }
 
 // ════════════════════════════════════════════
@@ -4948,9 +5002,13 @@ async function updateProfileScreen(){
   // Bouton « Changer l'agence » : réservé aux administrateurs
   const agBtn = document.getElementById('prof-agence-btn');
   if(agBtn) agBtn.style.display = isAdminRole(p.role) ? '' : 'none';
-  // Salutation accueil (modèle 5)
+  // Salutation accueil (modèle 5) — sans tiret orphelin si le prénom n'est pas chargé
   const greetName = document.getElementById('home-greeting-name');
-  if(greetName) greetName.textContent = p.displayName || '—';
+  const greetSep  = document.getElementById('home-greeting-sep');
+  if(greetName){
+    if(p.displayName){ greetName.textContent = p.displayName; if(greetSep) greetSep.style.display=''; }
+    else { greetName.textContent = '👋'; if(greetSep) greetSep.style.display='none'; }
+  }
   // Badge agence dans l'accueil
   const badge = document.getElementById('home-agency-badge');
   const agName = document.getElementById('home-agency-name');
@@ -5333,8 +5391,12 @@ function switchTab(tab){
   const bpar = document.getElementById('badge-partage');
   const bcor = document.getElementById('badge-corbeille');
   const BASE = 'flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,inherit;transition:all .2s;';
-  const OFF  = BASE + 'background:transparent;color:rgba(160,176,204,.6)';
-  const BADGE_OFF = 'background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px';
+  // Mode terrain (fond clair) : onglets inactifs et compteurs en sombre lisible
+  const terrain = document.documentElement.getAttribute('data-terrain') === '1';
+  const OFF  = BASE + (terrain ? 'background:transparent;color:#334155' : 'background:transparent;color:rgba(160,176,204,.6)');
+  const BADGE_OFF = terrain
+    ? 'background:#cbd5e1;color:#0f172a;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px'
+    : 'background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px';
   const BADGE_ON  = 'background:rgba(255,255,255,.25);color:#fff;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px';
 
   if(enc) enc.style.cssText = tab==='encours' ? BASE+'background:linear-gradient(135deg,#005fa3,#0099cc);color:#fff;box-shadow:0 2px 8px rgba(0,180,255,.3)' : OFF;
@@ -5815,6 +5877,28 @@ let _searchTimer;
 function filterChantiers(q){
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(applyFilters, 250);
+}
+
+// ── Recherche unifiée : bascule Chantiers / Rapports ──
+// Une seule barre visible ; en changeant de portée on remet à zéro l'autre
+// recherche pour ne pas laisser un filtre fantôme actif.
+let _searchScope = 'chantiers';
+function setSearchScope(scope){
+  if(_searchScope === scope) return;
+  _searchScope = scope;
+  const sc = document.getElementById('search-chantier');
+  const sr = document.getElementById('search-rapports');
+  const bc = document.getElementById('scope-chantiers');
+  const br = document.getElementById('scope-rapports');
+  const isC = scope === 'chantiers';
+  if(sc) sc.style.display = isC ? '' : 'none';
+  if(sr) sr.style.display = isC ? 'none' : '';
+  if(!isC && sc && sc.value){ sc.value=''; filterChantiers(''); }
+  if(isC && sr && sr.value){ sr.value=''; searchRapports(''); }
+  const BASE = 'border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;';
+  if(bc) bc.style.cssText = BASE + (isC ? 'background:var(--accent);color:#fff' : 'background:transparent;color:var(--muted)');
+  if(br) br.style.cssText = BASE + (isC ? 'background:transparent;color:var(--muted)' : 'background:var(--accent);color:#fff');
+  try { (isC ? sc : sr).focus(); } catch(_){}
 }
 
 function applyFilters(){
