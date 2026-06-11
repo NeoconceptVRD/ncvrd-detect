@@ -13,12 +13,9 @@
 <meta name="theme-color" content="#070b14">
 <link rel="manifest" href="manifest.json">
 <title>NCVRD Detect – Détection Réseaux VRD</title>
-<!-- ─── FIREBASE SDK ─── -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<!-- Firebase SDK : chargé en fin de <body> (avant le script principal) pour ne
+     pas bloquer le rendu du splash screen. Le preconnect amorce la connexion. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <style>
 /* ═══════════════════════════════════════
    NCVRD DETECT — Design System v4 DASHBOARD
@@ -3789,6 +3786,15 @@ body::before{
 
 <!-- PWA Install Banner — Feature 11 -->
 
+<!-- ─── FIREBASE SDK ───
+     Placé ici (et non dans <head>) pour que le HTML/CSS du splash screen soit
+     parsé et affiché avant le téléchargement des SDK. L'ordre d'exécution avec
+     le script principal ci-dessous est préservé (scripts synchrones). -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
 <script>
 // ════════════════════════════════════════════
 //  FIREBASE CONFIG  ← Remplacez par vos clés
@@ -3804,31 +3810,32 @@ body::before{
 // ════════════════════════════════════════════
 const GAS_MAIL_URL = 'https://script.google.com/macros/s/AKfycbyJtptglqHz386yfvz-iV1h7VOBSfzXwnEMWrQCTg0p3ibgPmb17P4mxZpUGPSguzP4Sg/exec';
 
+// ── Token anti-abus pour l'envoi de mail ──
+// L'URL GAS ci-dessus est publique (visible dans le source). Pour empêcher
+// n'importe qui de spammer depuis ncvrddetect@gmail.com, chaque envoi inclut
+// un token secret stocké dans Firestore (config/mail, lecture authentifiée
+// uniquement) et vérifié côté Apps Script. Seed : node seed-region-data.js
+let _mailTokenCache = null;
+async function _getMailToken(){
+  if(_mailTokenCache) return _mailTokenCache;
+  try {
+    const snap = await fdb.collection('config').doc('mail').get();
+    _mailTokenCache = snap.exists ? (snap.data().token || '') : '';
+  } catch(e){
+    Logger.warn('Email', 'Lecture token mail échouée', e?.message);
+    _mailTokenCache = '';
+  }
+  return _mailTokenCache;
+}
+
 // ════════════════════════════════════════════
-//  CONTACTS GROUPE NCVRD
-//  Prénom affiché → email réel
+//  CONTACTS GROUPE NCVRD (prénom affiché → email réel)
+//  ⚠️ Chargés depuis Firestore (config/lists.ncvrd_contacts, lecture
+//  authentifiée). NE JAMAIS remettre d'emails ici : le source est public.
 // ════════════════════════════════════════════
-const NCVRD_CONTACTS = [
-  { prenom:'Rachid',        email:'rachid.andouri@neoconceptvrd.fr',       agence:'Paris Ouest' },
-  { prenom:'Jordan',        email:'jordan.clodine@neoconceptvrd.fr',        agence:'Paris Ouest' },
-  { prenom:'Stephan',       email:'stephan.esteves@neoconceptvrd.fr',       agence:'Paris Ouest' },
-  { prenom:'Muhammad',      email:'F.muhammad@neoconceptvrd.fr',            agence:'Paris Ouest' },
-  { prenom:'Anissa',        email:'secretariat@neoconceptvrd.fr',           agence:'Paris Ouest' },
-  { prenom:'Jeanne-Debora', email:'jeanne-debora.koff@neoconceptvrd.fr',    agence:'Paris Ouest' },
-  { prenom:'Vinh Loi',      email:'vinh.loi.nguyen@neoconceptvrd.fr',       agence:'Paris Ouest' },
-  { prenom:'Maxime',        email:'maxime.bourre@neoconceptvrd.fr',         agence:'Paris Est'   },
-  { prenom:'Clément',       email:'clement.bourre@neoconceptvrd.fr',        agence:'Paris Est'   },
-  { prenom:'Alexandre',     email:'a.breuzard@neoconceptvrd.fr',            agence:'Paris Est'   },
-  { prenom:'Jean-Paul',     email:'jp.goodridge@neoconceptvrd.fr',          agence:'Paris Est'   },
-  { prenom:'Souleymane',    email:'Souleymane.mekboul@neoconceptvrd.fr',    agence:'Paris Est'   },
-  { prenom:'Aimen',         email:'aimen.goara@neoconceptvrd.fr',           agence:'Paris Est'   },
-  { prenom:'Florian',       email:'florian.b@neoconceptvrd.fr',             agence:'Grand Est'   },
-  { prenom:'Grégoire',      email:'gregoire.m@neoconceptvrd.fr',            agence:'Grand Est'   },
-  { prenom:'Lucas',         email:'lucas.s@neoconceptvrd.fr',               agence:'Grand Est'   },
-  { prenom:'Stéphane',      email:'stephane.s@neoconceptvrd.fr',            agence:'Grand Est'   },
-  { prenom:'Mathieu',       email:'mathieu.c@neoconceptvrd.fr',             agence:'Grand Est'   },
-  { prenom:'Noah',          email:'noah.s@neoconceptvrd.fr',                agence:'Grand Est'   },
-];
+Object.defineProperty(window, 'NCVRD_CONTACTS', {
+  get(){ try { return DynLists.get('ncvrd_contacts') || []; } catch(_){ return []; } }
+});
 
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyBSYpQzMenjr7sghERSTs8ABwE9ZrN96VQ",
@@ -4213,6 +4220,15 @@ function _stripRapportForFirestore(r){
       return nClean;
     });
   }
+  // Documents joints (prepDocs copiés du chantier) : vire les base64, garde id/filename/url Storage
+  // Sans ce strip, un Word/PDF importé (~10 Mo en base64) dépasse la limite Firestore.
+  if(Array.isArray(d.prepDocs)){
+    d.prepDocs = d.prepDocs.map(doc => {
+      const clean = {...doc};
+      if(isB64(clean.dataUrl)) delete clean.dataUrl;
+      return clean;
+    });
+  }
   return d;
 }
 
@@ -4418,84 +4434,29 @@ const DynLists = {
       DTDICT: {label:'DT/DICT',                 icon:'📋'}
     },
     default_conclusion: "L'ensemble des réseaux géolocalisés à l'aide du géoradar et de l'appareil de radiodétection ont été relevés par notre géomètre à l'aide d'une tablette Panasonic Toughbook FZ-G1, d'une station totale TS13 et/ou d'une antenne GPS GG04 Plus.\n\nCes données ont ensuite été reportées sous format AUTOCAD, dont le plan est joint au présent rapport.",
+    // ⚠️ ANNUAIRE : les noms/téléphones des collaborateurs sont chargés depuis
+    // Firestore (config/lists.region_data, lecture authentifiée uniquement).
+    // NE JAMAIS remettre de données personnelles ici : ce fichier est public
+    // (repo GitHub Pages). Seed initial : node seed-region-data.js
     region_data: {
       'Grand EST': {
         label: 'Neoconcept VRD Grand EST',
         ville: 'Strasbourg',
-        chefProjet: [
-          {nom:'BREDUILLIEARD Florian', poste:"Directeur d'Agence",  contact:'06 47 37 66 86'},
-          {nom:'SCHASCHKOW Stéphane',   poste:"Chargé d'Affaire",    contact:'06 47 37 66 86'}
-        ],
-        opDetection: [
-          {nom:'SCHAEFFER Lucas',  poste:'Technicien Détection - Géomètre', contact:'07 49 68 77 38'},
-          {nom:'MICHEL Grégoire',  poste:'Technicien Détection - Géomètre', contact:'07 68 47 54 69'},
-          {nom:'CARMET Mathieu',   poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72'},
-          {nom:'STUDER Noah',      poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72'}
-        ],
-        opGeo: [
-          {nom:'SCHAEFFER Lucas',  poste:'Technicien Détection - Géomètre', contact:'07 49 68 77 38'},
-          {nom:'MICHEL Grégoire',  poste:'Technicien Détection - Géomètre', contact:'07 68 47 54 69'},
-          {nom:'CARMET Mathieu',   poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72'},
-          {nom:'STUDER Noah',      poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72'}
-        ],
-        allPersonnel: [
-          {nom:'BREDUILLIEARD Florian', poste:"Directeur d'Agence",          contact:'06 47 37 66 86', cat:'Chef de projet'},
-          {nom:'SCHASCHKOW Stéphane',   poste:"Chargé d'Affaire",            contact:'06 47 37 66 86', cat:'Chef de projet'},
-          {nom:'SCHAEFFER Lucas',       poste:'Technicien Détection - Géomètre', contact:'07 49 68 77 38', cat:'Opérateur'},
-          {nom:'MICHEL Grégoire',       poste:'Technicien Détection - Géomètre', contact:'07 68 47 54 69', cat:'Opérateur'},
-          {nom:'CARMET Mathieu',        poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72', cat:'Opérateur'},
-          {nom:'STUDER Noah',           poste:'Technicien Détection - Géomètre', contact:'07 59 57 14 72', cat:'Opérateur'}
-        ]
+        chefProjet: [], opDetection: [], opGeo: [], allPersonnel: []
       },
       'Paris OUEST': {
         label: 'Neoconcept VRD Paris OUEST',
         ville: 'Courbevoie (Siège)',
-        chefProjet: [
-          {nom:'ANDOURI Rachid', poste:'Directeur Général', contact:'07 84 02 52 49'}
-        ],
-        opDetection: [
-          {nom:'ESTEVES Stephan',        poste:'Référent Détection',              contact:'06 59 53 70 37'},
-          {nom:'CLODINE FLORENT Jordan', poste:'Technicien Détection - Géomètre', contact:'07 59 57 11 41'},
-          {nom:'FAHEEM AFZAL Muhammad',  poste:'Technicien Géomètre - Topographe',contact:'06 05 99 16 48'}
-        ],
-        opGeo: [
-          {nom:'NGUYEN Vinh Loi',        poste:'Technicien SIG',                  contact:'06 50 03 71 97'},
-          {nom:'KOFFI Jeanne Debora',    poste:'Technicien Géomètre - Topographe',contact:'07 51 46 66 42'}
-        ],
-        allPersonnel: [
-          {nom:'ANDOURI Rachid',         poste:'Directeur Général',               contact:'07 84 02 52 49',                      cat:'Chef de projet'},
-          {nom:'ESTEVES Stephan',        poste:'Référent Détection',              contact:'06 59 53 70 37',                      cat:'Opérateur'},
-          {nom:'CLODINE FLORENT Jordan', poste:'Technicien Détection - Géomètre', contact:'07 59 57 11 41',                      cat:'Opérateur'},
-          {nom:'FAHEEM AFZAL Muhammad',  poste:'Technicien Géomètre - Topographe',contact:'06 05 99 16 48',                      cat:'Opérateur'},
-          {nom:'NGUYEN Vinh Loi',        poste:'Technicien SIG',                  contact:'06 50 03 71 97',                      cat:'Opérateur'},
-          {nom:'KOFFI Jeanne Debora',    poste:'Technicien Géomètre - Topographe',contact:'07 51 46 66 42',                      cat:'Opérateur'}
-        ]
+        chefProjet: [], opDetection: [], opGeo: [], allPersonnel: []
       },
       'Paris EST': {
         label: 'Neoconcept VRD Paris EST',
         ville: 'Noisy-Le-Grand',
-        chefProjet: [
-          {nom:'BOURRE Maxime',      poste:'Responsable Opérationnel', contact:'06 38 60 94 71'},
-          {nom:'MEKBOUL Souleymane', poste:'Assistant QHSE',           contact:'07 82 27 60 15'}
-        ],
-        opDetection: [
-          {nom:'BOURRE Clément',      poste:'Référent Détection',              contact:'07 59 54 44 30'},
-          {nom:'GOODRIDGE Jean-Paul', poste:'Technicien Réseaux',              contact:'07 59 58 02 93'},
-          {nom:'GOARA Aimé',          poste:'Technicien Détection - Géomètre', contact:'06 99 65 87 85'}
-        ],
-        opGeo: [
-          {nom:'BREUZARD Alexandre',  poste:'Géomètre',                        contact:'06 64 75 00 81'}
-        ],
-        allPersonnel: [
-          {nom:'BOURRE Maxime',       poste:'Responsable Opérationnel',        contact:'06 38 60 94 71', cat:'Chef de projet'},
-          {nom:'MEKBOUL Souleymane',  poste:'Assistant QHSE',                  contact:'07 82 27 60 15', cat:'Chef de projet'},
-          {nom:'BOURRE Clément',      poste:'Référent Détection',              contact:'07 59 54 44 30', cat:'Opérateur'},
-          {nom:'GOODRIDGE Jean-Paul', poste:'Technicien Réseaux',              contact:'07 59 58 02 93', cat:'Opérateur'},
-          {nom:'GOARA Aimé',          poste:'Technicien Détection - Géomètre', contact:'06 99 65 87 85', cat:'Opérateur'},
-          {nom:'BREUZARD Alexandre',  poste:'Géomètre',                        contact:'06 64 75 00 81', cat:'Opérateur'}
-        ]
+        chefProjet: [], opDetection: [], opGeo: [], allPersonnel: []
       }
     },
+    // Contacts mail (prénom → email) : chargés depuis Firestore, jamais en dur ici
+    ncvrd_contacts: [],
     role_colors: {
       'Directeur Général':                 {bg:'rgba(124,58,237,.15)',color:'#7fb0bc',border:'rgba(124,58,237,.3)'},
       "Directeur d'agence":                {bg:'rgba(37,99,235,.15)',color:'#33d4c6',border:'rgba(37,99,235,.3)'},
@@ -9820,78 +9781,88 @@ async function doWordDocx(){
     children.push(sp(180));
     // Priorité 1 : image(s)/PDF uploadé (aperçus générés au moment de l'upload)
     // Cascade de résolution :  rapport → chantier (mémoire) → IDB → re-fetch Storage
-    // Nécessaire parce que les base64 sont strippés à chaque sync Firestore.
+    // ⚠️ TOUT le bloc est dans un try/catch MAÎTRE : peu importe ce qui plante (réseau,
+    //    PDF.js, image corrompue, IDB indisponible…), l'export Word continue sans le récap.
+    //    Mieux vaut un rapport sans récap qu'un .docx corrompu de 69 octets.
     let recapEmbedded = false;
-    let recapPages = (Array.isArray(r.recapDTPreviews) && r.recapDTPreviews.length)
-      ? r.recapDTPreviews
-      : (r.recapDTPreview ? [r.recapDTPreview] : []);
-    // Fallback 1 : chantier en mémoire
-    if(!recapPages.length && S.currentChantier){
-      const c2 = S.currentChantier;
-      if(Array.isArray(c2.recapDTPreviews) && c2.recapDTPreviews.length) recapPages = c2.recapDTPreviews;
-      else if(c2.recapDTPreview) recapPages = [c2.recapDTPreview];
-    }
-    // Fallback 2 : IDB local (peut contenir les base64 strippés de Firestore)
-    if(!recapPages.length && S.currentChantier){
-      try {
-        const idbC = await db._idb.get('chantiers', S.currentChantier.id).catch(()=>null);
-        if(idbC){
-          if(Array.isArray(idbC.recapDTPreviews) && idbC.recapDTPreviews.length) recapPages = idbC.recapDTPreviews;
-          else if(idbC.recapDTPreview) recapPages = [idbC.recapDTPreview];
-        }
-      } catch(_){}
-    }
-    // Fallback 3 : re-télécharger le fichier source depuis Storage et re-rendre les pages
-    if(!recapPages.length){
-      const recapUrl = r.recapDTUrl || (S.currentChantier && S.currentChantier.recapDTUrl) || '';
-      if(recapUrl){
-        try {
-          const blob = await fetch(recapUrl).then(res => res.blob());
-          const dataUrl = await new Promise((res, rej) => {
-            const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob);
-          });
-          const isPdf = (blob.type === 'application/pdf') || /\.pdf(\?|$)/i.test(recapUrl);
-          recapPages = isPdf
-            ? await _extractRecapPagesFromPdf(dataUrl, 1200)
-            : [dataUrl];
-          Logger.info('Export', `Récap DT re-téléchargé depuis Storage : ${recapPages.length} page(s)`);
-        } catch(e){ Logger.warn('Export', 'recap DT re-fetch', e?.message); }
+    try {
+      let recapPages = (Array.isArray(r.recapDTPreviews) && r.recapDTPreviews.length)
+        ? r.recapDTPreviews
+        : (r.recapDTPreview ? [r.recapDTPreview] : []);
+      // Fallback 1 : chantier en mémoire
+      if(!recapPages.length && S.currentChantier){
+        const c2 = S.currentChantier;
+        if(Array.isArray(c2.recapDTPreviews) && c2.recapDTPreviews.length) recapPages = c2.recapDTPreviews;
+        else if(c2.recapDTPreview) recapPages = [c2.recapDTPreview];
       }
-    }
-    if(recapPages.length){
-      try {
-        for(let idx = 0; idx < recapPages.length; idx++){
-          const recapSrc = await toJpegForDocx(await ensureDataUrl(recapPages[idx]));
-          const recapImg = parseImg(recapSrc);
-          if(!recapImg) continue;
-          // Lire les dimensions natives pour préserver le ratio (portrait OU paysage)
-          const dims = await new Promise(resolve => {
-            const im = new Image();
-            im.onload = () => resolve({ w: im.naturalWidth, h: im.naturalHeight });
-            im.onerror = () => resolve({ w: 1200, h: 1697 });
-            im.src = recapSrc;
-          });
-          // Zone utile A4 portrait sous marges 1" : ~454 × ~642 points
-          const MAX_W = 454, MAX_H = 642;
-          const srcRatio = (dims.w || 1) / (dims.h || 1);
-          let w, h;
-          if(srcRatio >= 1){
-            w = MAX_W; h = w / srcRatio;
-            if(h > MAX_H){ h = MAX_H; w = h * srcRatio; }
-          } else {
-            h = MAX_H; w = h * srcRatio;
-            if(w > MAX_W){ w = MAX_W; h = w / srcRatio; }
+      // Fallback 2 : IDB local (peut contenir les base64 strippés de Firestore)
+      if(!recapPages.length && S.currentChantier){
+        try {
+          const idbC = await db._idb.get('chantiers', S.currentChantier.id).catch(()=>null);
+          if(idbC){
+            if(Array.isArray(idbC.recapDTPreviews) && idbC.recapDTPreviews.length) recapPages = idbC.recapDTPreviews;
+            else if(idbC.recapDTPreview) recapPages = [idbC.recapDTPreview];
           }
-          // Saut de page entre les pages de récap (sauf avant la 1re, qui suit déjà le titre Annexe A)
-          children.push(new Paragraph({
-            pageBreakBefore: idx > 0,
-            spacing:{before:0,after:60},
-            alignment:AlignmentType.CENTER,
-            children:[new ImageRun({type:recapImg.type,data:recapImg.data,transformation:{width:Math.round(w),height:Math.round(h)},altText:{title:`Récap DT page ${idx+1}`,description:'Récapitulatif des DT reçues',name:`recap_dt_${idx+1}`}})]
-          }));
-          recapEmbedded = true;
+        } catch(_){}
+      }
+      // Fallback 3 : re-télécharger le fichier source depuis Storage et re-rendre les pages
+      if(!recapPages.length){
+        const recapUrl = r.recapDTUrl || (S.currentChantier && S.currentChantier.recapDTUrl) || '';
+        if(recapUrl){
+          try {
+            const blob = await fetch(recapUrl).then(res => res.blob());
+            const dataUrl = await new Promise((res, rej) => {
+              const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob);
+            });
+            const isPdf = (blob.type === 'application/pdf') || /\.pdf(\?|$)/i.test(recapUrl);
+            recapPages = isPdf
+              ? await _extractRecapPagesFromPdf(dataUrl, 1200)
+              : [dataUrl];
+            Logger.info('Export', `Récap DT re-téléchargé depuis Storage : ${recapPages.length} page(s)`);
+          } catch(e){ Logger.warn('Export', 'recap DT re-fetch', e?.message); }
         }
-      } catch(e){ Logger.warn('Export', 'recap DT image(s)', e?.message); }
+      }
+      if(recapPages.length){
+        for(let idx = 0; idx < recapPages.length; idx++){
+          try {
+            const recapSrc = await toJpegForDocx(await ensureDataUrl(recapPages[idx]));
+            const recapImg = parseImg(recapSrc);
+            if(!recapImg) continue;
+            // Lire les dimensions natives pour préserver le ratio (portrait OU paysage)
+            const dims = await new Promise(resolve => {
+              const im = new Image();
+              im.onload = () => resolve({ w: im.naturalWidth, h: im.naturalHeight });
+              im.onerror = () => resolve({ w: 1200, h: 1697 });
+              im.src = recapSrc;
+            });
+            // Zone utile A4 portrait sous marges 1" : ~454 × ~642 points
+            const MAX_W = 454, MAX_H = 642;
+            const srcRatio = (dims.w || 1) / (dims.h || 1);
+            let w, h;
+            if(srcRatio >= 1){
+              w = MAX_W; h = w / srcRatio;
+              if(h > MAX_H){ h = MAX_H; w = h * srcRatio; }
+            } else {
+              h = MAX_H; w = h * srcRatio;
+              if(w > MAX_W){ w = MAX_W; h = w / srcRatio; }
+            }
+            // Saut de page entre les pages de récap (sauf avant la 1re, qui suit déjà le titre Annexe A)
+            children.push(new Paragraph({
+              pageBreakBefore: idx > 0,
+              spacing:{before:0,after:60},
+              alignment:AlignmentType.CENTER,
+              children:[new ImageRun({type:recapImg.type,data:recapImg.data,transformation:{width:Math.round(w),height:Math.round(h)},altText:{title:`Récap DT page ${idx+1}`,description:'Récapitulatif des DT reçues',name:`recap_dt_${idx+1}`}})]
+            }));
+            recapEmbedded = true;
+          } catch(e){
+            // Échec d'embed d'UNE page : on continue avec les suivantes (pas de crash global)
+            Logger.warn('Export', `recap DT page ${idx+1} embed`, e?.message);
+          }
+        }
+      }
+    } catch(e){
+      // Filet de sécurité global : même si tout le bloc récap plante, l'export continue
+      Logger.error('Export', 'Bloc récap DT global échoué — export continue sans le récap', e?.message);
     }
     // Fallback : ancien format texte
     if(!recapEmbedded){
@@ -10455,6 +10426,9 @@ function sanitizeForFirestore(val){
   if(Array.isArray(val)){
     return val.map(sanitizeForFirestore).filter(v => v !== undefined);
   }
+  // Sentinelles Firestore (serverTimestamp, delete…) : à laisser intactes,
+  // un clonage en objet brut les détruirait.
+  if(val instanceof firebase.firestore.FieldValue) return val;
   if(val !== null && typeof val === 'object'){
     const out = {};
     for(const [k, v] of Object.entries(val)){
@@ -10503,9 +10477,21 @@ async function _writeRapportToFirestore(r, teamId){
   if(Array.isArray(firestoreData.recapDTPreviews) && firestoreData.recapDTPreviews.some(isB64x)){
     delete firestoreData.recapDTPreviews;
   }
+  // Documents joints (prepDocs) : vire les base64 — un Word/PDF importé dépasse sinon
+  // la limite Firestore (10 Mo/requête). L'URL Storage (doc.url) suffit côté cloud.
+  if(Array.isArray(firestoreData.prepDocs)){
+    firestoreData.prepDocs = firestoreData.prepDocs.map(doc => {
+      const clean = {...doc};
+      if(isB64x(clean.dataUrl)) delete clean.dataUrl;
+      return clean;
+    });
+  }
   firestoreData.lastModifiedBy   = currentUserProfile.uid;
   firestoreData.lastModifiedName = currentUserProfile.displayName || currentUserProfile.email || '-';
   firestoreData.lastModifiedAt   = Date.now();
+  // Horodatage côté serveur : insensible aux horloges locales déréglées.
+  // Base fiable pour détecter les conflits multi-appareils (à venir).
+  firestoreData.lastModifiedAtServer = firebase.firestore.FieldValue.serverTimestamp();
   firestoreData.modifHistory     = r.modifHistory || [];
   try {
     await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(sanitizeForFirestore(firestoreData),{merge:true});
@@ -11972,12 +11958,20 @@ async function _backupBeforeSync(type, id){
     const data = await db.get(store, id);
     if(!data) return;
 
+    // Strip base64 lourds avant de mettre en localStorage (limite ~5 Mo)
+    // Sinon : "Storage quota exceeded" sur les chantiers/rapports avec récap DT PDF
+    const stripped = (type === 'chantier' && typeof _stripChantierForFirestore === 'function')
+      ? _stripChantierForFirestore(data)
+      : (type === 'rapport' && typeof _stripRapportForFirestore === 'function')
+        ? _stripRapportForFirestore(data)
+        : data;
+
     // Stocker le backup dans IndexedDB (store dédié si possible) ou localStorage
     const backups = _getBackups();
     const key = `${type}_${id}`;
     backups[key] = {
       type, id,
-      data: JSON.parse(JSON.stringify(data)), // deep clone
+      data: JSON.parse(JSON.stringify(stripped)), // deep clone du stripped (léger)
       backedUpAt: Date.now()
     };
 
@@ -14104,7 +14098,15 @@ async function prepAddDocs(input){
   const files = Array.from(input.files);
   input.value = '';
   const newDocs = [];
+  // Garde-fou taille : Storage accepte 50 Mo max (storage.rules), et le base64
+  // local gonfle de +33%. Au-delà de 25 Mo on refuse avec un message clair
+  // plutôt que de laisser la sync échouer silencieusement plus tard.
+  const MAX_DOC_MB = 25;
   for(const file of files){
+    if(file.size > MAX_DOC_MB * 1024 * 1024){
+      toast(`⚠️ ${file.name} fait ${(file.size/1048576).toFixed(1)} Mo — maximum ${MAX_DOC_MB} Mo. Compresse-le ou découpe-le.`);
+      continue;
+    }
     try {
       const dataUrl = await new Promise((resolve, reject) => {
         const fr = new FileReader();
@@ -14608,6 +14610,7 @@ async function _doSendEmail(){
     const resp = await fetch(GAS_MAIL_URL, {
       method: 'POST',
       body: JSON.stringify({
+        token:           await _getMailToken(),
         to_email:        recipient,
         subject:         subject,
         message:         message,
