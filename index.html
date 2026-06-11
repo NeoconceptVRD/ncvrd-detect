@@ -4974,6 +4974,20 @@ async function updateProfileScreen(){
 // ════════════════════════════════════════════
 //  INDEXEDDB
 // ════════════════════════════════════════════
+// ── Traçage des échecs IndexedDB ──
+// La plupart des appels db.put/del sont entourés de catch vides (best-effort) :
+// en cas d'échec (quota plein, base corrompue), l'erreur était totalement
+// invisible. On logge donc ICI, dans la couche, avant de rejeter.
+// Toast limité à 1/30s : l'autosave (400ms) ne doit pas spammer si ça boucle.
+let _idbFailLastToast = 0;
+function _logIdbFail(op, store, err){
+  Logger.error('IDB', `${op}('${store}') échoué`, err?.message||String(err));
+  if(op==='put' && ['rapports','chantiers'].includes(store) && Date.now()-_idbFailLastToast > 30000){
+    _idbFailLastToast = Date.now();
+    toast('⚠️ Sauvegarde locale échouée — stockage de l\'appareil plein ?');
+  }
+}
+
 class AppDB {
   constructor(){this.db=null}
   open(){
@@ -4986,15 +5000,15 @@ class AppDB {
         });
       };
       r.onsuccess=e=>{this.db=e.target.result;res(this)};
-      r.onerror=()=>rej(r.error);
+      r.onerror=()=>{ Logger.error('IDB', 'Ouverture de la base échouée', r.error?.message||String(r.error)); rej(r.error); };
     });
   }
   _tx(store,mode='readonly'){return this.db.transaction(store,mode).objectStore(store)}
-  getAll(s){return new Promise((res,rej)=>{const r=this._tx(s).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}
-  get(s,id){return new Promise((res,rej)=>{const r=this._tx(s).get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-  put(s,data){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').put(data);r.onsuccess=()=>res(data);r.onerror=()=>rej(r.error)})}
-  del(s,id){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-  clear(s){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+  getAll(s){return new Promise((res,rej)=>{const r=this._tx(s).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>{_logIdbFail('getAll',s,r.error);rej(r.error)}})}
+  get(s,id){return new Promise((res,rej)=>{const r=this._tx(s).get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>{_logIdbFail('get',s,r.error);rej(r.error)}})}
+  put(s,data){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').put(data);r.onsuccess=()=>res(data);r.onerror=()=>{_logIdbFail('put',s,r.error);rej(r.error)}})}
+  del(s,id){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>{_logIdbFail('del',s,r.error);rej(r.error)}})}
+  clear(s){return new Promise((res,rej)=>{const r=this._tx(s,'readwrite').clear();r.onsuccess=()=>res();r.onerror=()=>{_logIdbFail('clear',s,r.error);rej(r.error)}})}
 }
 const db=new CloudDB();
 
@@ -7840,7 +7854,8 @@ async function exportSingleOuvrage(id){
   // Si on est sur la fiche en cours d'édition, capter les valeurs DOM avant export
   // (évite les valeurs vides si l'utilisateur n'a pas cliqué "Enregistrer" avant "Word")
   if(_currentOuvrage && (!id || _currentOuvrage.id === id)){
-    try { await saveOuvrage(); } catch(_){}
+    try { await saveOuvrage(); }
+    catch(e){ Logger.warn('Ouvrages', 'saveOuvrage avant export échoué — export avec les dernières valeurs connues', e?.message); }
   }
   const o = id ? (S_ouvrages.find(x=>x.id===id) || await db._idb.get('ouvrages',id).catch(()=>null)) : _currentOuvrage;
   if(!o){ toast('❌ Ouvrage introuvable'); return; }
@@ -7857,6 +7872,51 @@ async function exportAllOuvrages(){
   catch(e){ toast('❌ '+e.message); }
 }
 
+// ════════════════════════════════════════════
+//  DOCX COMMON — partagé par les 3 exports Word
+//  (rapport détection, fiches ouvrage, SRESST)
+// ════════════════════════════════════════════
+// Chargement docx.js + JSZip : idempotent ET dédupliqué (un seul <script>
+// injecté même si l'utilisateur déclenche deux exports coup sur coup).
+let _docxLibsPromise = null;
+function loadDocxLibs(){
+  if(window.docx && window.JSZip) return Promise.resolve();
+  if(_docxLibsPromise) return _docxLibsPromise;
+  _docxLibsPromise = Promise.all([
+    new Promise((resolve,reject)=>{
+      if(window.docx) return resolve();
+      const s=document.createElement('script');
+      s.src='https://unpkg.com/docx@8.5.0/build/index.umd.js';
+      s.onload=resolve; s.onerror=()=>reject(new Error('Impossible de charger docx.js — vérifiez votre connexion'));
+      document.head.appendChild(s);
+    }),
+    new Promise((resolve)=>{
+      if(window.JSZip) return resolve();
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload=resolve; s.onerror=resolve; // JSZip non bloquant (fixDocxJpeg dégradé sans lui)
+      document.head.appendChild(s);
+    })
+  ]).finally(()=>{ _docxLibsPromise = null; }); // reset → permet un retry après échec réseau
+  return _docxLibsPromise;
+}
+
+// Charte v2 commune aux 3 exports Word — SOURCE UNIQUE DE VÉRITÉ.
+// Toute retouche de la charte se fait ici (et seulement ici).
+// Chaque export garde ses constantes spécifiques (OBS_*, WARMBG, COLS…) en local.
+const DOCX_PALETTE = Object.freeze({
+  NAVY:'0E2841',       // titres section, headers tableaux
+  CYAN:'0B769F',       // numéros section, sous-titres
+  ORANGE:'E8620A',     // traits sous-titre + accents
+  TEXT_DARK:'0F172A',  // corps texte foncé (Slate 900)
+  TEXT_MID:'475569',   // corps secondaire (Slate 600)
+  TEXT_LIGHT:'94A3B8', // labels caps espacés (Slate 400)
+  CARDBG:'F8FAFC',     // fond cards / labels
+  WHITE:'FFFFFF',
+  LGRAY:'F4F6F9', MGRAY:'D1D5DB', DGRAY:'374151',
+  FONT:'Aptos'         // Office 365 (fallback Calibri auto)
+});
+
 async function _generateOuvragesWord(ouvrages, filename){
   // ── Validation : champs critiques par ouvrage (agrège les erreurs uniques) ──
   if(Array.isArray(ouvrages) && ouvrages.length){
@@ -7872,35 +7932,21 @@ async function _generateOuvragesWord(ouvrages, filename){
     const label = ouvrages.length === 1 ? 'La fiche ouvrage est' : 'L\'export ouvrages est';
     if(!_confirmIfIncomplete(errs, label)) return;
   }
-  // ── Chargement docx.js ──
-  await new Promise((resolve, reject)=>{
-    if(window.docx) return resolve();
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/docx@8.5.0/build/index.umd.js';
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Impossible de charger docx.js — vérifiez votre connexion'));
-    document.head.appendChild(s);
-  });
+  // ── Chargement docx.js (+JSZip) — loader commun dédupliqué ──
+  await loadDocxLibs().catch(e=>{ toast('⚠️ '+(e?.message||'Erreur chargement librairie')); });
   if(!window.docx){ toast('❌ docx.js non disponible'); return; }
 
   const {Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun,
          Header, Footer, AlignmentType, WidthType, ImageRun, PageBreak,
          PageNumber, TabStopType, BorderStyle, ShadingType} = window.docx;
 
-  // ── Palette template v2 (alignée sur le rapport de détection) ──
-  const NAVY       = '0E2841'; // titres section, headers tableaux
-  const CYAN       = '0B769F'; // accents (futur usage si numéros section)
-  const ORANGE     = 'E8620A'; // trait sous-titre + accents
-  const TEXT_DARK  = '0F172A'; // corps texte foncé (Slate 900)
-  const TEXT_MID   = '475569'; // corps secondaire (Slate 600)
-  const TEXT_LIGHT = '94A3B8'; // labels caps espacés (Slate 400)
-  const CARDBG     = 'F8FAFC'; // fond cards / labels
-  const C_WHITE    = 'FFFFFF';
+  // ── Palette : charte v2 commune (DOCX_PALETTE) + spécifiques ouvrage ──
+  const {NAVY, CYAN, ORANGE, TEXT_DARK, TEXT_MID, TEXT_LIGHT, CARDBG, FONT} = DOCX_PALETTE;
+  const C_WHITE = DOCX_PALETTE.WHITE;
   // Alias rétro-compat avec l'ancien code (les vieilles couleurs pointent vers la charte v2)
   const C_YELLOW = NAVY, C_BLUE = NAVY, C_LBLUE = CARDBG, C_NAVY = NAVY, C_BLACK = TEXT_DARK;
   // Cases observation : couleurs charte v2 (Classe A/B/C + slate 400)
   const OBS_GREEN = '059669', OBS_AMBER = 'D97706', OBS_RED = 'DC2626', OBS_GRAY = TEXT_LIGHT;
-  const FONT = 'Aptos'; // Office 365 (fallback Calibri auto)
 
   // ── Largeurs colonnes (DXA, extraites de l'ODT) ──
   const COLS = [1453, 1063, 1063, 930, 797, 1706, 820, 1195];
@@ -8664,23 +8710,8 @@ async function doWordDocx(){
   const c = S.currentChantier || S.chantiers.find(x=>x.id===S.activeChantier) || {};
   const dateGen = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
 
-  // Charger docx.js et JSZip (nécessaire pour corriger les types d'image)
-  await Promise.all([
-    new Promise((resolve,reject)=>{
-      if(window.docx) return resolve();
-      const s=document.createElement('script');
-      s.src='https://unpkg.com/docx@8.5.0/build/index.umd.js';
-      s.onload=resolve; s.onerror=()=>reject(new Error('Impossible de charger docx.js'));
-      document.head.appendChild(s);
-    }),
-    new Promise((resolve)=>{
-      if(window.JSZip) return resolve();
-      const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      s.onload=resolve; s.onerror=resolve; // non bloquant
-      document.head.appendChild(s);
-    })
-  ]).catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
+  // Charger docx.js et JSZip (nécessaire pour corriger les types d'image) — loader commun
+  await loadDocxLibs().catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
   if(!window.docx){ toast('❌ Impossible de charger la librairie docx.js - vérifiez votre connexion'); return; }
 
   _updateExportProgress('Chargement des librairies…', 15);
@@ -8691,19 +8722,13 @@ async function doWordDocx(){
       ShadingType, PageBreak, PageNumber, TabStopType, VerticalAlign
     } = window.docx;
 
-    // ── Palette template v2 (extraite du docx source) ──
-    const NAVY='0E2841', STEEL='0E2841', ORANGE='E8620A';
-    const CYAN='0B769F';                  // numéros section, sous-titres
-    const TEXT_DARK='0F172A';             // corps texte foncé (Slate 900)
-    const TEXT_MID='475569';              // corps secondaire (Slate 600)
-    const TEXT_LIGHT='94A3B8';            // labels caps, footer (Slate 400)
-    const CARDBG='F8FAFC';                // fond cards
+    // ── Palette : charte v2 commune (DOCX_PALETTE) + spécifiques rapport ──
+    const {NAVY, CYAN, ORANGE, TEXT_DARK, TEXT_MID, TEXT_LIGHT, CARDBG,
+           WHITE, LGRAY, MGRAY, DGRAY, FONT} = DOCX_PALETTE;
+    const STEEL=NAVY;
     const WARMBG='FFF7ED';                // encart observations
     const COVERBG='F2F2F2';               // fond encart chantier (cover)
     const CLA='059669', CLB='D97706', CLC='DC2626'; // badges classe
-    const LGRAY='F4F6F9', MGRAY='D1D5DB', DGRAY='374151';
-    const WHITE='FFFFFF';
-    const FONT='Aptos';                   // police Office 365 (fallback Calibri auto)
     const CW=9638; // A4 marges 1134 (0.79")
 
     const brd=(color,size=4)=>({style:BorderStyle.SINGLE,size,color:color||MGRAY});
@@ -12979,8 +13004,9 @@ async function monthlyCleanup(manual = false){
 }
 
 async function initApp(){
-  await db.open().catch(()=>{});
-  await DynLists.load().catch(()=>{});
+  // Échec d'ouverture IDB = pas de stockage local du tout : l'utilisateur doit le savoir
+  await db.open().catch(()=>{ toast('⚠️ Stockage local indisponible — les données ne seront pas conservées hors ligne'); });
+  await DynLists.load().catch(e=>Logger.warn('Init','DynLists.load échoué',e?.message));
   DynLists.populateSelects();
   await loadChantiers().catch(e=>Logger.warn('Init','loadChantiers échoué',e?.message));
   // Purge auto des chantiers en corbeille depuis plus de 30 jours
@@ -14738,23 +14764,8 @@ async function doSRESSTWordDocx(){
   await saveSRESSTEvent();
   const ev = getSRESSTFormData();
 
-  // Charger docx.js
-  await Promise.all([
-    new Promise((resolve,reject)=>{
-      if(window.docx) return resolve();
-      const s=document.createElement('script');
-      s.src='https://unpkg.com/docx@8.5.0/build/index.umd.js';
-      s.onload=resolve; s.onerror=()=>reject(new Error('Impossible de charger docx.js'));
-      document.head.appendChild(s);
-    }),
-    new Promise((resolve)=>{
-      if(window.JSZip) return resolve();
-      const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      s.onload=resolve; s.onerror=resolve;
-      document.head.appendChild(s);
-    })
-  ]).catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
+  // Charger docx.js (+JSZip) — loader commun dédupliqué
+  await loadDocxLibs().catch(e=>{toast('⚠️ '+(e?.message||'Erreur chargement librairie'));});
   if(!window.docx){ toast('❌ Impossible de charger la librairie docx.js'); return; }
 
   try {
@@ -14764,16 +14775,9 @@ async function doSRESSTWordDocx(){
       ShadingType, PageNumber, TabStopType, VerticalAlign, HeadingLevel
     } = window.docx;
 
-    // ── Palette template v2 (alignée sur le rapport de détection) ──
-    const NAVY='0E2841', ORANGE='E8620A';
-    const CYAN='0B769F';                   // numéros section §1-§12
-    const TEXT_DARK='0F172A';              // corps texte foncé
-    const TEXT_MID='475569';               // corps secondaire
-    const TEXT_LIGHT='94A3B8';             // labels caps espacés
-    const CARDBG='F8FAFC';                 // fond labels
-    const LGRAY='F4F6F9', MGRAY='D1D5DB', DGRAY='374151'; // legacy
-    const WHITE='FFFFFF';
-    const FONT='Aptos';                    // Office 365 (fallback Calibri auto)
+    // ── Palette : charte v2 commune (DOCX_PALETTE) ──
+    const {NAVY, CYAN, ORANGE, TEXT_DARK, TEXT_MID, TEXT_LIGHT, CARDBG,
+           WHITE, LGRAY, MGRAY, DGRAY, FONT} = DOCX_PALETTE;
     const CW=9638; // A4, marges 1134
 
     const brd=(color,size=4)=>({style:BorderStyle.SINGLE,size,color:color||MGRAY});
