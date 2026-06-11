@@ -8221,6 +8221,8 @@ async function _generateOuvragesWord(ouvrages, filename){
 
   // ── Génération du fichier ──
   const doc = new Document({
+    // Police par défaut du document : tout TextRun sans font explicite hérite d'Aptos
+    styles:{ default:{ document:{ run:{ font: FONT } } } },
     sections:[{
       headers:    { default: pageHeader },
       footers:    { default: pageFooter },
@@ -10052,6 +10054,8 @@ async function doWordDocx(){
 
     // ─── DOCUMENT ───
     const doc=new Document({
+      // Police par défaut du document : tout TextRun sans font explicite hérite d'Aptos
+      styles:{ default:{ document:{ run:{ font: FONT } } } },
       sections:[{
         properties:{page:{size:{width:11906,height:16838},margin:{
           header:0,    // bannière collée au bord haut
@@ -14971,6 +14975,8 @@ async function doSRESSTWordDocx(){
     });
 
     const doc = new Document({
+      // Police par défaut du document : tout TextRun sans font explicite hérite d'Aptos
+      styles:{ default:{ document:{ run:{ font: FONT } } } },
       sections:[{
         properties:{page:{size:{width:11906,height:16838},margin:{
           header:0, top:3592, right:1134, bottom:1134, left:1134, footer:600
