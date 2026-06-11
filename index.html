@@ -10470,8 +10470,59 @@ function sanitizeForFirestore(val){
   return val;
 }
 
+// ── Détection de conflits multi-appareils ──
+// Principe : on mémorise le lastModifiedAt serveur "vu" en dernier par CET appareil
+// (baseline). Avant d'écrire, si le serveur porte une version d'un AUTRE utilisateur
+// différente de notre baseline, c'est que quelqu'un a modifié le rapport entre-temps
+// → on demande quoi faire au lieu d'écraser silencieusement.
+// Comparaison par égalité de valeur (pas par horloge) → insensible aux montres déréglées.
+const _rapportSyncBaseline = {};   // id rapport → lastModifiedAt serveur vu/écrit en dernier
+const _conflictLastCheck  = {};    // id rapport → Date.now() du dernier check (throttle lectures)
+let _conflictPromptOpen = false;
+
+async function _rapportConflictBlocked(r, teamId){
+  try {
+    if(_conflictPromptOpen) return true; // un prompt est déjà affiché → on suspend la sync
+    const now = Date.now();
+    if(_conflictLastCheck[r.id] && now - _conflictLastCheck[r.id] < 10000) return false; // max 1 lecture / 10s
+    _conflictLastCheck[r.id] = now;
+    const snap = await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).get();
+    if(!snap.exists) return false; // première écriture → pas de conflit possible
+    const sd = snap.data();
+    const serverAt = sd.lastModifiedAt || 0;
+    const serverBy = sd.lastModifiedBy || null;
+    // Dernière version serveur = la nôtre → pas de conflit, on rafraîchit la baseline
+    if(!serverBy || serverBy === currentUserProfile.uid){ _rapportSyncBaseline[r.id] = serverAt; return false; }
+    const base = _rapportSyncBaseline[r.id];
+    // Première sync de la session : openChantier vient de fusionner la version serveur → baseline
+    if(base === undefined){ _rapportSyncBaseline[r.id] = serverAt; return false; }
+    if(serverAt === base) return false; // rien de neuf depuis notre dernière vue
+    // ── CONFLIT : un collègue a modifié le rapport depuis notre dernière vue ──
+    _conflictPromptOpen = true;
+    const who  = sd.lastModifiedName || 'un collègue';
+    const when = serverAt ? new Date(serverAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '';
+    Logger.warn('Sync', `Conflit détecté sur ${r.id} : modifié par ${who}`);
+    const overwrite = confirm(
+      `⚠️ Conflit de modification\n\nCe rapport a été modifié par ${who}${when?' à '+when:''} pendant que vous l'éditiez.\n\n`+
+      `OK = écraser avec VOTRE version\nAnnuler = récupérer SA version (l'écran sera rechargé)`
+    );
+    _conflictPromptOpen = false;
+    _rapportSyncBaseline[r.id] = serverAt; // dans les 2 cas, on a "vu" sa version
+    if(overwrite) return false;            // l'écriture continue, sa version sera écrasée
+    // Récupérer la version du collègue : recharge via le chemin existant (fusion remote+local)
+    toast('🔄 Récupération de la version de '+who+'…');
+    try { await openChantier(r.id); } catch(e){ Logger.error('Sync','rechargement après conflit échoué', e?.message); }
+    return true; // écriture annulée
+  } catch(e){
+    Logger.warn('Sync', 'Vérification de conflit échouée — écriture poursuivie', e?.message);
+    return false; // en cas de doute, ne jamais bloquer la sauvegarde
+  }
+}
+
 // ── Écriture Firestore (texte + URLs déjà disponibles) ──
 async function _writeRapportToFirestore(r, teamId){
+  // Quelqu'un d'autre a-t-il modifié ce rapport depuis notre dernière vue ?
+  if(await _rapportConflictBlocked(r, teamId)) return;
   const firestoreData = {...r};
   // planSituation : supprimer si base64 (trop lourd), conserver si URL Firebase (après upload)
   if(!firestoreData.planSituation || firestoreData.planSituation.startsWith('data:')){
@@ -10526,6 +10577,8 @@ async function _writeRapportToFirestore(r, teamId){
   firestoreData.modifHistory     = r.modifHistory || [];
   try {
     await fdb.collection('teams').doc(teamId).collection('rapports').doc(r.id).set(sanitizeForFirestore(firestoreData),{merge:true});
+    // Notre version est maintenant la dernière sur le serveur → nouvelle baseline conflit
+    _rapportSyncBaseline[r.id] = firestoreData.lastModifiedAt;
   } catch(e){
     Logger.warn('Sync', `_writeRapportToFirestore échoué pour ${r.id}`, e?.message);
     addToSyncQueue('rapport', r.id);
@@ -12769,10 +12822,19 @@ window.addEventListener('appinstalled', () => {
 // ── Service Worker + auto-update ──
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(reg => {
+    const checkUpdate = () => reg.update().catch(()=>{});
     // Au boot, demander au SW de vérifier s'il y a une nouvelle version
-    reg.update().catch(()=>{});
-    // Re-check toutes les heures
-    setInterval(()=>reg.update().catch(()=>{}), 60 * 60 * 1000);
+    checkUpdate();
+    // Re-check : toutes les 15 min, ET dès que l'appli revient au premier plan
+    // (tablette sortie de veille) ou que le réseau revient — c'est là que les
+    // mises à jour arrivent réellement chez les techniciens.
+    setInterval(checkUpdate, 15 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'visible') checkUpdate();
+    });
+    window.addEventListener('online', checkUpdate);
+    // Une version installée attend déjà (bandeau raté à la session précédente) ?
+    if(reg.waiting && navigator.serviceWorker.controller) _promptAppUpdate();
     // Quand un nouveau SW est trouvé et prêt → proposer le rechargement
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
