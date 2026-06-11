@@ -4664,7 +4664,8 @@ function roleColor(role){
 }
 function roleBadgeHTML(role){
   const c=roleColor(role);
-  return `<span style="display:inline-block;background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">${role||'-'}</span>`;
+  // role vient de Firestore (modifiable) → échappement obligatoire (anti-XSS)
+  return `<span style="display:inline-block;background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">${escHtml(role||'-')}</span>`;
 }
 
 async function loginUser(){
@@ -6465,13 +6466,14 @@ function filterPickerList(q){
     (p.contact||'').toLowerCase().includes(fl)
   ) : people;
   if(!filtered.length){ inner.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Aucun résultat</div>'; return; }
+  // p.* vient de Firestore (config/lists.region_data, éditable par les admins) → échapper
   inner.innerHTML = filtered.map(p=>`
-    <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom).replace(/"/g,'&quot;')},${JSON.stringify(p.poste).replace(/"/g,'&quot;')},${JSON.stringify(p.contact||'').replace(/"/g,'&quot;')})">
-      <div class="picker-item-avatar">${p.nom.charAt(0)}</div>
+    <div class="picker-item" onclick="selectPerson(${JSON.stringify(p.nom).replace(/"/g,'&quot;').replace(/</g,'\\u003c')},${JSON.stringify(p.poste).replace(/"/g,'&quot;').replace(/</g,'\\u003c')},${JSON.stringify(p.contact||'').replace(/"/g,'&quot;').replace(/</g,'\\u003c')})">
+      <div class="picker-item-avatar">${escHtml(p.nom.charAt(0))}</div>
       <div class="picker-item-info">
-        <div class="picker-item-name">${p.nom}</div>
-        <div class="picker-item-poste">${p.poste}</div>
-        ${p.contact?`<div class="picker-item-contact">${p.contact}</div>`:''}
+        <div class="picker-item-name">${escHtml(p.nom)}</div>
+        <div class="picker-item-poste">${escHtml(p.poste)}</div>
+        ${p.contact?`<div class="picker-item-contact">${escHtml(p.contact)}</div>`:''}
       </div>
     </div>`).join('');
 }
@@ -6617,9 +6619,9 @@ function renderLogiciels(){
   el.innerHTML=logs.map((l,i)=>`
     <div class="net-row" style="margin-bottom:8px">
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center">
-        <input class="mini-inp" value="${l.type||''}" placeholder="Type de logiciel"
+        <input class="mini-inp" value="${escHtml(l.type||'')}" placeholder="Type de logiciel"
           oninput="S.currentRapport.logiciels[${i}].type=this.value;rapportChanged()">
-        <input class="mini-inp" value="${l.marque||''}" placeholder="Marque / Éditeur"
+        <input class="mini-inp" value="${escHtml(l.marque||'')}" placeholder="Marque / Éditeur"
           oninput="S.currentRapport.logiciels[${i}].marque=this.value;rapportChanged()">
         <button class="del-btn" onclick="removeLogiciel(${i})">✕</button>
       </div>
@@ -7576,8 +7578,8 @@ function viewDocument(docId){
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px';
     overlay.innerHTML = `
-      <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:12px;max-width:90vw;text-align:center">${doc.name}</div>
-      <img src="${doc.data}" style="max-width:95vw;max-height:80vh;border-radius:8px;object-fit:contain">
+      <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:12px;max-width:90vw;text-align:center">${escHtml(doc.name)}</div>
+      <img src="${escHtml(doc.data)}" style="max-width:95vw;max-height:80vh;border-radius:8px;object-fit:contain">
       <button onclick="this.parentNode.remove()" style="margin-top:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;padding:12px 32px;font-family:inherit">Fermer</button>`;
     document.body.appendChild(overlay);
   } else {
@@ -11194,15 +11196,15 @@ function renderAdminParams(){
         const members = teamMatch ? _adminData.users.filter(u=>u.teamId===teamMatch.id) : [];
         return `<div style="background:linear-gradient(135deg,rgba(30,58,110,.05),rgba(29,78,216,.08));border:1px solid rgba(29,78,216,.15);border-radius:12px;padding:14px;margin-bottom:10px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:14px;font-weight:800;color:#33d4c6">${reg.emoji} ${rd.label}</div>
+            <div style="font-size:14px;font-weight:800;color:#33d4c6">${reg.emoji} ${escHtml(rd.label)}</div>
             <span style="font-size:11px;background:rgba(22,168,154,.1);color:#33d4c6;border:1px solid rgba(22,168,154,.25);border-radius:20px;padding:2px 9px;font-weight:700">${members.length} membre${members.length!==1?'s':''}</span>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Chef de projet</div>
-          ${rd.chefProjet.map(p=>`<div style="font-size:12px;color:var(--text);padding:3px 0">👤 <strong>${p.nom}</strong> · ${p.poste} · ${p.contact}</div>`).join('')}
+          ${rd.chefProjet.map(p=>`<div style="font-size:12px;color:var(--text);padding:3px 0">👤 <strong>${escHtml(p.nom)}</strong> · ${escHtml(p.poste)} · ${escHtml(p.contact)}</div>`).join('')}
           <div style="font-size:11px;color:var(--muted);margin:8px 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Opérateurs détection (${rd.opDetection.length})</div>
-          ${rd.opDetection.map(p=>`<div style="font-size:12px;color:var(--text);padding:2px 0">🔍 ${p.nom} · ${p.poste}</div>`).join('')}
+          ${rd.opDetection.map(p=>`<div style="font-size:12px;color:var(--text);padding:2px 0">🔍 ${escHtml(p.nom)} · ${escHtml(p.poste)}</div>`).join('')}
           <div style="font-size:11px;color:var(--muted);margin:8px 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Opérateurs géo (${rd.opGeo.length})</div>
-          ${rd.opGeo.map(p=>`<div style="font-size:12px;color:var(--text);padding:2px 0">📐 ${p.nom} · ${p.poste}</div>`).join('')}
+          ${rd.opGeo.map(p=>`<div style="font-size:12px;color:var(--text);padding:2px 0">📐 ${escHtml(p.nom)} · ${escHtml(p.poste)}</div>`).join('')}
         </div>`;
       }).join('')}
     </div>
@@ -11241,10 +11243,13 @@ function renderAdminParams(){
       snap.forEach(doc=>{
         const td = doc.data();
         const name = td.name || td.teamName || doc.id;
-        const code = td.inviteCode || '-';
-        const admCode = td.adminInviteCode || '-';
+        // Codes injectés dans du JS inline (onclick) : filtre strict alphanumérique,
+        // pas un simple échappement HTML (qui serait décodé avant l'exécution JS).
+        const safeCode = s => String(s||'-').replace(/[^A-Za-z0-9_-]/g,'');
+        const code = safeCode(td.inviteCode);
+        const admCode = safeCode(td.adminInviteCode);
         html += `<div style="background:var(--card2);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)">
-          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">🗺️ ${name}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">🗺️ ${escHtml(name)}</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <span style="font-size:11px;color:var(--muted)">👷 Code équipe</span>
             <span style="font-family:monospace;font-size:14px;font-weight:800;color:var(--accent);cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText('${code}').then(()=>toast('📋 Code copié'))">${code}</span>
@@ -11273,12 +11278,12 @@ function renderAdminAgencies(filter=''){
     return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:800">🏢 ${t.name||t.id}</div>
+          <div style="font-size:15px;font-weight:800">🏢 ${escHtml(t.name||t.id)}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">${members.length} membre${members.length>1?'s':''} · ${admins.length} admin${admins.length>1?'s':''} · ${techs.length} tech${techs.length>1?'s':''}</div>
         </div>
         <div style="text-align:right;font-size:10px;color:var(--muted)">
-          <div>👷 <span style="font-family:monospace;font-weight:700">${t.inviteCode||'-'}</span></div>
-          <div>🔑 <span style="font-family:monospace;font-weight:700;color:#92400e">${t.adminInviteCode||'-'}</span></div>
+          <div>👷 <span style="font-family:monospace;font-weight:700">${escHtml(t.inviteCode||'-')}</span></div>
+          <div>🔑 <span style="font-family:monospace;font-weight:700;color:#92400e">${escHtml(t.adminInviteCode||'-')}</span></div>
         </div>
       </div>
       <div>${members.length?members.map(u=>`
@@ -11308,11 +11313,11 @@ function renderAdminUsers(filter=''){
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div style="min-width:0">
-          <div style="font-size:14px;font-weight:800">👤 ${u.displayName||'-'}</div>
-          <div style="font-size:11px;color:var(--muted)">${u.email||'-'}</div>
+          <div style="font-size:14px;font-weight:800">👤 ${escHtml(u.displayName||'-')}</div>
+          <div style="font-size:11px;color:var(--muted)">${escHtml(u.email||'-')}</div>
           <div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             ${roleBadgeHTML(u.role)}
-            <span style="font-size:11px;color:var(--muted)">🏢 ${u.teamName||'-'}</span>
+            <span style="font-size:11px;color:var(--muted)">🏢 ${escHtml(u.teamName||'-')}</span>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
