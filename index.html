@@ -1568,10 +1568,6 @@ body::before{
   border:2px solid #0f766e !important;
 }
 [data-terrain="1"] .home-qac.p .lab{ color:#0f766e !important; }
-[data-terrain="1"] #search-scope{
-  background:#ffffff !important;
-  border:2px solid #475569 !important;
-}
 
 /* ═══════════════════════════════════════════════════════
    ACCESSIBILITÉ — préférence "réduire les animations"
@@ -1675,15 +1671,12 @@ body::before{
         <div class="hw-ag-col"><span class="hw-ag-k" id="home-user-role">Rôle</span><span class="hw-ag-v" id="home-user-name">-</span></div>
       </div>
     </div>
-    <!-- Recherche unifiée : une seule barre + sélecteur de portée (Chantiers | Rapports).
-         Les deux inputs d'origine sont conservés (ids/handlers intacts), un seul est visible. -->
-    <div class="search-box" style="display:flex;gap:6px;align-items:center">
-      <input class="search-inp" id="search-chantier" style="flex:1;min-width:0" placeholder="🔍  Rechercher chantier, client, référence…" oninput="filterChantiers(this.value)">
-      <input class="search-inp" id="search-rapports" style="flex:1;min-width:0;display:none" placeholder="🔍 Rechercher dans les rapports…" oninput="searchRapports(this.value)">
-      <div id="search-scope" style="display:flex;background:var(--card2,rgba(255,255,255,.05));border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px;flex-shrink:0">
-        <button type="button" id="scope-chantiers" onclick="setSearchScope('chantiers')" style="border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff">Chantiers</button>
-        <button type="button" id="scope-rapports" onclick="setSearchScope('rapports')" style="border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:transparent;color:var(--muted)">Rapports</button>
-      </div>
+    <!-- Recherche unifiée : UNE seule barre — filtre la liste des chantiers ET cherche
+         dans le contenu des rapports (résultats dans le panneau en dessous).
+         L'input caché #search-rapports est conservé pour compatibilité (clearRapportSearch). -->
+    <div class="search-box">
+      <input class="search-inp" id="search-chantier" placeholder="🔍  Rechercher chantier, client, rapport…" oninput="unifiedSearch(this.value)">
+      <input type="hidden" id="search-rapports" value="">
     </div>
     <div id="search-rapports-results" style="display:none;padding:8px 14px;background:var(--card);border:1px solid var(--border);margin:0 14px 8px;border-radius:10px;max-height:300px;overflow-y:auto"></div>
 
@@ -5879,26 +5872,14 @@ function filterChantiers(q){
   _searchTimer = setTimeout(applyFilters, 250);
 }
 
-// ── Recherche unifiée : bascule Chantiers / Rapports ──
-// Une seule barre visible ; en changeant de portée on remet à zéro l'autre
-// recherche pour ne pas laisser un filtre fantôme actif.
-let _searchScope = 'chantiers';
-function setSearchScope(scope){
-  if(_searchScope === scope) return;
-  _searchScope = scope;
-  const sc = document.getElementById('search-chantier');
-  const sr = document.getElementById('search-rapports');
-  const bc = document.getElementById('scope-chantiers');
-  const br = document.getElementById('scope-rapports');
-  const isC = scope === 'chantiers';
-  if(sc) sc.style.display = isC ? '' : 'none';
-  if(sr) sr.style.display = isC ? 'none' : '';
-  if(!isC && sc && sc.value){ sc.value=''; filterChantiers(''); }
-  if(isC && sr && sr.value){ sr.value=''; searchRapports(''); }
-  const BASE = 'border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;';
-  if(bc) bc.style.cssText = BASE + (isC ? 'background:var(--accent);color:#fff' : 'background:transparent;color:var(--muted)');
-  if(br) br.style.cssText = BASE + (isC ? 'background:transparent;color:var(--muted)' : 'background:var(--accent);color:#fff');
-  try { (isC ? sc : sr).focus(); } catch(_){}
+// ── Recherche unifiée : une seule barre qui cherche partout ──
+// Filtre la liste des chantiers (debounce 250ms interne à filterChantiers)
+// ET cherche dans le contenu des rapports (debounce 400ms — getAll plus coûteux).
+let _rapportSearchTimer = null;
+function unifiedSearch(v){
+  filterChantiers(v);
+  clearTimeout(_rapportSearchTimer);
+  _rapportSearchTimer = setTimeout(()=>searchRapports(v), 400);
 }
 
 function applyFilters(){
