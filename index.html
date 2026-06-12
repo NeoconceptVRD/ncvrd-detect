@@ -8382,7 +8382,7 @@ async function _generateOuvragesWord(ouvrages, filename){
     tabStops:[{type:TabStopType.CENTER,position:Math.round(TW/2)},{type:TabStopType.RIGHT,position:TW}],
     children:[
       new ImageRun({type:'jpeg', data:_dataUrlToBytes(_BV_CERT_B64),
-        transformation:{width:74,height:36},
+        transformation:{width:100,height:49},
         altText:{title:'Bureau Veritas', description:'Certification Bureau Veritas — Prestataire localisation réseaux', name:'BV'}}),
       new TextRun({text:'\t',size:16}),
       new TextRun({text:'NeoConceptVRD  –  Fiches d\'ouvrages',size:16,font:FONT,color:TEXT_LIGHT}),
@@ -10179,7 +10179,7 @@ async function doWordDocx(){
       tabStops:[{type:TabStopType.CENTER,position:4819},{type:TabStopType.RIGHT,position:9638}],
       children:[
         new ImageRun({type:'jpeg', data:_dataUrlToBytes(_BV_CERT_B64),
-          transformation:{width:74,height:36},
+          transformation:{width:100,height:49},
           altText:{title:'Bureau Veritas', description:'Certification Bureau Veritas — Prestataire localisation réseaux', name:'BV'}}),
         new TextRun({text:'\t',size:16}),
         mkRun(_ent.footer,{size:16,color:'9CA3AF'}),
