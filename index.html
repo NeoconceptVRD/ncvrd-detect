@@ -1776,7 +1776,11 @@ body::before{
         </div>
         <div class="form-group">
           <label class="form-label">Adresse de l'intervention</label>
-          <input class="form-input" id="r-adresse" placeholder="Adresse complète du chantier" oninput="rapportChanged()">
+          <div style="display:flex;gap:8px;align-items:stretch">
+            <input class="form-input" id="r-adresse" style="flex:1;min-width:0" placeholder="Adresse complète du chantier" oninput="rapportChanged()">
+            <button type="button" onclick="fillAddressFromGPS()" title="Remplir avec ma position GPS" aria-label="Remplir l'adresse avec ma position GPS"
+              style="flex-shrink:0;width:48px;border:1.5px solid var(--border);border-radius:12px;background:var(--input);color:var(--accent);font-size:18px;cursor:pointer">📍</button>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
           <div>
@@ -2549,6 +2553,7 @@ body::before{
       <button onclick="adminTab('collab')" id="atab-collab" style="flex:1 0 auto;min-width:78px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--blue);border-bottom:3px solid var(--blue);font-family:inherit;white-space:nowrap">👥 Équipe</button>
       <button onclick="adminTab('chantiers')" id="atab-chantiers" style="flex:1 0 auto;min-width:84px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">🏗️ Chantiers</button>
       <button onclick="adminTab('documents')" id="atab-documents" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📄 Docs</button>
+      <button onclick="adminTab('stats')" id="atab-stats" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📊 Stats</button>
       <button onclick="adminTab('params')" id="atab-params" style="flex:1 0 auto;min-width:82px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">⚙️ Réglages</button>
     </div>
     <!-- Recherche (cachée sur l'onglet Réglages) -->
@@ -2567,6 +2572,10 @@ body::before{
     <!-- Onglet Documents -->
     <div id="admin-panel-documents" style="display:none;padding:12px 14px 90px">
       <div id="admin-documents-list"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    </div>
+    <!-- Onglet Stats -->
+    <div id="admin-panel-stats" style="display:none;padding:12px 14px 90px">
+      <div id="admin-stats-content"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
     </div>
     <!-- Onglet Réglages -->
     <div id="admin-panel-params" style="display:none;padding:12px 14px 90px">
@@ -7476,6 +7485,30 @@ function captureGPSForNetwork(networkName){
   },{enableHighAccuracy:true,timeout:6000});
 }
 
+// ── Adresse auto par GPS : position → géocodage inverse BAN (data.gouv.fr) ──
+// API Base Adresse Nationale : gratuite, sans clé, optimisée pour la France.
+function fillAddressFromGPS(){
+  if(!navigator.geolocation){ toast('❌ GPS non disponible sur cet appareil'); return; }
+  toast('📍 Localisation en cours…');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    try {
+      const res = await fetch(`https://api-adresse.data.gouv.fr/reverse/?lon=${lon}&lat=${lat}`);
+      const data = await res.json();
+      const label = data?.features?.[0]?.properties?.label;
+      if(!label){ toast('⚠️ Aucune adresse trouvée pour cette position'); return; }
+      const inp = document.getElementById('r-adresse');
+      if(inp){ inp.value = label; rapportChanged(); }
+      toast('✅ Adresse remplie : ' + label);
+    } catch(e){
+      Logger.warn('GPS', 'Géocodage inverse échoué', e?.message);
+      toast('⚠️ Géocodage indisponible — vérifie ta connexion');
+    }
+  }, err => {
+    toast('❌ Position indisponible : ' + (err?.code === 1 ? 'autorisation refusée' : (err?.message || 'erreur GPS')));
+  }, { enableHighAccuracy:true, timeout:10000, maximumAge:60000 });
+}
+
 function captureGPS(){
   if(!navigator.geolocation){toast('❌ GPS non disponible sur cet appareil');return}
   toast('📡 Acquisition GPS…');
@@ -11019,6 +11052,7 @@ const _ADMIN_TABS = {
   collab:    { panel:'admin-panel-collab',     btn:'atab-collab' },
   chantiers: { panel:'admin-panel-chantiers',  btn:'atab-chantiers' },
   documents: { panel:'admin-panel-documents',  btn:'atab-documents' },
+  stats:     { panel:'admin-panel-stats',      btn:'atab-stats' },
   params:    { panel:'admin-panel-params',     btn:'atab-params' }
 };
 
@@ -11036,7 +11070,7 @@ function adminTab(tab){
     }
   });
   const searchBar = document.getElementById('admin-search-bar');
-  if(searchBar) searchBar.style.display = (tab==='params')?'none':'block';
+  if(searchBar) searchBar.style.display = (tab==='params'||tab==='stats')?'none':'block';
   const search = document.getElementById('admin-search');
   if(search){
     search.placeholder = tab==='chantiers' ? '🔍 Rechercher un chantier…'
@@ -11051,7 +11085,102 @@ function renderAdminCurrentTab(){
   if(t==='collab') renderAdminCollab();
   else if(t==='chantiers') renderAdminChantiers();
   else if(t==='documents') renderAdminDocuments();
+  else if(t==='stats') renderAdminStats();
   else if(t==='params') renderAdminParams();
+}
+
+// ════════════════════════════════════════════
+//  ADMIN : TABLEAU DE BORD (onglet Stats)
+//  Mois en cours : calculé depuis _adminData (chantiers déjà chargés).
+//  Historique : snapshots mensuels écrits par monthlyCleanup avant la purge.
+// ════════════════════════════════════════════
+async function renderAdminStats(){
+  const el = document.getElementById('admin-stats-content');
+  if(!el) return;
+  if(!_adminData.loaded){
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div>';
+    return;
+  }
+  const teams = _adminData.teams;
+  const isDG  = isGlobalAdmin(currentUserProfile?.role);
+
+  // ── Comptages du mois en cours, par région ──
+  const perTeam = teams.map(t => {
+    const cs = _adminData.chantiers.filter(c => c._teamId === t.id && !c.deletedAt);
+    const prep    = cs.filter(c => c.status === 'preparation' || c.status === 'prep').length;
+    const termine = cs.filter(c => c.statut === 'termine').length;
+    const encours = cs.length - prep - termine;
+    const membres = _adminData.users.filter(u => u.teamId === t.id).length;
+    return { id:t.id, name:t.name || t.id, total:cs.length, encours, termine, prep, membres };
+  });
+  const tot = perTeam.reduce((a,t)=>({ total:a.total+t.total, encours:a.encours+t.encours, termine:a.termine+t.termine, prep:a.prep+t.prep }), {total:0,encours:0,termine:0,prep:0});
+  const maxTotal = Math.max(1, ...perTeam.map(t=>t.total));
+
+  const kpi = (n, lbl, color) =>
+    `<div style="flex:1;min-width:90px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:${color}">${n}</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-top:2px">${lbl}</div>
+    </div>`;
+
+  let html = `
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">Mois en cours${isDG?' · toutes régions':''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      ${kpi(tot.total,'Chantiers','var(--text)')}
+      ${kpi(tot.encours,'En cours','#38b2c4')}
+      ${kpi(tot.termine,'Terminés','#3fb95f')}
+      ${kpi(tot.prep,'En prépa','#d97706')}
+    </div>`;
+
+  // ── Répartition par région (barres) — utile surtout pour les rôles globaux ──
+  if(perTeam.length > 1){
+    html += `<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin:14px 0 8px">Par région</div>`;
+    perTeam.sort((a,b)=>b.total-a.total).forEach(t => {
+      const w = Math.round(t.total / maxTotal * 100);
+      html += `
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:800;color:var(--text)">🏢 ${escHtml(t.name)}</span>
+            <span style="font-size:11px;color:var(--muted)">${t.membres} membre${t.membres>1?'s':''}</span>
+          </div>
+          <div style="background:var(--border);border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px">
+            <div style="width:${w}%;height:100%;background:linear-gradient(90deg,var(--accent),#38b2c4)"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${t.total} chantier${t.total>1?'s':''} · <span style="color:#38b2c4">${t.encours} en cours</span> · <span style="color:#3fb95f">${t.termine} terminé${t.termine>1?'s':''}</span>${t.prep?` · <span style="color:#d97706">${t.prep} en prépa</span>`:''}</div>
+        </div>`;
+    });
+  }
+
+  el.innerHTML = html + `<div id="admin-stats-history" style="margin-top:16px"><div style="font-size:12px;color:var(--muted)">Chargement de l'historique…</div></div>`;
+
+  // ── Historique mensuel (snapshots écrits avant chaque purge mensuelle) ──
+  const histEl = document.getElementById('admin-stats-history');
+  try {
+    const rows = [];
+    for(const t of teams){
+      const snap = await fdb.collection('teams').doc(t.id).collection('stats').get();
+      snap.forEach(d => rows.push({ team: t.name || t.id, ...d.data() }));
+    }
+    if(!rows.length){
+      histEl.innerHTML = `<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">Historique mensuel</div>
+        <div style="background:var(--card2);border:1px dashed var(--border);border-radius:12px;padding:14px;font-size:12px;color:var(--muted)">
+          📭 Pas encore d'historique — un récapitulatif est archivé automatiquement pour chaque région juste avant le nettoyage mensuel. Le premier apparaîtra au prochain changement de mois.
+        </div>`;
+      return;
+    }
+    rows.sort((a,b)=> String(b.month).localeCompare(String(a.month)) || String(a.team).localeCompare(String(b.team)));
+    histEl.innerHTML = `<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">Historique mensuel</div>` +
+      rows.map(r => `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:6px">
+          <div>
+            <span style="font-size:13px;font-weight:800;color:var(--text)">📅 ${escHtml(String(r.month||'?'))}</span>
+            ${teams.length>1?`<span style="font-size:11px;color:var(--muted);margin-left:8px">${escHtml(String(r.team))}</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${r.chantiers??0} chantiers · ${r.termines??0} terminés · ${r.rapports??0} rapports</div>
+        </div>`).join('');
+  } catch(e){
+    Logger.warn('Admin', 'historique stats échoué', e?.message);
+    histEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">Historique indisponible ('+escHtml(e?.message||'erreur')+')</div>';
+  }
 }
 
 function adminSearch(val){
@@ -13075,6 +13204,33 @@ async function monthlyCleanup(manual = false){
   // ── Étape 2 : Firestore ──
   if(FIREBASE_CONFIGURED && fdb && currentUserProfile?.teamId){
     const teamId = currentUserProfile.teamId;
+
+    // ── Étape 2.0 : Photographier les stats du mois AVANT la purge ──
+    // Alimente l'onglet 📊 Stats de l'admin (historique mensuel) : seule trace
+    // chiffrée de l'activité une fois les chantiers/rapports supprimés.
+    try {
+      const d = new Date();
+      // Purge auto début de mois → on étiquette le mois PRÉCÉDENT (celui qu'on clôture).
+      // Purge manuelle → mois courant.
+      const lbl = manual ? d : new Date(d.getFullYear(), d.getMonth()-1, 1);
+      const monthKey = `${lbl.getFullYear()}-${String(lbl.getMonth()+1).padStart(2,'0')}`;
+      const csnap = await fdb.collection('teams').doc(teamId).collection('chantiers').get();
+      const rsnap = await fdb.collection('teams').doc(teamId).collection('rapports').get();
+      const cs = csnap.docs.map(x=>x.data()).filter(c=>!c.deletedAt);
+      await fdb.collection('teams').doc(teamId).collection('stats').doc(monthKey).set({
+        month:        monthKey,
+        chantiers:    cs.length,
+        termines:     cs.filter(c=>c.statut==='termine').length,
+        preparations: cs.filter(c=>c.status==='preparation'||c.status==='prep').length,
+        rapports:     rsnap.size,
+        savedAt:      Date.now(),
+        savedBy:      currentUserProfile?.uid || null
+      }, { merge:true });
+      Logger.info('MonthlyCleanup', `Stats ${monthKey} archivées (${cs.length} chantiers, ${rsnap.size} rapports)`);
+    } catch(e){
+      Logger.warn('MonthlyCleanup', 'snapshot stats échoué (purge poursuivie)', e?.message);
+    }
+
     // Note : gps_points n'est pas synchronisé sur Firestore (local-only) — on l'exclut
     for(const store of ['rapports','chantiers']){
       try {
@@ -13833,37 +13989,41 @@ async function _renderPdfPageToJpg(page, maxWidth = 1400){
   return canvas.toDataURL('image/jpeg', 0.88);
 }
 
-// Extrait TOUTES les pages de récap Protys d'un PDF (peut être 1, 2 voire 3 pages)
-// Détecte les pages contenant le marqueur "Récapitulatif - Déclarations et Récépissés".
-// Renvoie un tableau de JPG dataUrls. Fallback : 1re page si aucun marqueur détecté.
-async function _extractRecapPagesFromPdf(pdfDataUrl, maxWidth = 1400, maxPages = 5){
+// Extrait les pages de récap DT d'un PDF → tableau de JPG dataUrls.
+// Reconnaît les en-têtes des principales plateformes de déclaration :
+//  - Protys           : « Récapitulatif - Déclarations et Récépissés »
+//  - Sogelink/DICT.fr : « Tableau récapitulatif - DT » (en-tête présent sur chaque page du tableau)
+// Si AUCUN format n'est reconnu (autre plateforme, PDF scanné sans texte…),
+// on prend TOUTES les pages (plafonnées) : l'utilisateur a explicitement choisi
+// ce fichier comme récap — le tronquer en silence à 1 page serait pire.
+async function _extractRecapPagesFromPdf(pdfDataUrl, maxWidth = 1400, maxPages = 8){
   const pdfjs = await _ensurePdfJs();
   const b64 = pdfDataUrl.split(',')[1];
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const doc = await pdfjs.getDocument({ data: bytes }).promise;
-  const RECAP_MARKER = /R[ée]capitulatif\s*[-–]\s*D[ée]clarations\s+et\s+R[ée]c[ée]piss[ée]s/i;
-  const previews = [];
+  const RECAP_MARKERS = [
+    /R[ée]capitulatif\s*[-–]\s*D[ée]clarations\s+et\s+R[ée]c[ée]piss[ée]s/i,
+    /Tableau\s+r[ée]capitulatif/i
+  ];
   const total = Math.min(doc.numPages, maxPages);
+  // 1) Repérer les pages portant un en-tête de récap connu
+  const matching = [];
   for(let i = 1; i <= total; i++){
-    const page = await doc.getPage(i);
-    let isRecap = false;
     try {
+      const page = await doc.getPage(i);
       const txt = await page.getTextContent();
       const pageText = txt.items.map(t => t.str).join(' ');
-      isRecap = RECAP_MARKER.test(pageText);
-    } catch(_){ /* extraction texte échouée → on tente quand même la 1re page */ }
-    if(isRecap){
-      previews.push(await _renderPdfPageToJpg(page, maxWidth));
-    } else {
-      // Pages de récap supposées contiguës en début de PDF → on arrête au 1er non-récap
-      break;
-    }
+      if(RECAP_MARKERS.some(rx => rx.test(pageText))) matching.push(i);
+    } catch(_){ /* texte illisible (scan) → géré par le fallback toutes-pages */ }
   }
-  // Fallback : si aucun marqueur détecté (Protys ancienne version, marqueur absent…), prend la 1re page
-  if(!previews.length){
-    const page = await doc.getPage(1);
+  // 2) Rendre les pages reconnues, ou tout le document si aucun marqueur trouvé
+  const pageNums = matching.length ? matching : Array.from({length: total}, (_, k) => k + 1);
+  const previews = [];
+  for(const n of pageNums){
+    const page = await doc.getPage(n);
     previews.push(await _renderPdfPageToJpg(page, maxWidth));
   }
+  Logger.info('Prep', `Récap DT : ${previews.length}/${doc.numPages} page(s) extraite(s)${matching.length ? '' : ' (format inconnu → toutes les pages)'}`);
   return previews;
 }
 
