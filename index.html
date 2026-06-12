@@ -7704,7 +7704,7 @@ function viewDocument(docId){
     const blob = new Blob([ab],{type:mime});
     const url = URL.createObjectURL(blob);
     window.open(url,'_blank');
-    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    setTimeout(()=>URL.revokeObjectURL(url),60000); // 60s : lecture différée sur mobile
   }
 }
 
@@ -7997,6 +7997,72 @@ function loadDocxLibs(){
     })
   ]).finally(()=>{ _docxLibsPromise = null; }); // reset → permet un retry après échec réseau
   return _docxLibsPromise;
+}
+
+// ── Correctif docx.js v8 : renomme les fichiers JPEG stockés en .png → .jpeg ──
+// docx.js génère toujours l'extension .png dans le zip, forçant image/png comme
+// content-type. Word ne peut pas décoder des données JPEG avec content-type image/png
+// → « contenu illisible ». Ce fix post-traite le zip pour corriger l'extension.
+// Partagé par les 3 exports Word (rapport, ouvrages, SRESST).
+async function fixDocxJpeg(blob){
+  // JSZip absent (échec CDN au chargement initial — fréquent sur réseau mobile) :
+  // SECONDE CHANCE ici, car sans ce fix les photos rendent le .docx illisible dans Word.
+  if(!window.JSZip){
+    await new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = res; s.onerror = res;
+      setTimeout(res, 10000); // ne jamais bloquer plus de 10s
+      document.head.appendChild(s);
+    });
+  }
+  if(!window.JSZip){
+    toast('⚠️ Correctif images indisponible (connexion ?) — si Word signale un contenu illisible, regénérez le document avec du réseau.');
+    Logger.warn('Word', 'fixDocxJpeg sauté : JSZip indisponible');
+    return blob;
+  }
+  try {
+    const zip = await JSZip.loadAsync(blob);
+    const renames = {};
+    // Trouver les fichiers .png contenant en réalité des données JPEG (FF D8 FF)
+    for(const [name,file] of Object.entries(zip.files)){
+      if(name.startsWith('word/media/') && name.endsWith('.png') && !file.dir){
+        const data = await file.async('uint8array');
+        if(data[0]===0xFF && data[1]===0xD8 && data[2]===0xFF){
+          renames[name] = name.replace(/\.png$/, '.jpeg');
+        }
+      }
+    }
+    if(!Object.keys(renames).length) return blob;
+    // Renommer les fichiers média
+    for(const [oldName,newName] of Object.entries(renames)){
+      const data = await zip.files[oldName].async('uint8array');
+      zip.file(newName, data);
+      zip.remove(oldName);
+    }
+    // Corriger les références dans tous les fichiers XML/rels
+    for(const [xmlName,file] of Object.entries(zip.files)){
+      if(!file.dir && (xmlName.endsWith('.xml') || xmlName.endsWith('.rels'))){
+        let content = await file.async('string');
+        let changed = false;
+        for(const [oldName,newName] of Object.entries(renames)){
+          const ob = oldName.split('/').pop();
+          const nb = newName.split('/').pop();
+          if(content.includes(ob)){
+            content = content.split(ob).join(nb);
+            changed = true;
+          }
+        }
+        if(changed) zip.file(xmlName, content);
+      }
+    }
+    return await zip.generateAsync({type:'blob',
+      mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      compression:'DEFLATE', compressionOptions:{level:6}});
+  } catch(e){
+    console.warn('[Word] fixDocxJpeg échoué:', e.message);
+    return blob;
+  }
 }
 
 // Charte v2 commune aux 3 exports Word — SOURCE UNIQUE DE VÉRITÉ.
@@ -8336,13 +8402,13 @@ async function _generateOuvragesWord(ouvrages, filename){
     }]
   });
 
-  const blob = await Packer.toBlob(doc);
+  const blob = await fixDocxJpeg(await Packer.toBlob(doc)); // corrige les JPEG stockés en .png (bug docx.js v8)
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
   a.download = `${filename}_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.docx`;
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  setTimeout(()=>URL.revokeObjectURL(url), 60000); // 60s : lecture différée du blob sur mobile
   toast('✅ Document Word généré');
 }
 
@@ -8564,7 +8630,7 @@ function exportDocsWord(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'registre_documents.doc'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  setTimeout(()=>URL.revokeObjectURL(url), 60000); // 60s : lecture différée du blob sur mobile
   toast('📝 Téléchargement Word démarré');
 }
 
@@ -9327,55 +9393,8 @@ async function doWordDocx(){
     // Compteur global d'images réellement intégrées (pour toast de résultat)
     let _imgOk = 0, _imgTotal = 0;
 
-    // ── Correctif docx.js v8 : renomme les fichiers JPEG stockés en .png → .jpeg ──
-    // docx.js génère toujours l'extension .png dans le zip, forçant image/png comme
-    // content-type. Word ne peut pas décoder des données JPEG avec content-type image/png.
-    // Ce fix post-traite le zip pour que l'extension corresponde au vrai format.
-    async function fixDocxJpeg(blob){
-      if(!window.JSZip) return blob;
-      try {
-        const zip = await JSZip.loadAsync(blob);
-        const renames = {};
-        // Trouver les fichiers .png contenant en réalité des données JPEG (FF D8 FF)
-        for(const [name,file] of Object.entries(zip.files)){
-          if(name.startsWith('word/media/') && name.endsWith('.png') && !file.dir){
-            const data = await file.async('uint8array');
-            if(data[0]===0xFF && data[1]===0xD8 && data[2]===0xFF){
-              renames[name] = name.replace(/\.png$/, '.jpeg');
-            }
-          }
-        }
-        if(!Object.keys(renames).length) return blob;
-        // Renommer les fichiers média
-        for(const [oldName,newName] of Object.entries(renames)){
-          const data = await zip.files[oldName].async('uint8array');
-          zip.file(newName, data);
-          zip.remove(oldName);
-        }
-        // Corriger les références dans tous les fichiers XML/rels
-        for(const [xmlName,file] of Object.entries(zip.files)){
-          if(!file.dir && (xmlName.endsWith('.xml') || xmlName.endsWith('.rels'))){
-            let content = await file.async('string');
-            let changed = false;
-            for(const [oldName,newName] of Object.entries(renames)){
-              const ob = oldName.split('/').pop();
-              const nb = newName.split('/').pop();
-              if(content.includes(ob)){
-                content = content.split(ob).join(nb);
-                changed = true;
-              }
-            }
-            if(changed) zip.file(xmlName, content);
-          }
-        }
-        return await zip.generateAsync({type:'blob',
-          mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          compression:'DEFLATE', compressionOptions:{level:6}});
-      } catch(e){
-        console.warn('[Word] fixDocxJpeg échoué:', e.message);
-        return blob;
-      }
-    }
+    // (fixDocxJpeg est désormais défini au niveau global, à côté de loadDocxLibs —
+    //  il est partagé par les 3 exports Word)
 
     // Insère les photos par paires côte à côte dans un tableau 2 colonnes
     async function photoTable(photoItems){
@@ -10176,7 +10195,9 @@ async function doWordDocx(){
     const a=document.createElement('a');
     a.href=url; a.download='CR_'+fname+'.docx';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),500);
+    // 60s et non 500ms : sur téléphone, le gestionnaire de téléchargement récupère
+    // le blob en différé — révoquer trop tôt = .docx tronqué ("contenu illisible").
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
     const imgMsg = _imgTotal > 0 ? ` - ${_imgOk}/${_imgTotal} photo(s)` : '';
     toast(`✅ Word (.docx) téléchargé !${imgMsg}`);
     if(_imgTotal > 0 && _imgOk < _imgTotal){
@@ -10246,7 +10267,7 @@ function doWord(){
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      setTimeout(()=>URL.revokeObjectURL(url), 60000); // 60s : lecture différée du blob sur mobile
       toast('✅ Word (.docx) téléchargé !');
     } catch(e){
       Logger.error('Export', 'Erreur export Word (legacy)', e?.message);
@@ -15541,14 +15562,16 @@ async function doSRESSTWordDocx(){
       }]
     });
 
-    const blob = await Packer.toBlob(doc);
+    const blob = await fixDocxJpeg(await Packer.toBlob(doc)); // corrige les JPEG stockés en .png (bug docx.js v8)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     const fname = 'SRESST_'+(ev.typeEvenement||'fiche')+'_'+(ev.dateEvenement||new Date().toISOString().slice(0,10))+'.docx';
     a.download = fname;
     a.click();
-    URL.revokeObjectURL(url);
+    // Révocation différée : sur mobile le gestionnaire de téléchargement lit le blob
+    // APRÈS le clic — une révocation immédiate produit un .docx tronqué/corrompu.
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
     toast('📄 Export Word SRESST terminé');
   } catch(e){
     console.error(e);
