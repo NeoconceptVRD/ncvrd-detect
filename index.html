@@ -14988,20 +14988,27 @@ async function _doSendEmail(){
 async function _captureBlob(exportFn){
   return new Promise(async (resolve, reject)=>{
     let capturedBlob = null;
+    let lastBlob = null;
+    const urlToBlob = new Map();
 
-    // 1 — Intercepte createObjectURL pour récupérer le blob
+    // 1 — Intercepte createObjectURL et mémorise url → blob pour TOUS les appels.
+    //     ⚠️ Ne PAS capturer le premier appel : pendant l'export, pdf.js (re-rendu du
+    //     récap DT) crée son worker via createObjectURL AVANT le document final —
+    //     capturer le premier blob enverrait le script du worker en pièce jointe.
     const origCreateURL = URL.createObjectURL.bind(URL);
     URL.createObjectURL = (b)=>{
-      capturedBlob = b;
-      URL.createObjectURL = origCreateURL;
-      return origCreateURL(b);
+      const u = origCreateURL(b);
+      urlToBlob.set(u, b);
+      lastBlob = b;
+      return u;
     };
 
-    // 2 — Intercepte click() sur les ancres pour bloquer le téléchargement
+    // 2 — Intercepte click() sur les ancres : le blob du document final est
+    //     celui attaché à l'ancre de téléchargement (href blob:…).
     const origClick = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function(){
       if(this.hasAttribute('download')){
-        HTMLAnchorElement.prototype.click = origClick;
+        capturedBlob = urlToBlob.get(this.href) || capturedBlob;
         return; // bloque le téléchargement
       }
       origClick.call(this);
@@ -15009,12 +15016,13 @@ async function _captureBlob(exportFn){
 
     try {
       await exportFn();
-      HTMLAnchorElement.prototype.click = origClick;
-      resolve(capturedBlob);
+      // Fallback : si aucune ancre [download] n'a été cliquée, prendre le dernier blob créé
+      resolve(capturedBlob || lastBlob);
     } catch(e){
+      reject(e);
+    } finally {
       URL.createObjectURL = origCreateURL;
       HTMLAnchorElement.prototype.click = origClick;
-      reject(e);
     }
   });
 }
