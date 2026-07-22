@@ -2666,8 +2666,8 @@ body::before{
     <div class="modal-box" style="max-width:440px;border:1px solid rgba(217,138,61,.4)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:22px">📢</span>
-          <span style="font-size:10px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.8px">Flash Sécurité</span>
+          <span id="sf-emoji" style="font-size:22px">📢</span>
+          <span id="sf-badge" style="font-size:10px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.8px">Flash Sécurité</span>
         </div>
         <button onclick="closeModal('m-safety-flash')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer (le message reviendra à la prochaine ouverture)">✕</button>
       </div>
@@ -2684,9 +2684,20 @@ body::before{
   <div class="modal" id="m-flash-new">
     <div class="modal-box" style="max-width:440px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:16px;font-weight:800;color:var(--text)">📢 Nouveau Flash Sécurité</div>
+        <div style="font-size:16px;font-weight:800;color:var(--text)">📢 Nouveau message</div>
         <button onclick="closeModal('m-flash-new')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
       </div>
+      <div class="form-group"><label class="form-label">Type de message</label>
+        <select class="form-select" id="fl-kind">
+          <option value="secu">📢 Flash Sécurité (sensibilisation, alerte)</option>
+          <option value="info">ℹ️ Information (organisation, vie d'entreprise)</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Destinataires</label>
+        <select class="form-select" id="fl-target" onchange="document.getElementById('fl-target-list').style.display = this.value==='pick' ? 'block' : 'none'">
+          <option value="all">👥 Tous les agents</option>
+          <option value="pick">🎯 Choisir les destinataires…</option>
+        </select>
+        <div id="fl-target-list" style="display:none;max-height:220px;overflow-y:auto;margin-top:8px;border:1px solid var(--border);border-radius:10px;padding:8px 10px"></div></div>
       <div class="form-group"><label class="form-label">Titre</label>
         <input class="form-input" id="fl-title" placeholder="Ex : ⚠️ Vigilance canicule"></div>
       <div class="form-group"><label class="form-label">Message</label>
@@ -2696,9 +2707,9 @@ body::before{
         <button type="button" class="btn-big btn-card" style="width:100%" onclick="document.getElementById('fl-doc-input').click()">📎 Choisir un fichier</button>
         <div id="fl-doc-name" style="font-size:11.5px;color:var(--muted);margin-top:5px"></div></div>
       <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px">
-        À la publication : tous les agents reçoivent une notification 🔔 et verront ce message à l'ouverture de l'appli jusqu'à ce qu'ils cliquent « ✓ J'ai lu ». Tu suivras qui a lu dans la liste des flashs.
+        À la publication : les destinataires reçoivent une notification 🔔 et verront ce message à l'ouverture de l'appli jusqu'à ce qu'ils cliquent « ✓ J'ai lu ». Tu suivras qui a lu dans la liste.
       </div>
-      <button class="btn-big btn-accent" style="width:100%" onclick="adminPublishFlash()">📢 Publier le flash</button>
+      <button class="btn-big btn-accent" style="width:100%" onclick="adminPublishFlash()">📤 Publier le message</button>
     </div>
   </div>
 
@@ -10627,9 +10638,12 @@ async function checkSafetyFlashes(){
   try {
     const snap = await fdb.collection('safety_flashes').where('active', '==', true).get();
     if(snap.empty) return;
-    // Le plus récent non lu (tri client — collection petite, pas d'index composite requis)
+    const myUid = currentUserProfile.uid;
+    // Le plus récent non lu QUI ME CIBLE (tri client — collection petite, pas d'index composite requis)
+    // Ciblage : targetAll !== false = tous (rétro-compat anciens flashs) ; sinon targetUids doit me contenir.
     const flashes = snap.docs.map(d => ({id: d.id, ...d.data()}))
-      .filter(f => !(f.readBy && f.readBy[currentUserProfile.uid]))
+      .filter(f => f.targetAll !== false || (Array.isArray(f.targetUids) && f.targetUids.includes(myUid)))
+      .filter(f => !(f.readBy && f.readBy[myUid]))
       .sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
     if(!flashes.length) return;
     _showSafetyFlash(flashes[0]);
@@ -10642,7 +10656,18 @@ function _showSafetyFlash(f){
   const m = document.getElementById('sf-message');
   const meta = document.getElementById('sf-meta');
   const docBtn = document.getElementById('sf-doc-btn');
-  if(t) t.textContent = f.title || 'Message de sécurité';
+  // Badge selon le type : 📢 sécurité (orange) / ℹ️ information (teal)
+  const isInfo = f.kind === 'info';
+  const emoji = document.getElementById('sf-emoji');
+  const badge = document.getElementById('sf-badge');
+  if(emoji) emoji.textContent = isInfo ? 'ℹ️' : '📢';
+  if(badge){
+    badge.textContent = isInfo ? 'Information' : 'Flash Sécurité';
+    badge.style.cssText = isInfo
+      ? 'font-size:10px;font-weight:800;color:#33d4c6;background:rgba(22,168,154,.12);border:1px solid rgba(22,168,154,.35);border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.8px'
+      : 'font-size:10px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.8px';
+  }
+  if(t) t.textContent = f.title || (isInfo ? 'Information' : 'Message de sécurité');
   if(m) m.textContent = f.message || '';
   if(meta){
     const d = f.createdAt ? new Date(f.createdAt).toLocaleDateString('fr-FR') : '';
@@ -12880,22 +12905,34 @@ async function _loadAdminFlashes(){
   } catch(e){ Logger.warn('Flash', 'loadAdminFlashes', e?.message); }
 }
 
+// Destinataires effectifs d'un flash (tous, ou la sélection targetUids)
+function _flashTargets(f){
+  const users = _adminData.users || [];
+  return (f.targetAll !== false) ? users : users.filter(u => (f.targetUids||[]).includes(u.uid));
+}
+
 function _renderAdminFlashList(){
-  const totalUsers = (_adminData.users||[]).length;
-  if(!_adminFlashes.length) return '<div style="font-size:12px;color:var(--muted);padding:6px 0;font-style:italic">Aucun flash publié pour l\'instant.</div>';
+  if(!_adminFlashes.length) return '<div style="font-size:12px;color:var(--muted);padding:6px 0;font-style:italic">Aucun message publié pour l\'instant.</div>';
   return _adminFlashes.map(f => {
-    const readCount = Object.keys(f.readBy||{}).length;
-    const pct = totalUsers ? Math.round(readCount/totalUsers*100) : 0;
+    const targets = _flashTargets(f);
+    const readCount = targets.filter(u => (f.readBy||{})[u.uid]).length;
+    const pct = targets.length ? Math.round(readCount/targets.length*100) : 0;
     const d = f.createdAt ? new Date(f.createdAt).toLocaleDateString('fr-FR') : '-';
-    return `<div style="background:var(--card2);border:1px solid ${f.active?'rgba(217,138,61,.35)':'var(--border)'};border-radius:12px;padding:11px 12px;margin-bottom:8px">
+    const isInfo = f.kind === 'info';
+    const kindBadge = isInfo
+      ? '<span style="font-size:9.5px;font-weight:800;color:#33d4c6;background:rgba(22,168,154,.12);border:1px solid rgba(22,168,154,.35);border-radius:6px;padding:2px 8px">ℹ️ INFO</span>'
+      : '<span style="font-size:9.5px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:6px;padding:2px 8px">📢 SÉCU</span>';
+    const targetLbl = (f.targetAll !== false) ? '👥 Tous' : '🎯 ' + targets.length + ' ciblé' + (targets.length>1?'s':'');
+    return `<div style="background:var(--card2);border:1px solid ${f.active?(isInfo?'rgba(22,168,154,.35)':'rgba(217,138,61,.35)'):'var(--border)'};border-radius:12px;padding:11px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${kindBadge}
         <span style="font-size:13px;font-weight:800;color:var(--text);flex:1;min-width:120px">${escHtml(f.title||'-')}</span>
-        <span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:6px;${f.active?'color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35)':'color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border)'}">${f.active?'ACTIF':'Désactivé'}</span>
+        <span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:6px;${f.active?'color:#4ade80;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)':'color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border)'}">${f.active?'ACTIF':'Désactivé'}</span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">${d} · par ${escHtml(f.createdByName||'-')}${f.docName?' · 📎 '+escHtml(f.docName):''}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${d} · par ${escHtml(f.createdByName||'-')} · ${targetLbl}${f.docName?' · 📎 '+escHtml(f.docName):''}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
         <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-v))"></div></div>
-        <span style="font-size:11px;font-weight:700;color:var(--text2);font-family:var(--font-mono);flex-shrink:0">${readCount}/${totalUsers} lu</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text2);font-family:var(--font-mono);flex-shrink:0">${readCount}/${targets.length} lu</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:9px">
         <button onclick="adminFlashDetail('${f.id}')" style="flex:1;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">👁 Qui a lu ?</button>
@@ -12906,12 +12943,41 @@ function _renderAdminFlashList(){
   }).join('');
 }
 
+// Ouvre la modal de création : peuple la liste des destinataires (groupés par agence)
+function openFlashNewModal(){
+  const zone = document.getElementById('fl-target-list');
+  if(zone){
+    const users = (_adminData.users||[]).slice().sort((a,b) =>
+      (a.teamName||'').localeCompare(b.teamName||'') || (a.displayName||'').localeCompare(b.displayName||''));
+    let lastTeam = null, html = '';
+    users.forEach(u => {
+      if(u.teamName !== lastTeam){
+        lastTeam = u.teamName;
+        html += `<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 4px">🏢 ${escHtml(u.teamName||'Sans agence')}</div>`;
+      }
+      html += `<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;font-size:12.5px;color:var(--text)">
+        <input type="checkbox" class="fl-target-cb" value="${u.uid}" style="accent-color:var(--accent)">
+        <span>${escHtml(u.displayName||u.email||u.uid)}</span>
+      </label>`;
+    });
+    zone.innerHTML = html || '<div style="font-size:12px;color:var(--muted);font-style:italic">Aucun utilisateur chargé</div>';
+  }
+  const target = document.getElementById('fl-target');
+  if(target){ target.value = 'all'; document.getElementById('fl-target-list').style.display = 'none'; }
+  openModal('m-flash-new');
+}
+
 async function adminPublishFlash(){
   const title = document.getElementById('fl-title').value.trim();
   const message = document.getElementById('fl-message').value.trim();
   const fileInput = document.getElementById('fl-doc-input');
+  const kind = document.getElementById('fl-kind')?.value === 'info' ? 'info' : 'secu';
+  const targetAll = document.getElementById('fl-target')?.value !== 'pick';
+  const targetUids = targetAll ? [] :
+    [...document.querySelectorAll('.fl-target-cb:checked')].map(cb => cb.value);
   if(!title){ toast('⚠️ Le titre est obligatoire'); return; }
   if(!message){ toast('⚠️ Le message est obligatoire'); return; }
+  if(!targetAll && !targetUids.length){ toast('⚠️ Sélectionne au moins un destinataire'); return; }
   if(!FIREBASE_CONFIGURED || !fdb){ toast('❌ Firestore indisponible'); return; }
   toast('⏳ Publication en cours…');
   const flashId = 'fl-' + uid();
@@ -12928,24 +12994,28 @@ async function adminPublishFlash(){
       if(url){ docUrl = url; docName = file.name; }
       else { toast('⚠️ Upload du document échoué — flash publié sans pièce jointe'); }
     }
-    // 2) Créer le flash
+    // 2) Créer le message
     await fdb.collection('safety_flashes').doc(flashId).set({
       title, message, docUrl, docName,
+      kind,                                   // 'secu' | 'info'
+      targetAll,                              // true = tous les agents
+      targetUids,                             // uids ciblés si targetAll=false
       active: true,
       createdAt: Date.now(),
       createdBy: currentUserProfile?.uid || '-',
       createdByName: currentUserProfile?.displayName || currentUserProfile?.email || '-',
       readBy: {}
     });
-    // 3) Notifier tous les utilisateurs connus (toutes équipes visibles par cet admin)
-    const targets = (_adminData.users||[]).filter(u => u.uid);
+    // 3) Notifier les destinataires (tous, ou la sélection)
+    const targets = (_adminData.users||[]).filter(u => u.uid && (targetAll || targetUids.includes(u.uid)));
+    const notifPrefix = kind === 'info' ? 'ℹ️ Information : ' : '📢 Flash sécurité : ';
     await Promise.allSettled(targets.map(u => fdb.collection('notifications').add({
       toUid: u.uid,
       fromUid: currentUserProfile?.uid || null,
       fromName: currentUserProfile?.displayName || 'QHSE',
       type: 'safety_flash',
       flashId,
-      message: '📢 Flash sécurité : ' + title,
+      message: notifPrefix + title,
       read: false,
       createdAt: Date.now()
     })));
@@ -12983,7 +13053,7 @@ async function adminDeleteFlash(id){
 function adminFlashDetail(id){
   const f = _adminFlashes.find(x => x.id === id);
   if(!f) return;
-  const users = _adminData.users || [];
+  const users = _flashTargets(f);   // seulement les destinataires ciblés
   const readBy = f.readBy || {};
   const readers = users.filter(u => readBy[u.uid]).sort((a,b) => readBy[a.uid]-readBy[b.uid]);
   const nonReaders = users.filter(u => !readBy[u.uid]);
@@ -13013,10 +13083,10 @@ function renderAdminDocuments(filter=''){
   docs.sort((a,b)=>(b.addedTs||0)-(a.addedTs||0));
   const flashSection = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
-      <div style="font-size:14px;font-weight:800;color:var(--text)">📢 Flashs Sécurité</div>
-      <button onclick="openModal('m-flash-new')" style="background:linear-gradient(135deg,#d98a3d,#b8722f);border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Nouveau flash</button>
+      <div style="font-size:14px;font-weight:800;color:var(--text)">📢 Flashs & Informations</div>
+      <button onclick="openFlashNewModal()" style="background:linear-gradient(135deg,#d98a3d,#b8722f);border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Nouveau message</button>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Sensibilisation rapide (canicule, verglas, rappel consignes…) : message + document, notification à tous, suivi de qui a lu.</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Flash sécurité (canicule, verglas, consignes…) ou information générale — à tous ou à une sélection d'agents, avec suivi de qui a lu.</div>
     <div id="admin-flash-list"><div style="font-size:12px;color:var(--muted);font-style:italic">Chargement…</div></div>
     <div style="border-top:1px solid var(--border);margin:16px 0 14px"></div>`;
   if(typeof _loadAdminFlashes === 'function') _loadAdminFlashes();
