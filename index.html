@@ -2489,6 +2489,16 @@ body::before{
       </div>
     </div>
 
+    <!-- 🔔 Notifications push -->
+    <div style="margin:10px 14px 0;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <div style="width:42px;height:42px;border-radius:11px;background:rgba(217,138,61,.14);border:1px solid rgba(217,138,61,.3);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🔔</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">Notifications push</div>
+        <div id="push-status" style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:2px">…</div>
+      </div>
+      <button id="push-enable-btn" onclick="enablePushNotifications()" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">Activer</button>
+    </div>
+
     <div class="acc-section" style="margin-top:10px">
       <div class="profile-stat">
         <span class="ps-label">Code équipe</span>
@@ -3986,6 +3996,7 @@ body::before{
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 
 <script>
 // ════════════════════════════════════════════
@@ -5392,7 +5403,7 @@ function showScreen(id){
   if(id==='s-dossier'){loadDossier().then(()=>renderDossier()); loadSharedDocs();}
   if(id==='s-ouvrages'){loadOuvrages().then(()=>renderOuvrages()).catch(()=>{});}
   if(id==='s-ouvrage-form'){_renderOuvrageCanalisations();}
-  if(id==='s-profil'){updateProfile(); if(FIREBASE_CONFIGURED && currentUserProfile) updateProfileScreen();}
+  if(id==='s-profil'){updateProfile(); if(FIREBASE_CONFIGURED && currentUserProfile) updateProfileScreen(); if(typeof _updatePushUI==='function') _updatePushUI();}
   if(id==='s-camera'){initCamera()}
   if(id==='screen-home'){
     stopCamera();
@@ -10626,6 +10637,109 @@ async function cleanOldNotifications(){
 }
 
 // ════════════════════════════════════════════
+//  🔔 NOTIFICATIONS PUSH (Firebase Cloud Messaging)
+//  Réception : sw.js (onBackgroundMessage) — fonctionne app FERMÉE.
+//  Envoi : via Google Apps Script (config Base → 🔔 Notifications push).
+//  Token appareil : users/{uid}.fcmTokens = {token: timestamp} (5 max).
+// ════════════════════════════════════════════
+let _fcmToken = null;
+
+function _pushSupported(){
+  return 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window
+    && FIREBASE_CONFIGURED && typeof firebase !== 'undefined' && !!firebase.messaging;
+}
+function _getVapidKey(){ return String(DynLists.get('fcm_vapid_key')||'').trim(); }
+function _getPushGasUrl(){ return String(DynLists.get('push_gas_url')||'').trim(); }
+
+// Au boot : si la permission est déjà accordée, rafraîchir le token silencieusement
+async function initPushNotifications(){
+  try {
+    if(!_pushSupported() || !currentUserProfile?.uid) return;
+    if(Notification.permission !== 'granted') return;
+    await _registerPushToken();
+  } catch(e){ Logger.warn('Push', 'init', e?.message); }
+}
+
+// Opt-in explicite (bouton du Profil)
+async function enablePushNotifications(){
+  if(!_pushSupported()){ toast('❌ Push non supporté par ce navigateur (sur iPhone : installer d\'abord l\'appli sur l\'écran d\'accueil)'); return; }
+  if(!_getVapidKey()){ toast('⚠️ Push non configuré — un admin doit renseigner la clé VAPID (Base de contrôle → Docs… voir onglet Base)'); return; }
+  const perm = await Notification.requestPermission();
+  if(perm !== 'granted'){
+    toast('⚠️ Permission refusée — débloque les notifications dans les réglages du navigateur');
+    _updatePushUI();
+    return;
+  }
+  const ok = await _registerPushToken();
+  toast(ok ? '🔔 Notifications activées sur cet appareil !' : '❌ Activation échouée — réessaie');
+  _updatePushUI();
+}
+
+async function _registerPushToken(){
+  try {
+    const vapidKey = _getVapidKey();
+    if(!vapidKey) return false;
+    const reg = await navigator.serviceWorker.ready;
+    const token = await firebase.messaging().getToken({ vapidKey, serviceWorkerRegistration: reg });
+    if(!token) return false;
+    _fcmToken = token;
+    // Map token→timestamp bornée aux 5 appareils les plus récents
+    const ref = fdb.collection('users').doc(currentUserProfile.uid);
+    const snap = await ref.get();
+    const existing = (snap.exists && snap.data().fcmTokens) || {};
+    existing[token] = Date.now();
+    const kept = Object.fromEntries(Object.entries(existing).sort((a,b)=>b[1]-a[1]).slice(0,5));
+    await ref.update({ fcmTokens: kept });
+    Logger.info('Push', 'Token FCM enregistré pour cet appareil');
+    return true;
+  } catch(e){ Logger.warn('Push', 'registerToken', e?.message); return false; }
+}
+
+// État affiché dans le Profil
+function _updatePushUI(){
+  const btn = document.getElementById('push-enable-btn');
+  const status = document.getElementById('push-status');
+  if(!btn || !status) return;
+  if(!_pushSupported()){
+    status.textContent = 'Non supporté sur ce navigateur (iPhone : installer l\'appli sur l\'écran d\'accueil d\'abord)';
+    btn.style.display = 'none';
+  } else if(Notification.permission === 'granted'){
+    status.textContent = '✅ Activées sur cet appareil — tu recevras les flashs même appli fermée';
+    btn.style.display = 'none';
+  } else if(Notification.permission === 'denied'){
+    status.textContent = '🚫 Bloquées par le navigateur — à débloquer dans ses réglages (icône 🔒 près de l\'adresse)';
+    btn.style.display = 'none';
+  } else {
+    status.textContent = 'Reçois les flashs sécurité et invitations même appli fermée.';
+    btn.style.display = 'block';
+  }
+}
+
+// Envoi de pushs via le Google Apps Script (fire-and-forget, silencieux si non configuré)
+function sendPushViaGAS(tokens, title, body, url){
+  try {
+    if(!Array.isArray(tokens) || !tokens.length) return;
+    const gasUrl = _getPushGasUrl();
+    if(!gasUrl) return;
+    _getMailToken().then(mailToken => {
+      fetch(gasUrl, {
+        method: 'POST',
+        body: JSON.stringify({ token: mailToken, action: 'push', tokens, title: title||'NCVRD Detect', body: body||'', url: url||'' })
+      }).catch(()=>{});
+    }).catch(()=>{});
+  } catch(_){}
+}
+
+// Récupère tous les tokens FCM d'une liste de docs utilisateurs
+function _collectFcmTokens(users){
+  const out = [];
+  (users||[]).forEach(u => {
+    if(u && u.fcmTokens) out.push(...Object.keys(u.fcmTokens));
+  });
+  return [...new Set(out)];
+}
+
+// ════════════════════════════════════════════
 //  📢 FLASH SÉCURITÉ — communication descendante QHSE
 //  Collection racine `safety_flashes` : {title, message, docUrl, docName,
 //  active, createdAt, createdBy, createdByName, readBy:{uid:ts}}
@@ -11674,6 +11788,24 @@ function renderAdminBase(){
       </div>
     </div>
 
+    <!-- ── Notifications push (configuration) ── -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)"><span>🔔 Notifications push (configuration)</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px">
+          Permet aux agents de recevoir les flashs et invitations <strong style="color:var(--text)">même appli fermée</strong>.
+          Configuration en 2 clés (voir la marche à suivre fournie par le développeur) — une fois remplies, chaque agent active ses notifications depuis son <strong style="color:var(--text)">Profil → 🔔 Activer</strong>.
+        </div>
+        <label class="form-label">1. Clé VAPID (Firebase Console → Paramètres → Cloud Messaging → Certificats Web Push)</label>
+        <input class="form-input" id="base-vapid-key" value="${escHtml(String(DynLists.get('fcm_vapid_key')||''))}" placeholder="B…（87 caractères）" style="font-family:var(--font-mono);font-size:11px">
+        <button class="btn-big btn-accent" style="width:100%;margin:8px 0 14px" onclick="adminSaveBaseText('fcm_vapid_key','base-vapid-key','Clé VAPID')">💾 Enregistrer la clé</button>
+        <label class="form-label">2. URL du script d'envoi (Apps Script déployé — fichier gas-push.js)</label>
+        <input class="form-input" id="base-push-gas" value="${escHtml(String(DynLists.get('push_gas_url')||''))}" placeholder="https://script.google.com/macros/s/…/exec" style="font-family:var(--font-mono);font-size:11px">
+        <button class="btn-big btn-accent" style="width:100%;margin:8px 0 14px" onclick="adminSaveBaseText('push_gas_url','base-push-gas','URL du script push')">💾 Enregistrer l'URL</button>
+        <button class="btn-big btn-card" style="width:100%" onclick="adminTestPush()">🧪 M'envoyer un push de test</button>
+      </div>
+    </div>
+
     <!-- ── État du système ── -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this);runSystemDiagnostic()"><span>🩺 État du système</span><span class="acc-chevron">▼</span></button>
@@ -11682,6 +11814,20 @@ function renderAdminBase(){
         <button class="btn-big btn-card" style="width:100%;margin-top:8px" onclick="runSystemDiagnostic()">🔄 Relancer le diagnostic</button>
       </div>
     </div>`;
+}
+
+// Test push : s'envoie une notification à soi-même
+async function adminTestPush(){
+  if(!_pushSupported()){ toast('❌ Push non supporté par ce navigateur'); return; }
+  if(!_getVapidKey()){ toast('⚠️ Renseigne et enregistre d\'abord la clé VAPID ci-dessus'); return; }
+  if(!_getPushGasUrl()){ toast('⚠️ Renseigne et enregistre d\'abord l\'URL du script d\'envoi'); return; }
+  if(Notification.permission !== 'granted'){
+    toast('⚠️ Active d\'abord les notifications sur CET appareil : Profil → 🔔 Activer'); return;
+  }
+  if(!_fcmToken) await _registerPushToken();
+  if(!_fcmToken){ toast('❌ Impossible d\'obtenir un token FCM — vérifie la clé VAPID'); return; }
+  sendPushViaGAS([_fcmToken], '🧪 Test NCVRD Detect', 'Les notifications push fonctionnent ! 🎉', 'https://neoconceptvrd.github.io/ncvrd-detect/');
+  toast('🧪 Push de test envoyé — il devrait arriver d\'ici quelques secondes');
 }
 
 // ── CRUD appareils ──
@@ -13019,13 +13165,15 @@ async function adminPublishFlash(){
       read: false,
       createdAt: Date.now()
     })));
+    // 4) 🔔 Push réel (app fermée) — silencieux si non configuré
+    sendPushViaGAS(_collectFcmTokens(targets), notifPrefix.replace(' : ','') , title + ' — ouvre l\'appli pour lire', 'https://neoconceptvrd.github.io/ncvrd-detect/');
     closeModal('m-flash-new');
     document.getElementById('fl-title').value = '';
     document.getElementById('fl-message').value = '';
     if(fileInput) fileInput.value = '';
     document.getElementById('fl-doc-name').textContent = '';
     await _loadAdminFlashes();
-    toast('📢 Flash publié — ' + targets.length + ' agent(s) notifié(s)');
+    toast('📢 Message publié — ' + targets.length + ' agent(s) notifié(s)');
   } catch(e){ toast('❌ Publication échouée : ' + (e?.message||e)); }
 }
 
@@ -14517,6 +14665,8 @@ async function initApp(){
   showScreen('screen-home');
   // 📢 Flash sécurité non lu ? → modal (fermable, revient à chaque ouverture)
   setTimeout(checkSafetyFlashes, 800);
+  // 🔔 Push : rafraîchir le token FCM si la permission est déjà accordée
+  setTimeout(initPushNotifications, 1500);
 }
 
 async function init(){
@@ -15472,6 +15622,11 @@ function _sendPrepInviteNotification(toUid){
     read: false,
     createdAt: Date.now()
   }).catch(e => Logger.warn('Prep', 'auto-invite notif', e?.message));
+  // 🔔 Push réel (app fermée) si l'agent a activé les notifications
+  const tu = (_prepTeamUsers||[]).find(u => u.uid === toUid);
+  if(tu) sendPushViaGAS(_collectFcmTokens([tu]), '🏗️ Invitation chantier',
+    senderName + ' t\'a invité sur "' + (_currentPrep.name || 'Sans titre') + '"',
+    'https://neoconceptvrd.github.io/ncvrd-detect/');
 }
 
 function _prepAddOp(sel, type){

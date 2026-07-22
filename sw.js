@@ -1,5 +1,56 @@
-// Service Worker for NCVRD Detect PWA — v6
-const CACHE_NAME = 'ncvrd-detect-v6';
+// Service Worker for NCVRD Detect PWA — v7
+const CACHE_NAME = 'ncvrd-detect-v7';
+
+// ════════════════════════════════════════════════════════════════
+//  🔔 FIREBASE CLOUD MESSAGING — réception des pushs app fermée
+//  try/catch : si le CDN est injoignable au moment de l'install,
+//  le SW continue de fonctionner (cache/offline) sans le push.
+// ════════════════════════════════════════════════════════════════
+try {
+  importScripts(
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js'
+  );
+  firebase.initializeApp({
+    apiKey:            "AIzaSyBSYpQzMenjr7sghERSTs8ABwE9ZrN96VQ",
+    authDomain:        "ncvrd-detect.firebaseapp.com",
+    projectId:         "ncvrd-detect",
+    storageBucket:     "ncvrd-detect.firebasestorage.app",
+    messagingSenderId: "480995514129",
+    appId:             "1:480995514129:web:d14f81557349e97698deb0"
+  });
+  const messaging = firebase.messaging();
+  // Message reçu pendant que l'app est FERMÉE (ou en arrière-plan)
+  messaging.onBackgroundMessage(payload => {
+    const d = payload.data || {};
+    const n = payload.notification || {};
+    const title = n.title || d.title || 'NCVRD Detect';
+    const body  = n.body  || d.body  || '';
+    self.registration.showNotification(title, {
+      body,
+      icon: './LOGO.png',
+      badge: './LOGO.png',
+      tag: d.tag || 'ncvrd-push',
+      data: { url: d.url || './' }
+    });
+  });
+} catch (e) {
+  // FCM indisponible — le SW reste fonctionnel pour le cache
+}
+
+// Clic sur la notification → ouvre (ou refocalise) l'appli
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if ('focus' in c) return c.focus();
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
 
 // Ressources locales à cacher obligatoirement
 const LOCAL_ASSETS = [
