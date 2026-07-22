@@ -2661,6 +2661,58 @@ body::before{
     </div>
   </div>
 
+  <!-- ─── MODAL AGENT : Flash Sécurité (lecture) ─── -->
+  <div class="modal" id="m-safety-flash">
+    <div class="modal-box" style="max-width:440px;border:1px solid rgba(217,138,61,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px">📢</span>
+          <span style="font-size:10px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.8px">Flash Sécurité</span>
+        </div>
+        <button onclick="closeModal('m-safety-flash')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer (le message reviendra à la prochaine ouverture)">✕</button>
+      </div>
+      <div id="sf-title" style="font-size:17px;font-weight:800;color:var(--text);margin:10px 0 8px"></div>
+      <div id="sf-message" style="font-size:13.5px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:14px"></div>
+      <div id="sf-meta" style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono);margin-bottom:14px"></div>
+      <button id="sf-doc-btn" style="display:none;width:100%;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.3);color:#33d4c6;border-radius:12px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">📄 Voir le document joint</button>
+      <button class="btn-big btn-accent" style="width:100%" onclick="flashMarkRead()">✓ J'ai lu et compris</button>
+      <div style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:8px">Si tu fermes sans confirmer, ce message reviendra à la prochaine ouverture.</div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL ADMIN : Nouveau Flash Sécurité ─── -->
+  <div class="modal" id="m-flash-new">
+    <div class="modal-box" style="max-width:440px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">📢 Nouveau Flash Sécurité</div>
+        <button onclick="closeModal('m-flash-new')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Titre</label>
+        <input class="form-input" id="fl-title" placeholder="Ex : ⚠️ Vigilance canicule"></div>
+      <div class="form-group"><label class="form-label">Message</label>
+        <textarea class="form-textarea" id="fl-message" style="min-height:110px" placeholder="Ex : Fortes chaleurs prévues cette semaine. Hydratation toutes les 30 min, pauses à l'ombre…"></textarea></div>
+      <div class="form-group"><label class="form-label">Document joint (optionnel — PDF ou image)</label>
+        <input type="file" id="fl-doc-input" accept="application/pdf,image/*" style="display:none" onchange="document.getElementById('fl-doc-name').textContent='📎 '+(this.files[0]?.name||'')">
+        <button type="button" class="btn-big btn-card" style="width:100%" onclick="document.getElementById('fl-doc-input').click()">📎 Choisir un fichier</button>
+        <div id="fl-doc-name" style="font-size:11.5px;color:var(--muted);margin-top:5px"></div></div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px">
+        À la publication : tous les agents reçoivent une notification 🔔 et verront ce message à l'ouverture de l'appli jusqu'à ce qu'ils cliquent « ✓ J'ai lu ». Tu suivras qui a lu dans la liste des flashs.
+      </div>
+      <button class="btn-big btn-accent" style="width:100%" onclick="adminPublishFlash()">📢 Publier le flash</button>
+    </div>
+  </div>
+
+  <!-- ─── MODAL ADMIN : Suivi de lecture d'un flash ─── -->
+  <div class="modal" id="m-flash-detail">
+    <div class="modal-box" style="max-width:440px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div id="fl-detail-title" style="font-size:15px;font-weight:800;color:var(--text)">👁 Suivi de lecture</div>
+        <button onclick="closeModal('m-flash-detail')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
+      </div>
+      <div id="fl-detail-body" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+  </div>
+
   <!-- ─── LOGIN SCREEN ──────────────────── -->
   <div class="screen" id="s-login" style="display:none;min-height:100vh;background:#0c1113;padding:0;overflow-y:auto">
     <div>
@@ -10562,6 +10614,68 @@ async function cleanOldNotifications(){
   }
 }
 
+// ════════════════════════════════════════════
+//  📢 FLASH SÉCURITÉ — communication descendante QHSE
+//  Collection racine `safety_flashes` : {title, message, docUrl, docName,
+//  active, createdAt, createdBy, createdByName, readBy:{uid:ts}}
+//  Modal FERMABLE : revient à chaque ouverture tant que « J'ai lu » n'est pas cliqué.
+// ════════════════════════════════════════════
+let _currentFlash = null;
+
+async function checkSafetyFlashes(){
+  if(!FIREBASE_CONFIGURED || !fdb || !currentUserProfile?.uid) return;
+  try {
+    const snap = await fdb.collection('safety_flashes').where('active', '==', true).get();
+    if(snap.empty) return;
+    // Le plus récent non lu (tri client — collection petite, pas d'index composite requis)
+    const flashes = snap.docs.map(d => ({id: d.id, ...d.data()}))
+      .filter(f => !(f.readBy && f.readBy[currentUserProfile.uid]))
+      .sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
+    if(!flashes.length) return;
+    _showSafetyFlash(flashes[0]);
+  } catch(e){ Logger.warn('Flash', 'checkSafetyFlashes', e?.message); }
+}
+
+function _showSafetyFlash(f){
+  _currentFlash = f;
+  const t = document.getElementById('sf-title');
+  const m = document.getElementById('sf-message');
+  const meta = document.getElementById('sf-meta');
+  const docBtn = document.getElementById('sf-doc-btn');
+  if(t) t.textContent = f.title || 'Message de sécurité';
+  if(m) m.textContent = f.message || '';
+  if(meta){
+    const d = f.createdAt ? new Date(f.createdAt).toLocaleDateString('fr-FR') : '';
+    meta.textContent = (f.createdByName ? 'Publié par ' + f.createdByName : '') + (d ? ' · ' + d : '');
+  }
+  if(docBtn){
+    if(f.docUrl){
+      docBtn.style.display = 'block';
+      docBtn.onclick = () => window.open(f.docUrl, '_blank', 'noopener');
+    } else {
+      docBtn.style.display = 'none';
+    }
+  }
+  openModal('m-safety-flash');
+}
+
+async function flashMarkRead(){
+  const f = _currentFlash;
+  closeModal('m-safety-flash');
+  if(!f || !FIREBASE_CONFIGURED || !fdb || !currentUserProfile?.uid) return;
+  try {
+    await fdb.collection('safety_flashes').doc(f.id).set(
+      { readBy: { [currentUserProfile.uid]: Date.now() } }, { merge: true });
+    _currentFlash = null;
+    toast('✓ Lecture confirmée — merci !');
+    // Y a-t-il un autre flash non lu derrière ?
+    setTimeout(checkSafetyFlashes, 600);
+  } catch(e){
+    Logger.warn('Flash', 'markRead', e?.message);
+    toast('⚠️ Confirmation non enregistrée (hors-ligne ?) — le message reviendra');
+  }
+}
+
 async function initNotifications(){
   if(!FIREBASE_CONFIGURED || !fdb || !currentUserProfile) return;
   const uid = currentUserProfile.uid;
@@ -10591,7 +10705,11 @@ async function initNotifications(){
       snap.docChanges().forEach(change => {
         if(change.type==='added'){
           const d = change.doc.data();
-          if(!d.read && Date.now() - (d.createdAt||0) < 10000) toast('🔔 ' + (d.message||''));
+          if(!d.read && Date.now() - (d.createdAt||0) < 10000){
+            toast('🔔 ' + (d.message||''));
+            // Flash sécurité publié pendant que l'agent est connecté → modal immédiate
+            if(d.type === 'safety_flash') setTimeout(checkSafetyFlashes, 400);
+          }
         }
       });
       if(document.getElementById('notif-panel')?.style.display !== 'none') renderNotifList();
@@ -12748,6 +12866,143 @@ function _admDocIcon(d){
   return '📎';
 }
 
+// ── 📢 Flashs sécurité : section admin (créer, suivre les lectures, désactiver) ──
+let _adminFlashes = [];
+
+async function _loadAdminFlashes(){
+  if(!FIREBASE_CONFIGURED || !fdb) return;
+  try {
+    const snap = await fdb.collection('safety_flashes').get();
+    _adminFlashes = snap.docs.map(d => ({id: d.id, ...d.data()}))
+      .sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+    const zone = document.getElementById('admin-flash-list');
+    if(zone) zone.innerHTML = _renderAdminFlashList();
+  } catch(e){ Logger.warn('Flash', 'loadAdminFlashes', e?.message); }
+}
+
+function _renderAdminFlashList(){
+  const totalUsers = (_adminData.users||[]).length;
+  if(!_adminFlashes.length) return '<div style="font-size:12px;color:var(--muted);padding:6px 0;font-style:italic">Aucun flash publié pour l\'instant.</div>';
+  return _adminFlashes.map(f => {
+    const readCount = Object.keys(f.readBy||{}).length;
+    const pct = totalUsers ? Math.round(readCount/totalUsers*100) : 0;
+    const d = f.createdAt ? new Date(f.createdAt).toLocaleDateString('fr-FR') : '-';
+    return `<div style="background:var(--card2);border:1px solid ${f.active?'rgba(217,138,61,.35)':'var(--border)'};border-radius:12px;padding:11px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:800;color:var(--text);flex:1;min-width:120px">${escHtml(f.title||'-')}</span>
+        <span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:6px;${f.active?'color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35)':'color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border)'}">${f.active?'ACTIF':'Désactivé'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${d} · par ${escHtml(f.createdByName||'-')}${f.docName?' · 📎 '+escHtml(f.docName):''}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-v))"></div></div>
+        <span style="font-size:11px;font-weight:700;color:var(--text2);font-family:var(--font-mono);flex-shrink:0">${readCount}/${totalUsers} lu</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:9px">
+        <button onclick="adminFlashDetail('${f.id}')" style="flex:1;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">👁 Qui a lu ?</button>
+        <button onclick="adminToggleFlash('${f.id}')" style="flex:1;background:rgba(217,138,61,.08);border:1px solid rgba(217,138,61,.25);color:#e0a567;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">${f.active?'⏸ Désactiver':'▶️ Réactiver'}</button>
+        <button onclick="adminDeleteFlash('${f.id}')" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;font-family:inherit">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adminPublishFlash(){
+  const title = document.getElementById('fl-title').value.trim();
+  const message = document.getElementById('fl-message').value.trim();
+  const fileInput = document.getElementById('fl-doc-input');
+  if(!title){ toast('⚠️ Le titre est obligatoire'); return; }
+  if(!message){ toast('⚠️ Le message est obligatoire'); return; }
+  if(!FIREBASE_CONFIGURED || !fdb){ toast('❌ Firestore indisponible'); return; }
+  toast('⏳ Publication en cours…');
+  const flashId = 'fl-' + uid();
+  let docUrl = '', docName = '';
+  try {
+    // 1) Upload du document joint (optionnel)
+    const file = fileInput?.files?.[0];
+    if(file){
+      const dataUrl = await new Promise((res, rej) => {
+        const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file);
+      });
+      const safe = String(file.name).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const url = await uploadPhotoToStorage(dataUrl, `flashs/${flashId}/${safe}`);
+      if(url){ docUrl = url; docName = file.name; }
+      else { toast('⚠️ Upload du document échoué — flash publié sans pièce jointe'); }
+    }
+    // 2) Créer le flash
+    await fdb.collection('safety_flashes').doc(flashId).set({
+      title, message, docUrl, docName,
+      active: true,
+      createdAt: Date.now(),
+      createdBy: currentUserProfile?.uid || '-',
+      createdByName: currentUserProfile?.displayName || currentUserProfile?.email || '-',
+      readBy: {}
+    });
+    // 3) Notifier tous les utilisateurs connus (toutes équipes visibles par cet admin)
+    const targets = (_adminData.users||[]).filter(u => u.uid);
+    await Promise.allSettled(targets.map(u => fdb.collection('notifications').add({
+      toUid: u.uid,
+      fromUid: currentUserProfile?.uid || null,
+      fromName: currentUserProfile?.displayName || 'QHSE',
+      type: 'safety_flash',
+      flashId,
+      message: '📢 Flash sécurité : ' + title,
+      read: false,
+      createdAt: Date.now()
+    })));
+    closeModal('m-flash-new');
+    document.getElementById('fl-title').value = '';
+    document.getElementById('fl-message').value = '';
+    if(fileInput) fileInput.value = '';
+    document.getElementById('fl-doc-name').textContent = '';
+    await _loadAdminFlashes();
+    toast('📢 Flash publié — ' + targets.length + ' agent(s) notifié(s)');
+  } catch(e){ toast('❌ Publication échouée : ' + (e?.message||e)); }
+}
+
+async function adminToggleFlash(id){
+  const f = _adminFlashes.find(x => x.id === id);
+  if(!f) return;
+  try {
+    await fdb.collection('safety_flashes').doc(id).update({ active: !f.active });
+    await _loadAdminFlashes();
+    toast(f.active ? '⏸ Flash désactivé — il n\'apparaîtra plus chez les agents' : '▶️ Flash réactivé');
+  } catch(e){ toast('❌ ' + (e?.message||e)); }
+}
+
+async function adminDeleteFlash(id){
+  const f = _adminFlashes.find(x => x.id === id);
+  if(!f) return;
+  if(!confirm('Supprimer définitivement le flash "' + (f.title||'') + '" ?\n\nLe suivi de lecture sera perdu.')) return;
+  try {
+    await fdb.collection('safety_flashes').doc(id).delete();
+    await _loadAdminFlashes();
+    toast('🗑️ Flash supprimé');
+  } catch(e){ toast('❌ ' + (e?.message||e)); }
+}
+
+function adminFlashDetail(id){
+  const f = _adminFlashes.find(x => x.id === id);
+  if(!f) return;
+  const users = _adminData.users || [];
+  const readBy = f.readBy || {};
+  const readers = users.filter(u => readBy[u.uid]).sort((a,b) => readBy[a.uid]-readBy[b.uid]);
+  const nonReaders = users.filter(u => !readBy[u.uid]);
+  const title = document.getElementById('fl-detail-title');
+  if(title) title.textContent = '👁 ' + (f.title || 'Suivi de lecture');
+  const row = (u, ts) => `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;font-size:12px">
+    <span style="flex-shrink:0">${ts ? '✅' : '⏳'}</span>
+    <span style="flex:1;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(u.displayName||u.email||u.uid)}</span>
+    <span style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono);flex-shrink:0">${ts ? new Date(ts).toLocaleDateString('fr-FR')+' '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : 'pas encore lu'}</span>
+  </div>`;
+  const body = document.getElementById('fl-detail-body');
+  if(body) body.innerHTML =
+    `<div style="font-size:11px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin:4px 0 6px">✅ Ont lu · ${readers.length}</div>` +
+    (readers.map(u => row(u, readBy[u.uid])).join('') || '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:6px">Personne pour l\'instant</div>') +
+    `<div style="font-size:11px;font-weight:800;color:#e0a567;text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px">⏳ N'ont pas encore lu · ${nonReaders.length}</div>` +
+    (nonReaders.map(u => row(u, null)).join('') || '<div style="font-size:12px;color:var(--muted);font-style:italic">Tout le monde a lu 🎉</div>');
+  openModal('m-flash-detail');
+}
+
 function renderAdminDocuments(filter=''){
   const el = document.getElementById('admin-documents-list');
   if(!el) return;
@@ -12756,7 +13011,16 @@ function renderAdminDocuments(filter=''){
   let docs = _adminData.sharedDocs.filter(d=>d.kind==='assigned');
   docs = docs.filter(d=>!q || (d.name||'').toLowerCase().includes(q));
   docs.sort((a,b)=>(b.addedTs||0)-(a.addedTs||0));
-  const addBtn = `<button onclick="openAdminDocModal()" style="width:100%;background:linear-gradient(135deg,#0B769F,#0e6088);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px">➕ Déposer un document</button>`;
+  const flashSection = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">📢 Flashs Sécurité</div>
+      <button onclick="openModal('m-flash-new')" style="background:linear-gradient(135deg,#d98a3d,#b8722f);border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Nouveau flash</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Sensibilisation rapide (canicule, verglas, rappel consignes…) : message + document, notification à tous, suivi de qui a lu.</div>
+    <div id="admin-flash-list"><div style="font-size:12px;color:var(--muted);font-style:italic">Chargement…</div></div>
+    <div style="border-top:1px solid var(--border);margin:16px 0 14px"></div>`;
+  if(typeof _loadAdminFlashes === 'function') _loadAdminFlashes();
+  const addBtn = flashSection + `<button onclick="openAdminDocModal()" style="width:100%;background:linear-gradient(135deg,#0B769F,#0e6088);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px">➕ Déposer un document</button>`;
   const info = `<div style="font-size:11px;color:var(--muted);background:rgba(11,118,159,.07);border:1px solid rgba(11,118,159,.18);border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5">📄 Les documents déposés ici apparaissent dans la rubrique choisie de l'écran « Documents » des collaborateurs ciblés.</div>`;
   if(!docs.length){ el.innerHTML = addBtn + info + '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Aucun document déposé.</div>'; return; }
   el.innerHTML = addBtn + info + docs.map(d=>{
@@ -14181,6 +14445,8 @@ async function initApp(){
   initNotifications(); // démarrer le listener notifications temps réel
   updateTerrainBtn();  // synchroniser l'apparence du bouton mode terrain
   showScreen('screen-home');
+  // 📢 Flash sécurité non lu ? → modal (fermable, revient à chaque ouverture)
+  setTimeout(checkSafetyFlashes, 800);
 }
 
 async function init(){
