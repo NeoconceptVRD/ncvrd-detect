@@ -6768,13 +6768,16 @@ function renderMateriels(){
     // Retrouver l'appareil du parc (par code stocké, sinon par type+série)
     const matched = !m._libre && parc.find(a =>
       (m.code && a.code === m.code) || (m.serie && a.type === m.type && a.serie === m.serie));
-    const isFree = !matched && (m._libre || m.type || m.serie);
+    // Saisie libre UNIQUEMENT si choisie explicitement, ou si un matériel hors parc
+    // a déjà une série saisie. Une ligne pré-remplie (type par défaut, série vide)
+    // affiche le SELECT — pas les champs texte.
+    const isFree = !matched && (m._libre === true || (!!m.serie && !m.code));
 
     const catOpts = Object.keys(APPAREILS_CATS).map(catKey => {
       const items = parc.filter(a => a.cat === catKey);
       if(!items.length) return '';
       return `<optgroup label="${APPAREILS_CATS[catKey]}">` +
-        items.map(a => `<option value="${a.id}"${matched && matched.id===a.id ? ' selected':''}>${escHtml(a.code||'—')} · ${escHtml(a.type)}${a.serie ? ' ('+escHtml(a.serie)+')':''}</option>`).join('') +
+        items.map(a => `<option value="${a.id}"${matched && matched.id===a.id ? ' selected':''}>${escHtml(a.code||'—')} · ${escHtml(a.type)}</option>`).join('') +
         '</optgroup>';
     }).join('');
 
@@ -6783,12 +6786,14 @@ function renderMateriels(){
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">
         <select class="mini-inp" style="appearance:auto;cursor:pointer"
           onchange="selectMaterielFromParc(${i}, this.value)">
-          <option value="">— Choisir un appareil —</option>
+          <option value="">— Choisir un appareil (code) —</option>
           ${catOpts}
           <option value="__libre__"${isFree ? ' selected':''}>✏️ Saisie libre…</option>
         </select>
         <button class="del-btn" onclick="removeMateriel(${i})">✕</button>
       </div>
+      ${matched && matched.serie ? `
+      <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono);padding:4px 2px 0">N° série : ${escHtml(matched.serie)} — rempli automatiquement</div>` : ''}
       ${isFree ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
         <input class="mini-inp" placeholder="Type d'appareil" value="${escHtml(m.type||'')}"
@@ -11241,11 +11246,17 @@ function renderAdminBase(){
     {key:'mes', label:'📏 Outils de mesure'}
   ];
 
+  const colHeader = `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:9.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:var(--font-mono)">
+      <span style="width:64px;flex-shrink:0">Code</span>
+      <span style="flex:1">Appareil · N° de série</span>
+      <span style="width:76px;text-align:right;flex-shrink:0">Actions</span>
+    </div>`;
   const appareilsHTML = cats.map(c => {
     const items = parc.filter(a => a.cat === c.key);
     const rows = items.map(a => `
       <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
-        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:#33d4c6;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);border-radius:6px;padding:3px 8px;flex-shrink:0">${escHtml(a.code||'—')}</span>
+        <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:#33d4c6;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);border-radius:6px;padding:4px 6px;width:64px;text-align:center;box-sizing:border-box;flex-shrink:0">${escHtml(a.code||'—')}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(a.type||'-')}</div>
           <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono)">N° ${escHtml(a.serie||'—')}${a.ag?' · '+escHtml(a.ag):''}</div>
@@ -11253,7 +11264,7 @@ function renderAdminBase(){
         <button onclick="adminEditAppareil('${a.id}')" title="Modifier" style="background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>
         <button onclick="adminDeleteAppareil('${a.id}')" title="Supprimer" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️</button>
       </div>`).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Aucun appareil dans cette catégorie</div>';
-    return `<div style="margin:16px 0 8px;font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">${c.label} · ${items.length}</div>${rows}`;
+    return `<div style="margin:16px 0 4px;font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">${c.label} · ${items.length}</div>${items.length ? colHeader : ''}${rows}`;
   }).join('');
 
   const ops = (DynLists.get('operations')||[]).join('\n');
