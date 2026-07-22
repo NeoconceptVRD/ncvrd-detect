@@ -2645,6 +2645,22 @@ body::before{
     </div>
   </div>
 
+  <!-- ─── MODAL : Créer une agence (Base admin) ─── -->
+  <div class="modal" id="m-agence">
+    <div class="modal-box" style="max-width:420px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">🏢 Créer une agence</div>
+        <button onclick="closeModal('m-agence')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nom de l'agence / région</label>
+        <input class="form-input" id="ag-name" placeholder="Ex : Lyon Sud"></div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px">
+        Deux codes d'invitation seront générés automatiquement : un code <strong>membre</strong> 👷 et un code <strong>admin</strong> 🔑 (visibles dans la liste des agences). Les collaborateurs rejoignent l'agence avec ce code à l'inscription.
+      </div>
+      <button class="btn-big btn-accent" style="width:100%" onclick="adminCreateAgency()">🏢 Créer l'agence</button>
+    </div>
+  </div>
+
   <!-- ─── LOGIN SCREEN ──────────────────── -->
   <div class="screen" id="s-login" style="display:none;min-height:100vh;background:#0c1113;padding:0;overflow-y:auto">
     <div>
@@ -11364,6 +11380,53 @@ function renderAdminBase(){
       : '';
   })();
 
+  // ── Rôles (roles_tech / roles_admin) ──
+  const usersAll = (_adminData && Array.isArray(_adminData.users)) ? _adminData.users : [];
+  const roleChip = (kind, r, i) => {
+    const count = usersAll.filter(u => u.role === r).length;
+    const c = roleColor(r);
+    const isSystem = ['ADMIN','Directeur Général','QHSE'].includes(r);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:5px">
+      <span style="display:inline-block;background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700">${escHtml(r)}</span>
+      <span style="flex:1;font-size:11px;color:var(--muted)">${count} utilisateur${count!==1?'s':''}</span>
+      ${isSystem
+        ? '<span style="font-size:9.5px;color:var(--muted);font-style:italic;flex-shrink:0">rôle système</span>'
+        : `<button onclick="adminRemoveRole('${kind}',${i})" title="Supprimer ce rôle" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️</button>`}
+    </div>`;
+  };
+  const rolesTech = DynLists.get('roles_tech')||[];
+  const rolesAdmin = DynLists.get('roles_admin')||[];
+  const rolesHTML = `
+    <div style="margin:12px 0 6px;font-size:10.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">🔧 Rôles techniques · ${rolesTech.length}</div>
+    ${rolesTech.map((r,i)=>roleChip('tech',r,i)).join('')}
+    <div style="display:flex;gap:6px;margin:8px 0 14px">
+      <input class="form-input" id="base-newrole-tech" placeholder="Nouveau rôle technique…" style="flex:1;padding:9px 12px;font-size:12.5px">
+      <button onclick="adminAddRole('tech')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:9px;padding:0 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕</button>
+    </div>
+    <div style="margin:12px 0 6px;font-size:10.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">🛡️ Rôles administratifs · ${rolesAdmin.length}</div>
+    ${rolesAdmin.map((r,i)=>roleChip('admin',r,i)).join('')}
+    <div style="display:flex;gap:6px;margin:8px 0 8px">
+      <input class="form-input" id="base-newrole-admin" placeholder="Nouveau rôle administratif…" style="flex:1;padding:9px 12px;font-size:12.5px">
+      <button onclick="adminAddRole('admin')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:9px;padding:0 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕</button>
+    </div>
+    <div style="background:rgba(217,138,61,.08);border:1px solid rgba(217,138,61,.3);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--muted);line-height:1.5">
+      ⚠️ <strong style="color:#e0a567">Après tout changement de rôle ADMINISTRATIF</strong> : les règles serveur (Firestore Console → Rules) doivent connaître la nouvelle liste, sinon le rôle n'aura pas les droits admin côté serveur.
+      <button onclick="adminCopyRulesSnippet()" style="display:block;margin-top:7px;background:rgba(22,168,154,.12);border:1px solid rgba(22,168,154,.3);color:#33d4c6;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📋 Copier le bloc de règles à jour</button>
+    </div>`;
+
+  // ── Agences (teams Firestore) ──
+  const teamsAll = (_adminData && Array.isArray(_adminData.teams)) ? _adminData.teams : [];
+  const agencesHTML = teamsAll.map(t => {
+    const members = usersAll.filter(u => u.teamId === t.id);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">🏢 ${escHtml(t.name||t.id)}</div>
+        <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono);margin-top:2px">👷 ${escHtml(t.inviteCode||'-')} · 🔑 ${escHtml(t.adminInviteCode||'-')} · ${members.length} membre${members.length!==1?'s':''}</div>
+      </div>
+      <button onclick="adminRenameAgency('${t.id}')" title="Renommer" style="background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Aucune agence chargée — ouvre d\'abord l\'onglet 👥 Équipe</div>';
+
   // ── Méthodes de détection par réseau (net_methods) ──
   const nm = DynLists.get('net_methods') || {};
   window._nmKeys = Object.keys(nm);
@@ -11407,6 +11470,19 @@ function renderAdminBase(){
     </div>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Alimente les menus déroulants : chef de projet, opérateurs, envoi de rapports par e-mail. Un salarié arrive ou part → gère-le ici.</div>
     ${annuaireHTML || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Annuaire vide — ajoute le premier contact avec ➕</div>'}
+
+    <!-- ── Rôles ── -->
+    <div style="font-size:15px;font-weight:800;color:var(--text);margin:26px 0 4px">🎭 Rôles utilisateurs</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Rôles proposés à l'inscription et dans « ✏️ Rôle » de l'onglet Équipe. Un rôle ne peut être supprimé que si plus personne ne le porte.</div>
+    ${rolesHTML}
+
+    <!-- ── Agences ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:26px 0 4px">
+      <div style="font-size:15px;font-weight:800;color:var(--text)">🏢 Agences / Régions</div>
+      <button onclick="openModal('m-agence')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Créer</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Chaque agence a ses codes d'invitation (👷 membre · 🔑 admin) que les collaborateurs saisissent à l'inscription. Déplacer un utilisateur : onglet Équipe → ↗️.</div>
+    ${agencesHTML}
 
     <!-- ── Méthodes de détection par réseau ── -->
     <div style="font-size:15px;font-weight:800;color:var(--text);margin:26px 0 4px">🔌 Méthodes de détection par réseau</div>
@@ -11605,6 +11681,122 @@ async function adminSaveNetMethod(i){
     await DynLists.save('net_methods', nm);
     toast('✅ Méthode "'+res+'" enregistrée pour toute l\'équipe');
   } catch(e){}
+}
+
+// ── Rôles : création / suppression (roles_tech + roles_admin + admin_roles) ──
+async function adminAddRole(kind){
+  const input = document.getElementById(kind === 'tech' ? 'base-newrole-tech' : 'base-newrole-admin');
+  const name = (input?.value || '').trim();
+  if(!name){ toast('⚠️ Saisis le nom du rôle'); return; }
+  const tech  = [...(DynLists.get('roles_tech')||[])];
+  const admin = [...(DynLists.get('roles_admin')||[])];
+  if([...tech, ...admin, 'ADMIN'].some(r => r.toLowerCase() === name.toLowerCase())){
+    toast('⚠️ Ce rôle existe déjà'); return;
+  }
+  try {
+    if(kind === 'tech'){
+      tech.push(name);
+      await DynLists.save('roles_tech', tech);
+      toast('✅ Rôle technique "'+name+'" créé — disponible à l\'inscription et dans Équipe');
+    } else {
+      admin.push(name);
+      await DynLists.save('roles_admin', admin);
+      // admin_roles = source de isAdminRole() côté app (toujours inclure ADMIN)
+      await DynLists.save('admin_roles', [...admin, 'ADMIN']);
+      toast('✅ Rôle admin "'+name+'" créé — ⚠️ copie le bloc de règles serveur (bouton 📋) et colle-le dans Firestore Console → Rules', 8000);
+    }
+    renderAdminBase();
+  } catch(e){}
+}
+
+async function adminRemoveRole(kind, idx){
+  const key = kind === 'tech' ? 'roles_tech' : 'roles_admin';
+  const list = [...(DynLists.get(key)||[])];
+  const name = list[idx];
+  if(!name) return;
+  if(['ADMIN','Directeur Général','QHSE'].includes(name)){ toast('⚠️ Rôle système — suppression interdite'); return; }
+  const carriers = ((_adminData && _adminData.users) || []).filter(u => u.role === name);
+  if(carriers.length){
+    toast('⚠️ Impossible : '+carriers.length+' utilisateur(s) portent encore ce rôle — change-les d\'abord (onglet Équipe)', 6000);
+    return;
+  }
+  if(!confirm('Supprimer le rôle "'+name+'" ?\n\nIl ne sera plus proposé à l\'inscription ni dans l\'onglet Équipe.')) return;
+  try {
+    list.splice(idx, 1);
+    await DynLists.save(key, list);
+    if(kind === 'admin'){
+      await DynLists.save('admin_roles', [...list, 'ADMIN']);
+      toast('🗑️ Rôle supprimé — ⚠️ mets aussi à jour les règles serveur (bouton 📋)', 6000);
+    } else {
+      toast('🗑️ Rôle supprimé');
+    }
+    renderAdminBase();
+  } catch(e){}
+}
+
+// Génère le bloc firestore.rules aligné sur la liste actuelle des rôles admin
+function adminCopyRulesSnippet(){
+  const admin = [...(DynLists.get('roles_admin')||[]), 'ADMIN'];
+  const arr = admin.map(r => r.includes("'") ? '"'+r+'"' : "'"+r+"'").join(',\n        ');
+  const snippet =
+`    // Rôles admin d'équipe
+    function isAdmin() {
+      return isAuth() && myRole() in [
+        ${arr}
+      ];
+    }
+    // Noms des rôles administrateurs (doit rester synchrone avec isAdmin())
+    function adminRoleNames() {
+      return [
+        ${arr}
+      ];
+    }`;
+  (navigator.clipboard?.writeText(snippet) || Promise.reject()).then(
+    () => toast('📋 Bloc copié — remplace les fonctions isAdmin() et adminRoleNames() dans Firestore Console → Rules → Publier', 9000),
+    () => { prompt('Copie ce bloc dans Firestore Console → Rules :', snippet); }
+  );
+}
+
+// ── Agences : création + renommage ──
+async function adminCreateAgency(){
+  const nameEl = document.getElementById('ag-name');
+  const name = (nameEl?.value || '').trim();
+  if(!name){ toast('⚠️ Le nom de l\'agence est obligatoire'); return; }
+  if(!FIREBASE_CONFIGURED || !fdb){ toast('❌ Firestore indisponible'); return; }
+  if(((_adminData && _adminData.teams) || []).some(t => (t.name||'').toLowerCase() === name.toLowerCase())){
+    toast('⚠️ Une agence porte déjà ce nom'); return;
+  }
+  const teamId = 'team_' + uid().replace(/[^a-z0-9]/gi,'').substring(0,10);
+  try {
+    await fdb.collection('teams').doc(teamId).set({
+      name,
+      createdBy: currentUserProfile?.uid || null,
+      inviteCode: generateInviteCode(),
+      adminInviteCode: generateInviteCode(),
+      createdAt: Date.now()
+    });
+    closeModal('m-agence');
+    if(nameEl) nameEl.value = '';
+    await loadAdminData();      // recharge teams + users pour l'affichage
+    renderAdminBase();
+    toast('✅ Agence "'+name+'" créée — codes d\'invitation visibles dans la liste');
+  } catch(e){ toast('❌ Création échouée : '+(e?.message||e)); }
+}
+
+async function adminRenameAgency(teamId){
+  const t = ((_adminData && _adminData.teams) || []).find(x => x.id === teamId);
+  if(!t) return;
+  const name = (prompt('Nouveau nom pour l\'agence "'+(t.name||teamId)+'" :', t.name||'') || '').trim();
+  if(!name || name === t.name) return;
+  try {
+    await fdb.collection('teams').doc(teamId).update({ name });
+    // Propager le nom dénormalisé aux profils des membres
+    const members = ((_adminData && _adminData.users) || []).filter(u => u.teamId === teamId);
+    await Promise.allSettled(members.map(u => fdb.collection('users').doc(u.uid).update({ teamName: name })));
+    await loadAdminData();
+    renderAdminBase();
+    toast('✅ Agence renommée en "'+name+'" ('+members.length+' profil(s) mis à jour)');
+  } catch(e){ toast('❌ Renommage échoué : '+(e?.message||e)); }
 }
 
 // ── Journal des modifications de la Base (config/audit_log) ──
