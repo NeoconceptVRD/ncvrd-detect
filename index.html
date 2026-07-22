@@ -2555,6 +2555,7 @@ body::before{
       <button onclick="adminTab('documents')" id="atab-documents" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📄 Docs</button>
       <button onclick="adminTab('stats')" id="atab-stats" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📊 Stats</button>
       <button onclick="adminTab('params')" id="atab-params" style="flex:1 0 auto;min-width:82px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">⚙️ Réglages</button>
+      <button onclick="adminTab('base')" id="atab-base" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">🗄️ Base</button>
     </div>
     <!-- Recherche (cachée sur l'onglet Réglages) -->
     <div id="admin-search-bar" style="padding:10px 14px 0">
@@ -2580,6 +2581,42 @@ body::before{
     <!-- Onglet Réglages -->
     <div id="admin-panel-params" style="display:none;padding:12px 14px 90px">
       <div id="admin-params-content"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    </div>
+    <!-- Onglet Base de données -->
+    <div id="admin-panel-base" style="display:none;padding:12px 14px 90px">
+      <div id="admin-base-content"><div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Chargement…</div></div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL : Ajouter / modifier un appareil (Base admin) ─── -->
+  <div class="modal" id="m-appareil">
+    <div class="modal-box" style="max-width:420px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div id="m-appareil-title" style="font-size:16px;font-weight:800;color:var(--text)">🔧 Ajouter un appareil</div>
+        <button onclick="closeModal('m-appareil')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nom de code (utilisé sur le terrain)</label>
+        <input class="form-input" id="app-code" placeholder="Ex : DET-01" style="font-family:var(--font-mono);text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Désignation de l'appareil</label>
+        <input class="form-input" id="app-type" placeholder="Ex : Détecteur VIVAX" list="app-type-suggestions">
+        <datalist id="app-type-suggestions"></datalist></div>
+      <div class="form-group"><label class="form-label">N° de série</label>
+        <input class="form-input" id="app-serie" placeholder="Ex : 21900117360" style="font-family:var(--font-mono)"></div>
+      <div class="form-group"><label class="form-label">Catégorie</label>
+        <select class="form-select" id="app-cat">
+          <option value="det">🔍 Matériel de détection</option>
+          <option value="geo">📡 Matériel de géoréférencement</option>
+          <option value="mes">📏 Outil de mesure</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Agence</label>
+        <select class="form-select" id="app-ag">
+          <option value="">— Non précisée —</option>
+          <option value="APO">Paris OUEST</option>
+          <option value="APE">Paris EST</option>
+          <option value="AGE">Grand EST</option>
+        </select></div>
+      <input type="hidden" id="app-edit-id">
+      <button class="btn-big btn-accent" style="width:100%;margin-top:6px" onclick="adminSaveAppareil()">💾 Enregistrer</button>
     </div>
   </div>
 
@@ -4454,6 +4491,85 @@ const DynLists = {
     ],
     default_logiciels: [
       {type:'AUTOCAD/COVADIS',marque:'AUTODESK'}
+    ],
+    // ── Parc d'appareils NCVRD (éditable via Admin → 🗄️ Base) ──
+    // code = nom de code officiel QHSE ; cat = 'det' | 'geo' | 'mes' ; ag = agence (APO/APE/AGE)
+    // Seed importé des fichiers « LISTE DE MATERIEL v2 » (APO/APE/AGE) — seuls les
+    // appareils AVEC nom de code officiel sont repris. Le drone AGE (code D1 en
+    // collision avec le détecteur D1) a été renommé DR1.
+    appareils: [
+      {id:'app-c1', code:'C1', type:"Caméra d'inspection RIDGID SeeSnake CS6X", serie:'165-014864', cat:'det', ag:'AGE'},
+      {id:'app-d1', code:'D1', type:'Détecteur VIVAX', serie:'21900117360', cat:'det', ag:'AGE'},
+      {id:'app-d2', code:'D2', type:'Détecteur VIVAX', serie:'21901180216', cat:'det', ag:'AGE'},
+      {id:'app-d3', code:'D3', type:'Détecteur VIVAX', serie:'21901172898', cat:'det', ag:'AGE'},
+      {id:'app-d4', code:'D4', type:'Détecteur VIVAX', serie:'21701130467', cat:'det', ag:'APE'},
+      {id:'app-d5', code:'D5', type:'Détecteur VIVAX', serie:'21901171595', cat:'det', ag:'APE'},
+      {id:'app-d6', code:'D6', type:'Détecteur VIVAX', serie:'21901201889', cat:'det', ag:'APO'},
+      {id:'app-d7', code:'D7', type:'Détecteur VIVAX', serie:'21901171596', cat:'det', ag:'APO'},
+      {id:'app-d8', code:'D8', type:'Détecteur VIVAX', serie:'21901141842', cat:'det', ag:'APO'},
+      {id:'app-d9', code:'D9', type:'Détecteur VIVAX', serie:'21901141844', cat:'det', ag:'APO'},
+      {id:'app-dmg1', code:'DMG1', type:'Détecteur multi-gaz MSA ALTAIR 4XL', serie:'383454', cat:'det', ag:'AGE'},
+      {id:'app-dmg2', code:'DMG2', type:'Détecteur multi-gaz MSA ALTAIR 4XL', serie:'383456', cat:'det', ag:'AGE'},
+      {id:'app-dr1', code:'DR1', type:'Drone DJI MAVIC 3E', serie:'', cat:'det', ag:'AGE'},
+      {id:'app-f1', code:'F1', type:'Flexitrace KATIMEX', serie:'104088', cat:'det', ag:'AGE'},
+      {id:'app-f2', code:'F2', type:'Flexitrace KATIMEX', serie:'104098', cat:'det', ag:'AGE'},
+      {id:'app-f3', code:'F3', type:'Flexitrace KATIMEX', serie:'', cat:'det', ag:'AGE'},
+      {id:'app-f4', code:'F4', type:'Flexitrace KATIMEX', serie:'', cat:'det', ag:'APE'},
+      {id:'app-f5', code:'F5', type:'Flexitrace KATIMEX', serie:'', cat:'det', ag:'APO'},
+      {id:'app-g1', code:'G1', type:'Générateur VIVAX', serie:'21902172284', cat:'det', ag:'AGE'},
+      {id:'app-g2', code:'G2', type:'Générateur VIVAX', serie:'21902171872', cat:'det', ag:'AGE'},
+      {id:'app-g3', code:'G3', type:'Générateur VIVAX', serie:'20004120183', cat:'det', ag:'AGE'},
+      {id:'app-g5', code:'G5', type:'Générateur VIVAX', serie:'21902152182', cat:'det', ag:'APE'},
+      {id:'app-g6', code:'G6', type:'Générateur VIVAX', serie:'21902182474', cat:'det', ag:'APE'},
+      {id:'app-g7', code:'G7', type:'Générateur VIVAX', serie:'21702090032', cat:'det', ag:'APO'},
+      {id:'app-g8', code:'G8', type:'Générateur VIVAX', serie:'21902172260', cat:'det', ag:'APO'},
+      {id:'app-g9', code:'G9', type:'Générateur VIVAX', serie:'21902195681', cat:'det', ag:'APO'},
+      {id:'app-g10', code:'G10', type:'Générateur VIVAX', serie:'21902152995', cat:'det', ag:'APO'},
+      {id:'app-g11', code:'G11', type:'Générateur VIVAX', serie:'21902171893', cat:'det', ag:'APO'},
+      {id:'app-gr1', code:'GR1', type:'Géoradar Utiliscan DF 655 (300-800 MHz)', serie:'1076', cat:'det', ag:'AGE'},
+      {id:'app-gr2', code:'GR2', type:'Géoradar Utiliscan DF 655 (300-800 MHz)', serie:'0921', cat:'det', ag:'AGE'},
+      {id:'app-gr3', code:'GR3', type:'Géoradar Utiliscan DF 655 (300-800 MHz)', serie:'0978', cat:'det', ag:'APE'},
+      {id:'app-gr4', code:'GR4', type:'Géoradar Utiliscan DF 655 (300-800 MHz)', serie:'0979', cat:'det', ag:'APE'},
+      {id:'app-gr5', code:'GR5', type:'Géoradar Utiliscan DF 655 (300-800 MHz)', serie:'0459', cat:'det', ag:'APO'},
+      {id:'app-tgr1', code:'TGR1', type:'Tablette géoradar Panasonic FZ-G2', serie:'4BTCA13840', cat:'det', ag:'AGE'},
+      {id:'app-tgr2', code:'TGR2', type:'Tablette géoradar Panasonic FZ-G2', serie:'3LTSA13790', cat:'det', ag:'AGE'},
+      {id:'app-tgr3', code:'TGR3', type:'Tablette géoradar Panasonic FZ-G2', serie:'2JTTA74763', cat:'det', ag:'APE'},
+      {id:'app-tgr4', code:'TGR4', type:'Tablette géoradar Panasonic FZ-G2', serie:'2JTTA7481', cat:'det', ag:'APE'},
+      {id:'app-tgr5', code:'TGR5', type:'Tablette géoradar Panasonic FZ-G1', serie:'', cat:'det', ag:'APO'},
+      {id:'app-cgps1', code:'CGPS1', type:'Carnet de GPS LEICA CS15', serie:'2918143', cat:'geo', ag:'APO'},
+      {id:'app-cgps2', code:'CGPS2', type:'Carnet de GPS LEICA CS15', serie:'3497086', cat:'geo', ag:'APO'},
+      {id:'app-cst1', code:'CST1', type:'Carnet de station robotisée LEICA CS15', serie:'3497520', cat:'geo', ag:'APO'},
+      {id:'app-cst2', code:'CST2', type:'Carnet de station robotisée LEICA CS15', serie:'2913874', cat:'geo', ag:'APO'},
+      {id:'app-gps1', code:'GPS1', type:'GPS LEICA GG04+', serie:'289196', cat:'geo', ag:'AGE'},
+      {id:'app-gps2', code:'GPS2', type:'GPS LEICA GG04+', serie:'288888', cat:'geo', ag:'AGE'},
+      {id:'app-gps3', code:'GPS3', type:'GPS LEICA GG04+', serie:'289676', cat:'geo', ag:'AGE'},
+      {id:'app-gps4', code:'GPS4', type:'GPS LEICA GG04+', serie:'289370', cat:'geo', ag:'APE'},
+      {id:'app-gps5', code:'GPS5', type:'GPS LEICA GS08+', serie:'1859399', cat:'geo', ag:'APO'},
+      {id:'app-gps6', code:'GPS6', type:'GPS LEICA GG04+', serie:'288136', cat:'geo', ag:'APO'},
+      {id:'app-gps7', code:'GPS7', type:'GPS LEICA GS08+', serie:'1857647', cat:'geo', ag:'APO'},
+      {id:'app-gps8', code:'GPS8', type:'GPS LEICA GG04+', serie:'288730', cat:'geo', ag:'APO'},
+      {id:'app-gps9', code:'GPS9', type:'GPS TRIMBLE R10', serie:'5311428776', cat:'geo', ag:'APO'},
+      {id:'app-gps10', code:'GPS10', type:'GPS LEICA GG04+', serie:'289395', cat:'geo', ag:'APE'},
+      {id:'app-st1', code:'ST1', type:'Station totale LEICA', serie:'4035336', cat:'geo', ag:'AGE'},
+      {id:'app-st2', code:'ST2', type:'Station totale LEICA', serie:'4100800', cat:'geo', ag:'AGE'},
+      {id:'app-st3', code:'ST3', type:'Station totale LEICA', serie:'1617726', cat:'geo', ag:'APE'},
+      {id:'app-st4', code:'ST4', type:'Station totale LEICA', serie:'3873949', cat:'geo', ag:'APO'},
+      {id:'app-st5', code:'ST5', type:'Station totale LEICA', serie:'880124', cat:'geo', ag:'APO'},
+      {id:'app-trb1', code:'TRB1', type:'Station trimble', serie:'93211529', cat:'geo', ag:''},
+      {id:'app-tt1', code:'TT1', type:'Tablette Panasonic Toughpad FZ-G2', serie:'4ITTA38146', cat:'geo', ag:'AGE'},
+      {id:'app-tt2', code:'TT2', type:'Tablette Panasonic Toughpad FZ-G2', serie:'3JTCA41056', cat:'geo', ag:'AGE'},
+      {id:'app-tt3', code:'TT3', type:'Tablette Panasonic Toughpad FZ-G2', serie:'2JTCA85467', cat:'geo', ag:'AGE'},
+      {id:'app-tt4', code:'TT4', type:'Tablettes Panasonic Toughbook FZ-G1', serie:'2ETCD46260', cat:'geo', ag:'AGE'},
+      {id:'app-tt5', code:'TT5', type:'Tablette Panasonic Toughpad FZ-G2', serie:'3BTCA55788', cat:'geo', ag:'APE'},
+      {id:'app-tt6', code:'TT6', type:'Tablettes Panasonic Toughbook FZ-G1', serie:'2DTCD44075', cat:'geo', ag:'APE'},
+      {id:'app-tt7', code:'TT7', type:'Tablettes Panasonic Toughbook FZ-G1', serie:'3GTCA16866', cat:'geo', ag:'APO'},
+      {id:'app-tt8', code:'TT8', type:'Tablette DT RESEARCH', serie:'30TW12224U217', cat:'geo', ag:'APO'},
+      {id:'app-tt9', code:'TT9', type:'Tablettes Panasonic Toughbook FZ-G1', serie:'1DTCCO8381', cat:'geo', ag:'APO'},
+      {id:'app-tt10', code:'TT10', type:'Tablettes Panasonic Toughbook FZ-G1', serie:'2ATCDO7764', cat:'geo', ag:'APO'},
+      {id:'app-mdt3', code:'MDT3', type:'Mesureur de terre Chauvin Arnoux C.A 6460', serie:'115956 ABH', cat:'mes', ag:'APO'},
+      {id:'app-odt1', code:'ODT1', type:'Ohmmètre de terre et résistivité Chauvin Arnoux', serie:'197768YKH', cat:'mes', ag:'AGE'},
+      {id:'app-tus1', code:'TUS1', type:'Télémètre ultrasons SUPARULE 600E', serie:'FCHM600EIN', cat:'mes', ag:'AGE'},
+      {id:'app-tus3', code:'TUS3', type:'Télémètre ultrasons SUPARULE 600E', serie:'', cat:'mes', ag:'APO'}
     ],
     operations: [
       'Détection et géoréférencement des réseaux enterrés.',
@@ -6627,65 +6743,77 @@ function prefillEquipeRegionale(){
   toast('✅ Équipe de la '+rd.label+' chargée');
 }
 
-// ── Base appareils NCVRD (N° de série) ──────────────────────────────────────
-const APPAREILS_DB = {
-  'Matériels de détection': {
-    'Détecteur VIVAX':                              ['21900117360','21901180216','21901172898','21901171596','21701130467','21901171595','21901201889','21901180247'],
-    'Générateur VIVAX':                             ['21902172284','21902171872','20004120183','21902171893','21902152182','21902182474','21702090032','21902172260','21902195681','21902152995'],
-    'Géoradar Utiliscan DF 655 (300-800 MHz)':      ['1076','0921','0978','0979','0459'],
-  },
-  'Matériels de géoréférencement': {
-    'Tablettes Panasonic Toughbook FZ-G1':          ['4ITTA38146','3JTCA41056','2JTCA85467','2ETCD46260','3BTCA55788','2DTCD44075','1DTCCO8381','2ATCDO7764','3GTCA16866'],
-    'Station totale LEICA':                         ['4035336','4100800','1617726','3873949','880124'],
-    'GPS LEICA GG04+':                              ['289196','288888','289676','1859399','288136','1857647'],
-    'Station trimble':                              ['93211529'],
-  }
-};
+// ── Parc d'appareils NCVRD (N° de série) ────────────────────────────────────
+// Source : Firestore config/lists.appareils (éditable via Admin → 🗄️ Base).
+// Fallback : DynLists.DEFAULTS.appareils si Firestore vide/hors-ligne.
+const APPAREILS_CATS = { det:'Matériels de détection', geo:'Matériels de géoréférencement', mes:'Outils de mesure' };
 
-function _serialsFor(type){
-  for(const cat of Object.values(APPAREILS_DB)){
-    if(cat[type]) return cat[type];
-  }
-  return [];
+function getParcAppareils(){
+  const list = DynLists.get('appareils');
+  return Array.isArray(list) ? list : [];
 }
 
-// Matériels
+// Séries connues pour un type donné (compat : utilisé par l'export Word / annexe C)
+function _serialsFor(type){
+  return getParcAppareils().filter(a => a.type === type && a.serie).map(a => a.serie);
+}
+
+// Matériels — sélection par NOM DE CODE (le n° de série suit automatiquement)
 function renderMateriels(){
   const el=document.getElementById('materiels-list');
   const mats=S.currentRapport.materiels||[];
-
-  // Construction des optgroups (partagés entre toutes les lignes)
-  const typeOptHtml = Object.entries(APPAREILS_DB).map(([cat,devices])=>
-    `<optgroup label="${cat}">`+Object.keys(devices).map(d=>`<option value="${d}">${d}</option>`).join('')+'</optgroup>'
-  ).join('');
+  const parc = getParcAppareils();
 
   el.innerHTML=mats.map((m,i)=>{
-    const serials = _serialsFor(m.type||'');
-    // Marquer l'option sélectionnée dans le select type
-    const typeOpts = Object.entries(APPAREILS_DB).map(([cat,devices])=>
-      `<optgroup label="${cat}">`+Object.keys(devices).map(d=>`<option value="${d}"${m.type===d?' selected':''}>${d}</option>`).join('')+'</optgroup>'
-    ).join('');
+    // Retrouver l'appareil du parc (par code stocké, sinon par type+série)
+    const matched = !m._libre && parc.find(a =>
+      (m.code && a.code === m.code) || (m.serie && a.type === m.type && a.serie === m.serie));
+    const isFree = !matched && (m._libre || m.type || m.serie);
 
-    const serieOpts = serials.length
-      ? `<option value="">— N° de série —</option>`+serials.map(s=>`<option value="${s}"${m.serie===s?' selected':''}>${s}</option>`).join('')
-      : `<option value="">— N° de série —</option>`;
+    const catOpts = Object.keys(APPAREILS_CATS).map(catKey => {
+      const items = parc.filter(a => a.cat === catKey);
+      if(!items.length) return '';
+      return `<optgroup label="${APPAREILS_CATS[catKey]}">` +
+        items.map(a => `<option value="${a.id}"${matched && matched.id===a.id ? ' selected':''}>${escHtml(a.code||'—')} · ${escHtml(a.type)}${a.serie ? ' ('+escHtml(a.serie)+')':''}</option>`).join('') +
+        '</optgroup>';
+    }).join('');
 
     return `
     <div class="net-row" style="margin-bottom:8px">
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">
         <select class="mini-inp" style="appearance:auto;cursor:pointer"
-          onchange="S.currentRapport.materiels[${i}].type=this.value;S.currentRapport.materiels[${i}].serie='';renderMateriels();rapportChanged()">
-          <option value="">— Type d'appareil —</option>
-          ${typeOpts}
-        </select>
-        <select class="mini-inp" style="appearance:auto;cursor:pointer;${!serials.length?'opacity:.4;pointer-events:none':''}"
-          onchange="S.currentRapport.materiels[${i}].serie=this.value;rapportChanged()">
-          ${serieOpts}
+          onchange="selectMaterielFromParc(${i}, this.value)">
+          <option value="">— Choisir un appareil —</option>
+          ${catOpts}
+          <option value="__libre__"${isFree ? ' selected':''}>✏️ Saisie libre…</option>
         </select>
         <button class="del-btn" onclick="removeMateriel(${i})">✕</button>
       </div>
+      ${isFree ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        <input class="mini-inp" placeholder="Type d'appareil" value="${escHtml(m.type||'')}"
+          oninput="S.currentRapport.materiels[${i}].type=this.value;rapportChanged()">
+        <input class="mini-inp" placeholder="N° de série" value="${escHtml(m.serie||'')}"
+          oninput="S.currentRapport.materiels[${i}].serie=this.value;rapportChanged()">
+      </div>` : ''}
     </div>`;
   }).join('')||'<div style="font-size:12px;color:var(--muted);padding:4px 0">Aucun matériel</div>';
+}
+
+// Sélection d'un appareil du parc → remplit code + type + série d'un coup
+function selectMaterielFromParc(i, val){
+  const m = S.currentRapport.materiels[i];
+  if(!m) return;
+  if(val === '__libre__'){
+    m._libre = true;
+    m.code = '';
+  } else if(!val){
+    m._libre = false; m.code = ''; m.type = ''; m.serie = '';
+  } else {
+    const a = getParcAppareils().find(x => x.id === val);
+    if(a){ m._libre = false; m.code = a.code || ''; m.type = a.type || ''; m.serie = a.serie || ''; }
+  }
+  renderMateriels(); rapportChanged();
 }
 
 function addMaterielRow(){
@@ -11098,12 +11226,169 @@ async function loadAdminData(){
   }
 }
 
+// ════════════════════════════════════════════
+//  ADMIN : BASE DE DONNÉES (onglet 🗄️ Base)
+//  Parc d'appareils + listes de l'app — stockés dans Firestore config/lists,
+//  lisibles par toute l'équipe, modifiables par les admins uniquement.
+// ════════════════════════════════════════════
+function renderAdminBase(){
+  const el = document.getElementById('admin-base-content');
+  if(!el) return;
+  const parc = getParcAppareils();
+  const cats = [
+    {key:'det', label:'🔍 Matériels de détection'},
+    {key:'geo', label:'📡 Matériels de géoréférencement'},
+    {key:'mes', label:'📏 Outils de mesure'}
+  ];
+
+  const appareilsHTML = cats.map(c => {
+    const items = parc.filter(a => a.cat === c.key);
+    const rows = items.map(a => `
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:#33d4c6;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);border-radius:6px;padding:3px 8px;flex-shrink:0">${escHtml(a.code||'—')}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(a.type||'-')}</div>
+          <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono)">N° ${escHtml(a.serie||'—')}${a.ag?' · '+escHtml(a.ag):''}</div>
+        </div>
+        <button onclick="adminEditAppareil('${a.id}')" title="Modifier" style="background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>
+        <button onclick="adminDeleteAppareil('${a.id}')" title="Supprimer" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️</button>
+      </div>`).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Aucun appareil dans cette catégorie</div>';
+    return `<div style="margin:16px 0 8px;font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">${c.label} · ${items.length}</div>${rows}`;
+  }).join('');
+
+  const ops = (DynLists.get('operations')||[]).join('\n');
+  const photoSections = (DynLists.get('photo_sections')||[]).join('\n');
+  const conclusion = DynLists.get('default_conclusion')||'';
+
+  el.innerHTML = `
+    <div style="background:rgba(22,168,154,.06);border:1px solid rgba(22,168,154,.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--muted);line-height:1.5">
+      🗄️ <strong style="color:var(--text)">Base de données de l'application.</strong>
+      Toute modification est enregistrée dans le cloud et <strong style="color:var(--text)">visible immédiatement par toute l'équipe</strong> (après rechargement de leur appli).
+    </div>
+
+    <!-- ── Parc d'appareils ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
+      <div style="font-size:15px;font-weight:800;color:var(--text)">🔧 Parc d'appareils</div>
+      <button onclick="adminEditAppareil('')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Ajouter</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Le <strong>nom de code</strong> sert à choisir l'appareil sur le terrain — le n° de série se remplit tout seul dans le rapport.</div>
+    ${appareilsHTML}
+
+    <!-- ── Listes de l'application ── -->
+    <div style="font-size:15px;font-weight:800;color:var(--text);margin:26px 0 8px">📝 Listes de l'application</div>
+
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)"><span>🎯 Nature des opérations</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">Une opération par ligne — alimente le menu déroulant de la préparation et du rapport.</div>
+        <textarea class="form-textarea" id="base-operations" style="min-height:150px;font-size:12.5px">${escHtml(ops)}</textarea>
+        <button class="btn-big btn-accent" style="width:100%;margin-top:8px" onclick="adminSaveBaseList('operations','base-operations','Nature des opérations')">💾 Enregistrer</button>
+      </div>
+    </div>
+
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)"><span>📸 Sections photos</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">Une section par ligne — catégories proposées lors de la prise de photos.</div>
+        <textarea class="form-textarea" id="base-photo-sections" style="min-height:120px;font-size:12.5px">${escHtml(photoSections)}</textarea>
+        <button class="btn-big btn-accent" style="width:100%;margin-top:8px" onclick="adminSaveBaseList('photo_sections','base-photo-sections','Sections photos')">💾 Enregistrer</button>
+      </div>
+    </div>
+
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)"><span>📄 Conclusion par défaut du rapport</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">Texte pré-rempli dans la section Conclusion de chaque nouveau rapport.</div>
+        <textarea class="form-textarea" id="base-conclusion" style="min-height:150px;font-size:12.5px">${escHtml(conclusion)}</textarea>
+        <button class="btn-big btn-accent" style="width:100%;margin-top:8px" onclick="adminSaveBaseText('default_conclusion','base-conclusion','Conclusion par défaut')">💾 Enregistrer</button>
+      </div>
+    </div>`;
+}
+
+// ── CRUD appareils ──
+function adminEditAppareil(id){
+  const a = id ? getParcAppareils().find(x => x.id === id) : null;
+  const title = document.getElementById('m-appareil-title');
+  if(title) title.textContent = a ? '✏️ Modifier l\'appareil' : '🔧 Ajouter un appareil';
+  document.getElementById('app-code').value    = a?.code  || '';
+  document.getElementById('app-type').value    = a?.type  || '';
+  document.getElementById('app-serie').value   = a?.serie || '';
+  document.getElementById('app-cat').value     = a?.cat   || 'det';
+  document.getElementById('app-ag').value      = a?.ag    || '';
+  document.getElementById('app-edit-id').value = a?.id    || '';
+  // Suggestions de désignations déjà connues (évite les variantes d'orthographe)
+  const dl = document.getElementById('app-type-suggestions');
+  if(dl) dl.innerHTML = [...new Set(getParcAppareils().map(x => x.type).filter(Boolean))]
+    .map(t => `<option value="${escHtml(t)}">`).join('');
+  openModal('m-appareil');
+}
+
+async function adminSaveAppareil(){
+  const code   = document.getElementById('app-code').value.trim().toUpperCase();
+  const type   = document.getElementById('app-type').value.trim();
+  const serie  = document.getElementById('app-serie').value.trim();
+  const cat    = document.getElementById('app-cat').value || 'det';
+  const ag     = document.getElementById('app-ag').value || '';
+  const editId = document.getElementById('app-edit-id').value;
+  if(!code){ toast('⚠️ Le nom de code est obligatoire (ex : DET-01)'); return; }
+  if(!type){ toast('⚠️ La désignation est obligatoire'); return; }
+  const list = getParcAppareils().slice();
+  const dup = list.find(a => a.code === code && a.id !== editId);
+  if(dup){ toast('⚠️ Le code "'+code+'" est déjà pris par : '+dup.type); return; }
+  if(editId){
+    const idx = list.findIndex(a => a.id === editId);
+    if(idx >= 0) list[idx] = {...list[idx], code, type, serie, cat, ag};
+  } else {
+    list.push({id:'app-'+uid(), code, type, serie, cat, ag});
+  }
+  try {
+    await DynLists.save('appareils', list);
+    closeModal('m-appareil');
+    renderAdminBase();
+    toast('✅ Appareil enregistré — visible par toute l\'équipe');
+  } catch(e){ /* toast d'erreur déjà émis par DynLists.save */ }
+}
+
+async function adminDeleteAppareil(id){
+  const a = getParcAppareils().find(x => x.id === id);
+  if(!a) return;
+  if(!confirm('Retirer "'+(a.code||'')+' — '+(a.type||'')+'" du parc ?\n\n(Les rapports déjà remplis avec cet appareil ne sont pas modifiés.)')) return;
+  try {
+    await DynLists.save('appareils', getParcAppareils().filter(x => x.id !== id));
+    renderAdminBase();
+    toast('🗑️ Appareil retiré du parc');
+  } catch(e){}
+}
+
+// ── Listes simples (1 élément par ligne) et textes ──
+async function adminSaveBaseList(key, textareaId, label){
+  const el = document.getElementById(textareaId);
+  if(!el) return;
+  const items = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+  if(!items.length){ toast('⚠️ La liste ne peut pas être vide'); return; }
+  try {
+    await DynLists.save(key, items);
+    if(typeof DynLists.populateSelects === 'function') DynLists.populateSelects();
+    toast('✅ '+label+' — enregistré pour toute l\'équipe');
+  } catch(e){}
+}
+
+async function adminSaveBaseText(key, textareaId, label){
+  const el = document.getElementById(textareaId);
+  if(!el) return;
+  try {
+    await DynLists.save(key, el.value.trim());
+    toast('✅ '+label+' — enregistré pour toute l\'équipe');
+  } catch(e){}
+}
+
 const _ADMIN_TABS = {
   collab:    { panel:'admin-panel-collab',     btn:'atab-collab' },
   chantiers: { panel:'admin-panel-chantiers',  btn:'atab-chantiers' },
   documents: { panel:'admin-panel-documents',  btn:'atab-documents' },
   stats:     { panel:'admin-panel-stats',      btn:'atab-stats' },
-  params:    { panel:'admin-panel-params',     btn:'atab-params' }
+  params:    { panel:'admin-panel-params',     btn:'atab-params' },
+  base:      { panel:'admin-panel-base',       btn:'atab-base' }
 };
 
 function adminTab(tab){
@@ -11120,7 +11405,7 @@ function adminTab(tab){
     }
   });
   const searchBar = document.getElementById('admin-search-bar');
-  if(searchBar) searchBar.style.display = (tab==='params'||tab==='stats')?'none':'block';
+  if(searchBar) searchBar.style.display = (tab==='params'||tab==='stats'||tab==='base')?'none':'block';
   const search = document.getElementById('admin-search');
   if(search){
     search.placeholder = tab==='chantiers' ? '🔍 Rechercher un chantier…'
@@ -11137,6 +11422,7 @@ function renderAdminCurrentTab(){
   else if(t==='documents') renderAdminDocuments();
   else if(t==='stats') renderAdminStats();
   else if(t==='params') renderAdminParams();
+  else if(t==='base') renderAdminBase();
 }
 
 // ════════════════════════════════════════════
