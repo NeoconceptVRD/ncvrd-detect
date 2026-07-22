@@ -2508,6 +2508,7 @@ body::before{
         <div id="push-status" style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:2px">…</div>
       </div>
       <button id="push-enable-btn" onclick="enablePushNotifications()" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">Activer</button>
+      <button id="push-disable-btn" onclick="disablePushNotifications()" style="display:none;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#f87171;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">Désactiver</button>
     </div>
 
     <div class="acc-section" style="margin-top:10px">
@@ -10643,10 +10644,15 @@ function _pushSupported(){
 function _getVapidKey(){ return String(DynLists.get('fcm_vapid_key')||'').trim(); }
 function _getPushGasUrl(){ return String(DynLists.get('push_gas_url')||'').trim(); }
 
-// Au boot : si la permission est déjà accordée, rafraîchir le token silencieusement
+// Flag local : l'utilisateur a volontairement désactivé le push sur CET appareil
+function _pushIsOff(){ try { return localStorage.getItem('ncvrd_push_off') === '1'; } catch(_){ return false; } }
+
+// Au boot : si la permission est déjà accordée (et pas désactivé volontairement),
+// rafraîchir le token silencieusement
 async function initPushNotifications(){
   try {
     if(!_pushSupported() || !currentUserProfile?.uid) return;
+    if(_pushIsOff()) return;                       // désactivé par l'utilisateur → ne pas ré-enregistrer
     if(Notification.permission !== 'granted') return;
     await _registerPushToken();
   } catch(e){ Logger.warn('Push', 'init', e?.message); }
@@ -10656,6 +10662,7 @@ async function initPushNotifications(){
 async function enablePushNotifications(){
   if(!_pushSupported()){ toast('❌ Push non supporté par ce navigateur (sur iPhone : installer d\'abord l\'appli sur l\'écran d\'accueil)'); return; }
   if(!_getVapidKey()){ toast('⚠️ Push non configuré — un admin doit renseigner la clé VAPID (Base de contrôle → Docs… voir onglet Base)'); return; }
+  try { localStorage.removeItem('ncvrd_push_off'); } catch(_){}
   const perm = await Notification.requestPermission();
   if(perm !== 'granted'){
     toast('⚠️ Permission refusée — débloque les notifications dans les réglages du navigateur');
@@ -10664,6 +10671,37 @@ async function enablePushNotifications(){
   }
   const ok = await _registerPushToken();
   toast(ok ? '🔔 Notifications activées sur cet appareil !' : '❌ Activation échouée — réessaie');
+  _updatePushUI();
+}
+
+// Désactivation : retire le token de cet appareil du profil + l'invalide côté FCM.
+// (La permission navigateur reste accordée — réactivable en 1 clic, sans re-demande.)
+async function disablePushNotifications(){
+  try { localStorage.setItem('ncvrd_push_off', '1'); } catch(_){}
+  try {
+    // Identifier le token de cet appareil s'il n'est pas déjà connu
+    if(!_fcmToken && _pushSupported() && Notification.permission === 'granted' && _getVapidKey()){
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        _fcmToken = await firebase.messaging().getToken({ vapidKey: _getVapidKey(), serviceWorkerRegistration: reg });
+      } catch(_){}
+    }
+    // 1) Retirer le token du profil Firestore (le serveur n'enverra plus à cet appareil)
+    if(_fcmToken && FIREBASE_CONFIGURED && fdb && currentUserProfile?.uid){
+      const ref = fdb.collection('users').doc(currentUserProfile.uid);
+      const snap = await ref.get();
+      const tokens = (snap.exists && snap.data().fcmTokens) || {};
+      delete tokens[_fcmToken];
+      await ref.update({ fcmTokens: tokens });
+    }
+    // 2) Invalider le token côté FCM (même si un vieux token traînait ailleurs, il devient mort)
+    try { await firebase.messaging().deleteToken(); } catch(_){}
+    _fcmToken = null;
+    toast('🔕 Notifications désactivées sur cet appareil');
+  } catch(e){
+    Logger.warn('Push', 'disable', e?.message);
+    toast('⚠️ Désactivation locale OK — la synchronisation du profil a échoué (hors-ligne ?)');
+  }
   _updatePushUI();
 }
 
@@ -10690,20 +10728,28 @@ async function _registerPushToken(){
 // État affiché dans le Profil
 function _updatePushUI(){
   const btn = document.getElementById('push-enable-btn');
+  const btnOff = document.getElementById('push-disable-btn');
   const status = document.getElementById('push-status');
   if(!btn || !status) return;
+  const show = (enable, disable) => {
+    btn.style.display = enable ? 'block' : 'none';
+    if(btnOff) btnOff.style.display = disable ? 'block' : 'none';
+  };
   if(!_pushSupported()){
     status.textContent = 'Non supporté sur ce navigateur (iPhone : installer l\'appli sur l\'écran d\'accueil d\'abord)';
-    btn.style.display = 'none';
-  } else if(Notification.permission === 'granted'){
-    status.textContent = '✅ Activées sur cet appareil — tu recevras les flashs même appli fermée';
-    btn.style.display = 'none';
+    show(false, false);
   } else if(Notification.permission === 'denied'){
     status.textContent = '🚫 Bloquées par le navigateur — à débloquer dans ses réglages (icône 🔒 près de l\'adresse)';
-    btn.style.display = 'none';
+    show(false, false);
+  } else if(Notification.permission === 'granted' && !_pushIsOff()){
+    status.textContent = '✅ Activées sur cet appareil — tu recevras les flashs même appli fermée';
+    show(false, true);
+  } else if(Notification.permission === 'granted' && _pushIsOff()){
+    status.textContent = '🔕 Désactivées sur cet appareil — réactive-les quand tu veux';
+    show(true, false);
   } else {
     status.textContent = 'Reçois les flashs sécurité et invitations même appli fermée.';
-    btn.style.display = 'block';
+    show(true, false);
   }
 }
 
