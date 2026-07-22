@@ -2615,8 +2615,33 @@ body::before{
           <option value="APE">Paris EST</option>
           <option value="AGE">Grand EST</option>
         </select></div>
+      <div class="form-group"><label class="form-label">Prochaine vérification périodique (optionnel)</label>
+        <input class="form-input" type="date" id="app-verif">
+        <div style="margin-top:5px;font-size:11px;color:var(--muted);line-height:1.4">L'appli signalera l'appareil en retard de vérification passé cette date.</div></div>
       <input type="hidden" id="app-edit-id">
       <button class="btn-big btn-accent" style="width:100%;margin-top:6px" onclick="adminSaveAppareil()">💾 Enregistrer</button>
+    </div>
+  </div>
+
+  <!-- ─── MODAL : Ajouter / modifier un contact (Annuaire Base admin) ─── -->
+  <div class="modal" id="m-contact">
+    <div class="modal-box" style="max-width:420px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div id="m-contact-title" style="font-size:16px;font-weight:800;color:var(--text)">👤 Ajouter un contact</div>
+        <button onclick="closeModal('m-contact')" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer" aria-label="Fermer">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Prénom (affiché dans les listes)</label>
+        <input class="form-input" id="ct-prenom" placeholder="Ex : Rachid"></div>
+      <div class="form-group"><label class="form-label">E-mail professionnel</label>
+        <input class="form-input" type="email" id="ct-email" placeholder="Ex : prenom.nom@neoconceptvrd.fr"></div>
+      <div class="form-group"><label class="form-label">Agence</label>
+        <select class="form-select" id="ct-agence">
+          <option value="Paris Ouest">Paris Ouest</option>
+          <option value="Paris Est">Paris Est</option>
+          <option value="Grand Est">Grand Est</option>
+        </select></div>
+      <input type="hidden" id="ct-edit-idx">
+      <button class="btn-big btn-accent" style="width:100%;margin-top:6px" onclick="adminSaveContact()">💾 Enregistrer</button>
     </div>
   </div>
 
@@ -4725,11 +4750,29 @@ const DynLists = {
     try {
       await fdb.collection('config').doc('lists').set({[key]: value}, {merge: true});
       Logger.info('DynLists', `Liste '${key}' sauvegardée dans Firestore`);
+      this._logChange(key); // journal d'audit (fire-and-forget)
     } catch(e){
       Logger.error('DynLists', `Sauvegarde échouée pour '${key}'`, e?.message);
       toast('❌ Erreur sauvegarde de la liste "' + key + '"');
       throw e;
     }
+  },
+
+  // ── Journal d'audit : trace qui a modifié quoi (config/audit_log, borné à 100) ──
+  async _logChange(key){
+    try {
+      if(!FIREBASE_CONFIGURED || !fdb || !currentUserProfile) return;
+      const ref = fdb.collection('config').doc('audit_log');
+      const snap = await ref.get();
+      const entries = (snap.exists && Array.isArray(snap.data().entries)) ? snap.data().entries : [];
+      entries.push({
+        at: Date.now(),
+        by: currentUserProfile.uid || '-',
+        byName: currentUserProfile.displayName || currentUserProfile.email || '-',
+        key
+      });
+      await ref.set({ entries: entries.slice(-100) });
+    } catch(e){ Logger.debug('DynLists', 'audit log', e?.message); }
   },
 
   // ── Initialiser Firestore avec les valeurs par défaut (admin) ──
@@ -6753,6 +6796,17 @@ function getParcAppareils(){
   return Array.isArray(list) ? list : [];
 }
 
+// Statut de vérification périodique : 'late' (dépassée) | 'soon' (< 30 jours) | null
+function _verifStatus(a){
+  if(!a?.verifNext) return null;
+  const next = new Date(a.verifNext + 'T23:59:59').getTime();
+  if(isNaN(next)) return null;
+  const now = Date.now();
+  if(next < now) return 'late';
+  if(next - now < 30 * 86400000) return 'soon';
+  return null;
+}
+
 // Séries connues pour un type donné (compat : utilisé par l'export Word / annexe C)
 function _serialsFor(type){
   return getParcAppareils().filter(a => a.type === type && a.serie).map(a => a.serie);
@@ -6816,7 +6870,13 @@ function selectMaterielFromParc(i, val){
     m._libre = false; m.code = ''; m.type = ''; m.serie = '';
   } else {
     const a = getParcAppareils().find(x => x.id === val);
-    if(a){ m._libre = false; m.code = a.code || ''; m.type = a.type || ''; m.serie = a.serie || ''; }
+    if(a){
+      m._libre = false; m.code = a.code || ''; m.type = a.type || ''; m.serie = a.serie || '';
+      // Alerte QHSE : vérification périodique dépassée ou imminente
+      const vs = _verifStatus(a);
+      if(vs === 'late') toast('⚠️ ' + a.code + ' : vérification périodique DÉPASSÉE (' + (a.verifNext||'') + ') — signale-le au responsable matériel');
+      else if(vs === 'soon') toast('🟠 ' + a.code + ' : vérification périodique à prévoir avant le ' + (a.verifNext||''));
+    }
   }
   renderMateriels(); rapportChanged();
 }
@@ -11254,22 +11314,77 @@ function renderAdminBase(){
     </div>`;
   const appareilsHTML = cats.map(c => {
     const items = parc.filter(a => a.cat === c.key);
-    const rows = items.map(a => `
-      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
+    const rows = items.map(a => {
+      const vs = _verifStatus(a);
+      const verifBadge = vs === 'late'
+        ? `<span style="font-size:9px;font-weight:800;color:#f87171;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.35);border-radius:5px;padding:2px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px" title="Vérification dépassée le ${escHtml(a.verifNext)}">⏰ Retard</span>`
+        : vs === 'soon'
+          ? `<span style="font-size:9px;font-weight:800;color:#e0a567;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.35);border-radius:5px;padding:2px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px" title="Vérification avant le ${escHtml(a.verifNext)}">🔔 Bientôt</span>`
+          : '';
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border:1px solid ${vs==='late'?'rgba(220,38,38,.35)':'var(--border)'};border-radius:10px;margin-bottom:6px">
         <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:#33d4c6;background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);border-radius:6px;padding:4px 6px;width:64px;text-align:center;box-sizing:border-box;flex-shrink:0">${escHtml(a.code||'—')}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(a.type||'-')}</div>
-          <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono)">N° ${escHtml(a.serie||'—')}${a.ag?' · '+escHtml(a.ag):''}</div>
+          <div style="font-size:10.5px;color:var(--muted);font-family:var(--font-mono)">N° ${escHtml(a.serie||'—')}${a.ag?' · '+escHtml(a.ag):''}${a.verifNext?' · vérif '+escHtml(a.verifNext):''}</div>
         </div>
+        ${verifBadge}
         <button onclick="adminEditAppareil('${a.id}')" title="Modifier" style="background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>
         <button onclick="adminDeleteAppareil('${a.id}')" title="Supprimer" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️</button>
-      </div>`).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Aucun appareil dans cette catégorie</div>';
+      </div>`;}).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Aucun appareil dans cette catégorie</div>';
     return `<div style="margin:16px 0 4px;font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">${c.label} · ${items.length}</div>${items.length ? colHeader : ''}${rows}`;
   }).join('');
 
   const ops = (DynLists.get('operations')||[]).join('\n');
   const photoSections = (DynLists.get('photo_sections')||[]).join('\n');
   const conclusion = DynLists.get('default_conclusion')||'';
+
+  // ── Annuaire des collaborateurs (ncvrd_contacts) ──
+  const contacts = DynLists.get('ncvrd_contacts')||[];
+  const agGroups = ['Paris Ouest','Paris Est','Grand Est'];
+  const contactRow = (c, idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:5px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text)">${escHtml(c.prenom||'-')}</div>
+        <div style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.email||'-')}</div>
+      </div>
+      <button onclick="adminEditContact(${idx})" title="Modifier" style="background:rgba(22,168,154,.1);border:1px solid rgba(22,168,154,.25);color:#33d4c6;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>
+      <button onclick="adminDeleteContact(${idx})" title="Retirer" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);color:#f87171;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;font-family:inherit;flex-shrink:0">🗑️</button>
+    </div>`;
+  const idxed = contacts.map((c, idx) => ({c, idx}));
+  const annuaireHTML = agGroups.map(ag => {
+    const items = idxed.filter(x => x.c.agence === ag);
+    if(!items.length) return '';
+    return `<div style="margin:12px 0 6px;font-size:10.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">🏢 ${ag} · ${items.length}</div>` +
+      items.map(x => contactRow(x.c, x.idx)).join('');
+  }).join('') + (() => {
+    const others = idxed.filter(x => !agGroups.includes(x.c.agence));
+    return others.length
+      ? `<div style="margin:12px 0 6px;font-size:10.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">🏢 Autres · ${others.length}</div>` + others.map(x => contactRow(x.c, x.idx)).join('')
+      : '';
+  })();
+
+  // ── Méthodes de détection par réseau (net_methods) ──
+  const nm = DynLists.get('net_methods') || {};
+  window._nmKeys = Object.keys(nm);
+  const nmHTML = window._nmKeys.map((res, i) => {
+    const m = nm[res] || {};
+    const choices = Array.isArray(m.choices) ? m.choices.join('\n') : '';
+    return `
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this)"><span>🔌 ${escHtml(res)}</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <label class="form-label">Méthode de détection</label>
+        <textarea class="form-textarea" id="nm-met-${i}" style="min-height:70px;font-size:12px">${escHtml(m.methode||'')}</textarea>
+        <label class="form-label" style="margin-top:8px">Remarques (paragraphe du rapport)</label>
+        <textarea class="form-textarea" id="nm-rem-${i}" style="min-height:80px;font-size:12px">${escHtml(m.remarques||'')}</textarea>
+        ${Array.isArray(m.choices) ? `
+        <label class="form-label" style="margin-top:8px">Variantes proposées (une par ligne)</label>
+        <textarea class="form-textarea" id="nm-cho-${i}" style="min-height:80px;font-size:12px">${escHtml(choices)}</textarea>` : ''}
+        <button class="btn-big btn-accent" style="width:100%;margin-top:8px" onclick="adminSaveNetMethod(${i})">💾 Enregistrer ${escHtml(res)}</button>
+      </div>
+    </div>`;
+  }).join('');
 
   el.innerHTML = `
     <div style="background:rgba(22,168,154,.06);border:1px solid rgba(22,168,154,.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--muted);line-height:1.5">
@@ -11284,6 +11399,19 @@ function renderAdminBase(){
     </div>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Le <strong>nom de code</strong> sert à choisir l'appareil sur le terrain — le n° de série se remplit tout seul dans le rapport.</div>
     ${appareilsHTML}
+
+    <!-- ── Annuaire des collaborateurs ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:26px 0 4px">
+      <div style="font-size:15px;font-weight:800;color:var(--text)">👥 Annuaire des collaborateurs</div>
+      <button onclick="adminEditContact(-1)" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">➕ Ajouter</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Alimente les menus déroulants : chef de projet, opérateurs, envoi de rapports par e-mail. Un salarié arrive ou part → gère-le ici.</div>
+    ${annuaireHTML || '<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Annuaire vide — ajoute le premier contact avec ➕</div>'}
+
+    <!-- ── Méthodes de détection par réseau ── -->
+    <div style="font-size:15px;font-weight:800;color:var(--text);margin:26px 0 4px">🔌 Méthodes de détection par réseau</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">Textes méthodo insérés dans le rapport Word selon les réseaux détectés.</div>
+    ${nmHTML}
 
     <!-- ── Listes de l'application ── -->
     <div style="font-size:15px;font-weight:800;color:var(--text);margin:26px 0 8px">📝 Listes de l'application</div>
@@ -11313,6 +11441,24 @@ function renderAdminBase(){
         <textarea class="form-textarea" id="base-conclusion" style="min-height:150px;font-size:12.5px">${escHtml(conclusion)}</textarea>
         <button class="btn-big btn-accent" style="width:100%;margin-top:8px" onclick="adminSaveBaseText('default_conclusion','base-conclusion','Conclusion par défaut')">💾 Enregistrer</button>
       </div>
+    </div>
+
+    <!-- ── Journal des modifications ── -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this);_loadBaseAuditLog()"><span>🕐 Journal des modifications</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">Qui a modifié quoi dans la Base (100 dernières actions).</div>
+        <div id="base-audit-log" style="display:flex;flex-direction:column;gap:5px"><div style="color:var(--muted);font-size:12px;font-style:italic">Chargement…</div></div>
+      </div>
+    </div>
+
+    <!-- ── État du système ── -->
+    <div class="acc-section">
+      <button class="acc-toggle" onclick="toggleAcc(this);runSystemDiagnostic()"><span>🩺 État du système</span><span class="acc-chevron">▼</span></button>
+      <div class="acc-body">
+        <div id="base-diag" style="display:flex;flex-direction:column;gap:6px"><div style="color:var(--muted);font-size:12px;font-style:italic">Diagnostic en cours…</div></div>
+        <button class="btn-big btn-card" style="width:100%;margin-top:8px" onclick="runSystemDiagnostic()">🔄 Relancer le diagnostic</button>
+      </div>
     </div>`;
 }
 
@@ -11326,6 +11472,7 @@ function adminEditAppareil(id){
   document.getElementById('app-serie').value   = a?.serie || '';
   document.getElementById('app-cat').value     = a?.cat   || 'det';
   document.getElementById('app-ag').value      = a?.ag    || '';
+  document.getElementById('app-verif').value   = a?.verifNext || '';
   document.getElementById('app-edit-id').value = a?.id    || '';
   // Suggestions de désignations déjà connues (évite les variantes d'orthographe)
   const dl = document.getElementById('app-type-suggestions');
@@ -11340,6 +11487,7 @@ async function adminSaveAppareil(){
   const serie  = document.getElementById('app-serie').value.trim();
   const cat    = document.getElementById('app-cat').value || 'det';
   const ag     = document.getElementById('app-ag').value || '';
+  const verifNext = document.getElementById('app-verif').value || '';
   const editId = document.getElementById('app-edit-id').value;
   if(!code){ toast('⚠️ Le nom de code est obligatoire (ex : DET-01)'); return; }
   if(!type){ toast('⚠️ La désignation est obligatoire'); return; }
@@ -11348,9 +11496,9 @@ async function adminSaveAppareil(){
   if(dup){ toast('⚠️ Le code "'+code+'" est déjà pris par : '+dup.type); return; }
   if(editId){
     const idx = list.findIndex(a => a.id === editId);
-    if(idx >= 0) list[idx] = {...list[idx], code, type, serie, cat, ag};
+    if(idx >= 0) list[idx] = {...list[idx], code, type, serie, cat, ag, verifNext};
   } else {
-    list.push({id:'app-'+uid(), code, type, serie, cat, ag});
+    list.push({id:'app-'+uid(), code, type, serie, cat, ag, verifNext});
   }
   try {
     await DynLists.save('appareils', list);
@@ -11391,6 +11539,167 @@ async function adminSaveBaseText(key, textareaId, label){
     await DynLists.save(key, el.value.trim());
     toast('✅ '+label+' — enregistré pour toute l\'équipe');
   } catch(e){}
+}
+
+// ── CRUD annuaire (ncvrd_contacts) ──
+function adminEditContact(idx){
+  const contacts = DynLists.get('ncvrd_contacts')||[];
+  const c = idx >= 0 ? contacts[idx] : null;
+  const title = document.getElementById('m-contact-title');
+  if(title) title.textContent = c ? '✏️ Modifier le contact' : '👤 Ajouter un contact';
+  document.getElementById('ct-prenom').value  = c?.prenom || '';
+  document.getElementById('ct-email').value   = c?.email  || '';
+  document.getElementById('ct-agence').value  = c?.agence || 'Paris Ouest';
+  document.getElementById('ct-edit-idx').value = idx;
+  openModal('m-contact');
+}
+
+async function adminSaveContact(){
+  const prenom = document.getElementById('ct-prenom').value.trim();
+  const email  = document.getElementById('ct-email').value.trim().toLowerCase();
+  const agence = document.getElementById('ct-agence').value;
+  const idx    = parseInt(document.getElementById('ct-edit-idx').value, 10);
+  if(!prenom){ toast('⚠️ Le prénom est obligatoire'); return; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('⚠️ E-mail invalide'); return; }
+  const list = (DynLists.get('ncvrd_contacts')||[]).slice();
+  const dup = list.findIndex(c => String(c.email||'').toLowerCase() === email);
+  if(dup >= 0 && dup !== idx){ toast('⚠️ Cet e-mail existe déjà ('+list[dup].prenom+')'); return; }
+  if(idx >= 0 && list[idx]) list[idx] = {...list[idx], prenom, email, agence};
+  else list.push({prenom, email, agence});
+  try {
+    await DynLists.save('ncvrd_contacts', list);
+    closeModal('m-contact');
+    renderAdminBase();
+    // Rafraîchir les selects de la prépa si elle est chargée
+    if(typeof loadPreparationScreen === 'function' && S.activeScreen === 's-preparation-form'){ /* re-populate au prochain affichage */ }
+    toast('✅ Annuaire mis à jour — visible par toute l\'équipe');
+  } catch(e){}
+}
+
+async function adminDeleteContact(idx){
+  const list = (DynLists.get('ncvrd_contacts')||[]).slice();
+  const c = list[idx];
+  if(!c) return;
+  if(!confirm('Retirer "'+(c.prenom||'')+'" ('+(c.email||'')+') de l\'annuaire ?')) return;
+  list.splice(idx, 1);
+  try {
+    await DynLists.save('ncvrd_contacts', list);
+    renderAdminBase();
+    toast('🗑️ Contact retiré de l\'annuaire');
+  } catch(e){}
+}
+
+// ── Méthodes de détection par réseau ──
+async function adminSaveNetMethod(i){
+  const res = (window._nmKeys||[])[i];
+  if(!res) return;
+  const nm = JSON.parse(JSON.stringify(DynLists.get('net_methods')||{}));
+  if(!nm[res]) nm[res] = {};
+  const met = document.getElementById('nm-met-'+i);
+  const rem = document.getElementById('nm-rem-'+i);
+  const cho = document.getElementById('nm-cho-'+i);
+  if(met) nm[res].methode = met.value.trim();
+  if(rem) nm[res].remarques = rem.value.trim();
+  if(cho) nm[res].choices = cho.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  try {
+    await DynLists.save('net_methods', nm);
+    toast('✅ Méthode "'+res+'" enregistrée pour toute l\'équipe');
+  } catch(e){}
+}
+
+// ── Journal des modifications de la Base (config/audit_log) ──
+async function _loadBaseAuditLog(){
+  const el = document.getElementById('base-audit-log');
+  if(!el) return;
+  if(!FIREBASE_CONFIGURED || !fdb){ el.innerHTML = '<div style="color:var(--muted);font-size:12px">Hors-ligne — journal indisponible</div>'; return; }
+  try {
+    const snap = await fdb.collection('config').doc('audit_log').get();
+    const entries = (snap.exists && Array.isArray(snap.data().entries)) ? snap.data().entries : [];
+    if(!entries.length){ el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-style:italic">Aucune modification enregistrée pour l\'instant.</div>'; return; }
+    const KEY_LABELS = {
+      appareils:'Parc d\'appareils', ncvrd_contacts:'Annuaire', operations:'Nature des opérations',
+      photo_sections:'Sections photos', default_conclusion:'Conclusion par défaut', net_methods:'Méthodes réseau'
+    };
+    el.innerHTML = entries.slice().reverse().map(e => {
+      const d = new Date(e.at);
+      const dateStr = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:11.5px">
+        <span style="font-family:var(--font-mono);color:var(--muted);flex-shrink:0">${dateStr}</span>
+        <span style="color:var(--text);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(e.byName||'-')}</span>
+        <span style="color:#33d4c6;flex-shrink:0">${escHtml(KEY_LABELS[e.key]||e.key)}</span>
+      </div>`;
+    }).join('');
+  } catch(e){
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px">Journal inaccessible ('+escHtml(e?.message||'')+')</div>';
+  }
+}
+
+// ── Auto-diagnostic système ──
+async function runSystemDiagnostic(){
+  const el = document.getElementById('base-diag');
+  if(!el) return;
+  const rows = [];
+  const row = (ok, label, detail, action) =>
+    `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--card2);border:1px solid ${ok===false?'rgba(220,38,38,.35)':'var(--border)'};border-radius:8px;font-size:12px">
+      <span style="flex-shrink:0">${ok===true?'✅':ok===false?'❌':'⚠️'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--text)">${label}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4">${detail}${action||''}</div>
+      </div>
+    </div>`;
+
+  // 1. Connexion
+  rows.push(row(navigator.onLine, 'Connexion Internet', navigator.onLine ? 'En ligne' : 'Hors-ligne — les modifications restent locales et se synchroniseront au retour du réseau'));
+
+  // 2. Firestore (lecture réelle, timée)
+  if(FIREBASE_CONFIGURED && fdb){
+    try {
+      const t0 = Date.now();
+      await Promise.race([
+        fdb.collection('config').doc('lists').get(),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout 6s')), 6000))
+      ]);
+      rows.push(row(true, 'Base de données (Firestore)', 'Répond en '+(Date.now()-t0)+' ms'));
+    } catch(e){
+      rows.push(row(false, 'Base de données (Firestore)', 'Erreur : '+escHtml(e?.message||'inconnue')));
+    }
+  } else {
+    rows.push(row(false, 'Base de données (Firestore)', 'Non configurée'));
+  }
+
+  // 3. Storage
+  rows.push(row(!!(typeof fstorage!=='undefined' && fstorage), 'Stockage fichiers (Storage)', (typeof fstorage!=='undefined' && fstorage) ? 'Initialisé' : 'Non initialisé'));
+
+  // 4. File de synchronisation
+  try {
+    const q = (typeof getSyncQueue === 'function') ? getSyncQueue() : [];
+    rows.push(row(q.length === 0, 'File de synchronisation', q.length ? q.length+' élément(s) en attente de sync' : 'Vide — tout est synchronisé',
+      q.length ? ' <button onclick="flushSyncQueue();setTimeout(runSystemDiagnostic,2500)" style="background:rgba(22,168,154,.12);border:1px solid rgba(22,168,154,.3);color:#33d4c6;border-radius:6px;padding:3px 8px;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">↑ Synchroniser maintenant</button>' : ''));
+  } catch(_){}
+
+  // 5. Stockage local (quota localStorage ≈ 5 Mo)
+  try {
+    let used = 0; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); used += (k.length + (localStorage.getItem(k)||'').length) * 2; }
+    const mb = (used/1048576).toFixed(1);
+    rows.push(row(used < 4*1048576, 'Stockage local du navigateur', mb+' Mo utilisés / ~5 Mo' + (used >= 4*1048576 ? ' — presque plein, risque d\'erreurs de sauvegarde' : '')));
+  } catch(_){}
+
+  // 6. Service worker / version
+  try {
+    const names = ('caches' in window) ? await caches.keys() : [];
+    const active = names.find(n => n.startsWith('ncvrd-detect')) || '—';
+    rows.push(row(!!navigator.serviceWorker?.controller, 'Application hors-ligne (PWA)', 'Cache actif : '+escHtml(active)));
+  } catch(_){}
+
+  // 7. Données locales
+  try {
+    const chs = await db._idb.getAll('chantiers');
+    rows.push(row(true, 'Données locales (IndexedDB)', (chs?.length||0)+' chantier(s) sur cet appareil'));
+  } catch(e){
+    rows.push(row(false, 'Données locales (IndexedDB)', 'Inaccessible : '+escHtml(e?.message||'')));
+  }
+
+  el.innerHTML = rows.join('');
 }
 
 const _ADMIN_TABS = {
