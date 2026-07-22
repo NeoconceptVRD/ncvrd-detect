@@ -185,6 +185,21 @@ body > *{position:relative;z-index:1}
 .prep-meta-mono{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
 .ch-card.prep-card{margin:0}
 
+/* ── Onglets chantiers — segmented control (modèle 5) ── */
+#home-tabs{display:flex;gap:4px;margin:8px 14px 0;background:var(--card);border-radius:14px;padding:4px;border:1px solid var(--border)}
+.ctab{flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .22s var(--ease);background:transparent;color:var(--muted);letter-spacing:.2px;white-space:nowrap}
+.ctab:hover{color:var(--text2)}
+.ctab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 2px 12px rgba(22,168,154,.35)}
+.ctab.active.tab-danger{background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 2px 12px rgba(220,38,38,.3)}
+.ctab .tbadge{background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px;font-family:var(--font-mono)}
+.ctab.active .tbadge{background:rgba(255,255,255,.22);color:#fff}
+/* Mode terrain (fond clair plein soleil) : onglets inactifs lisibles en sombre */
+[data-terrain="1"] #home-tabs{background:#fff;border-color:#cbd5e1}
+[data-terrain="1"] .ctab{color:#334155}
+[data-terrain="1"] .ctab .tbadge{background:#cbd5e1;color:#0f172a}
+[data-terrain="1"] .ctab.active{color:#fff}
+[data-terrain="1"] .ctab.active .tbadge{background:rgba(255,255,255,.25);color:#fff}
+
 /* Actions rapides */
 .home-qa{margin:18px 14px 14px}
 .home-qa-lab{font-family:var(--font-mono);font-size:10px;letter-spacing:2.2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
@@ -1693,25 +1708,21 @@ body::before{
         <option value="month">🗓️ Ce mois</option>
         <option value="year">📅 Cette année</option>
       </select>
-      <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 12px;background:rgba(232,98,10,.12);border:1px solid rgba(232,98,10,.3);color:#E8620A;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">✕ Réinitialiser</button>
+      <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 12px;background:rgba(217,138,61,.12);border:1px solid rgba(217,138,61,.3);color:#e0a567;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">✕ Réinitialiser</button>
     </div>
     <!-- Onglets En cours / Terminés / Partagés -->
-    <div id="home-tabs" style="display:flex;gap:0;margin:8px 14px 0;background:rgba(10,16,36,.6);border-radius:13px;padding:4px;border:1px solid rgba(0,229,255,.12)">
-      <button id="tab-encours" onclick="switchTab('encours')"
-        style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .25s;background:linear-gradient(135deg,#005fa3,#00aacc,#00e5ff);color:#fff;box-shadow:0 4px 18px rgba(0,229,255,.35);letter-spacing:.3px">
-        🟢 En cours <span id="badge-encours" style="background:rgba(255,255,255,.2);color:#fff;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px">0</span>
+    <div id="home-tabs">
+      <button id="tab-encours" class="ctab active" onclick="switchTab('encours')">
+        🟢 En cours <span id="badge-encours" class="tbadge">0</span>
       </button>
-      <button id="tab-termine" onclick="switchTab('termine')"
-        style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .2s;background:transparent;color:rgba(160,176,204,.6)">
-        ✅ Terminés <span id="badge-termine" style="background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px">0</span>
+      <button id="tab-termine" class="ctab" onclick="switchTab('termine')">
+        ✅ Terminés <span id="badge-termine" class="tbadge">0</span>
       </button>
-      <button id="tab-partage" onclick="switchTab('partage')"
-        style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .2s;background:transparent;color:rgba(160,176,204,.6)">
-        👥 Partagés <span id="badge-partage" style="background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px">0</span>
+      <button id="tab-partage" class="ctab" onclick="switchTab('partage')">
+        👥 Partagés <span id="badge-partage" class="tbadge">0</span>
       </button>
-      <button id="tab-corbeille" onclick="switchTab('corbeille')"
-        style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .2s;background:transparent;color:rgba(160,176,204,.6)">
-        🗑️ Corbeille <span id="badge-corbeille" style="background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px">0</span>
+      <button id="tab-corbeille" class="ctab tab-danger" onclick="switchTab('corbeille')">
+        🗑️ Corbeille <span id="badge-corbeille" class="tbadge">0</span>
       </button>
     </div>
     <div id="chantier-list" style="margin-top:8px"></div>
@@ -1735,7 +1746,7 @@ body::before{
   <!-- ══════════════════ SCREEN RAPPORT ══════════════════ -->
   <div class="screen" id="screen-rapport">
     <!-- Banner rapport -->
-    <div style="background:linear-gradient(90deg,#00b4ff,#a855f7,#00d4aa);height:3px;margin:0 0 4px;opacity:.8"></div>
+    <div style="background:linear-gradient(90deg,#33d4c6,#5f93a0,#33d4c6);height:3px;margin:0 0 4px;opacity:.8"></div>
     <div class="autosave-bar" id="autosave-bar">✓ Sauvegardé automatiquement</div>
     <div id="conflict-bar" style="display:none;padding:9px 14px;background:rgba(234,179,8,.12);border-bottom:1px solid rgba(234,179,8,.35);font-size:12px;font-weight:600;color:#fbbf24;line-height:1.4">
       <button onclick="document.getElementById('conflict-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;color:#fbbf24;font-size:14px;line-height:1;padding:0 0 0 8px">✕</button>
@@ -1807,7 +1818,7 @@ body::before{
         </div>
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Plan de situation</label>
-          <div id="plan-situation-zone" style="background:rgba(0,180,255,.05);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:background .2s" onclick="showPhotoSource('plan')">
+          <div id="plan-situation-zone" style="background:rgba(22,168,154,.05);border:1.5px dashed rgba(22,168,154,.3);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:background .2s" onclick="showPhotoSource('plan')">
             <div id="plan-situation-img-wrap" style="display:none;margin-bottom:8px"></div>
             <span style="font-size:13px;color:var(--muted)">📍 Appuyer pour ajouter le plan de situation</span>
           </div>
@@ -1827,7 +1838,7 @@ body::before{
           <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px">Responsable projet</div>
           <div style="display:flex;gap:6px">
             <button onclick="showPersonPicker('resp',-1)" class="picker-btn">👤 Choisir</button>
-            <button onclick="prefillEquipeRegionale()" id="btn-equipe-region" style="display:none;background:linear-gradient(135deg,#005fa3,#00b4ff);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏢 Équipe</button>
+            <button onclick="prefillEquipeRegionale()" id="btn-equipe-region" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏢 Équipe</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
@@ -2024,21 +2035,21 @@ body::before{
 
     <!-- ── SECTION 1 : Bibliothèque partagée (admin → tous) ────────── -->
     <div style="margin:14px 14px 4px;display:flex;align-items:center;gap:10px">
-      <div style="flex:1;height:1px;background:rgba(0,180,255,.2)"></div>
-      <span style="font-size:11px;font-weight:800;color:#00b4ff;text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap">☁️ Bibliothèque partagée</span>
-      <div style="flex:1;height:1px;background:rgba(0,180,255,.2)"></div>
+      <div style="flex:1;height:1px;background:rgba(22,168,154,.2)"></div>
+      <span style="font-size:11px;font-weight:800;color:#33d4c6;text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap">☁️ Bibliothèque partagée</span>
+      <div style="flex:1;height:1px;background:rgba(22,168,154,.2)"></div>
     </div>
     <div class="info-box" style="font-size:11px;margin:0 14px 10px">Documents mis à disposition par les administrateurs via la base de contrôle, classés par rubrique. Une pastille 🎯 indique un document qui vous est spécifiquement destiné.</div>
 
     <!-- Normes -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00d4aa;display:inline-block;opacity:.85;flex-shrink:0"></span>📐 Normes</span><span id="badge-NORME" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#33d4c6;display:inline-block;opacity:.85;flex-shrink:0"></span>📐 Normes</span><span id="badge-NORME" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Normes NF S70-003 relatives à la détection et au géoréférencement des réseaux souterrains.</div>
         <div id="docs-NORME" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button id="upload-btn-NORME" onclick="openAddLinkModal('NORME')" style="display:none;margin-top:8px;width:100%;background:rgba(0,212,170,.08);border:1.5px dashed rgba(0,212,170,.4);border-radius:10px;padding:12px;color:#00d4aa;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+        <button id="upload-btn-NORME" onclick="openAddLinkModal('NORME')" style="display:none;margin-top:8px;width:100%;background:rgba(0,212,170,.08);border:1.5px dashed rgba(0,212,170,.4);border-radius:10px;padding:12px;color:#33d4c6;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
           🔗 Ajouter un lien
         </button>
       </div>
@@ -2047,12 +2058,12 @@ body::before{
     <!-- Fascicules -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📘 Fascicules</span><span id="badge-FASC" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#33d4c6;display:inline-block;opacity:.85;flex-shrink:0"></span>📘 Fascicules</span><span id="badge-FASC" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Fascicules 1, 2 et 3 — guides techniques DT/DICT et formulaires pratiques.</div>
         <div id="docs-FASC" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button id="upload-btn-FASC" onclick="openAddLinkModal('FASC')" style="display:none;margin-top:8px;width:100%;background:rgba(0,180,255,.08);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+        <button id="upload-btn-FASC" onclick="openAddLinkModal('FASC')" style="display:none;margin-top:8px;width:100%;background:rgba(22,168,154,.08);border:1.5px dashed rgba(22,168,154,.3);border-radius:10px;padding:12px;color:#33d4c6;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
           🔗 Ajouter un lien
         </button>
       </div>
@@ -2061,12 +2072,12 @@ body::before{
     <!-- Réglementation -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#a855f7;display:inline-block;opacity:.85;flex-shrink:0"></span>⚖️ Réglementation</span><span id="badge-REGL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#5f93a0;display:inline-block;opacity:.85;flex-shrink:0"></span>⚖️ Réglementation</span><span id="badge-REGL" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Arrêtés, décrets et textes réglementaires relatifs aux travaux à proximité des réseaux.</div>
         <div id="docs-REGL" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button id="upload-btn-REGL" onclick="openAddLinkModal('REGL')" style="display:none;margin-top:8px;width:100%;background:rgba(95,147,160,.08);border:1.5px dashed rgba(95,147,160,.4);border-radius:10px;padding:12px;color:#a855f7;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+        <button id="upload-btn-REGL" onclick="openAddLinkModal('REGL')" style="display:none;margin-top:8px;width:100%;background:rgba(95,147,160,.08);border:1.5px dashed rgba(95,147,160,.4);border-radius:10px;padding:12px;color:#5f93a0;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
           🔗 Ajouter un lien
         </button>
       </div>
@@ -2075,12 +2086,12 @@ body::before{
     <!-- CTST -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00e676;display:inline-block;opacity:.85;flex-shrink:0"></span>🏗️ CTST</span><span id="badge-CTST" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#3fb95f;display:inline-block;opacity:.85;flex-shrink:0"></span>🏗️ CTST</span><span id="badge-CTST" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents CTST : cahiers des charges, spécifications techniques et documents de référence.</div>
         <div id="docs-CTST" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button id="upload-btn-CTST" onclick="openAddLinkModal('CTST')" style="display:none;margin-top:8px;width:100%;background:rgba(0,230,118,.08);border:1.5px dashed rgba(0,230,118,.4);border-radius:10px;padding:12px;color:#00e676;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+        <button id="upload-btn-CTST" onclick="openAddLinkModal('CTST')" style="display:none;margin-top:8px;width:100%;background:rgba(0,230,118,.08);border:1.5px dashed rgba(0,230,118,.4);border-radius:10px;padding:12px;color:#3fb95f;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
           🔗 Ajouter un lien
         </button>
       </div>
@@ -2089,7 +2100,7 @@ body::before{
     <!-- Habilitations -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#10b981;display:inline-block;opacity:.85;flex-shrink:0"></span>🎓 Habilitations</span><span id="badge-HABIL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#10b981;display:inline-block;opacity:.85;flex-shrink:0"></span>🎓 Habilitations</span><span id="badge-HABIL" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Habilitations et formations internes des collaborateurs.</div>
@@ -2103,12 +2114,12 @@ body::before{
     <!-- AIPR -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#ff6b35;display:inline-block;opacity:.85;flex-shrink:0"></span>🟠 AIPR</span><span id="badge-AIPR" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#d98a3d;display:inline-block;opacity:.85;flex-shrink:0"></span>🟠 AIPR</span><span id="badge-AIPR" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Documents AIPR partagés : guides, supports de formation, attestations types.</div>
         <div id="docs-AIPR" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button id="upload-btn-AIPR" onclick="openAddLinkModal('AIPR')" style="display:none;margin-top:8px;width:100%;background:rgba(255,107,53,.08);border:1.5px dashed rgba(255,107,53,.4);border-radius:10px;padding:12px;color:#ff6b35;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+        <button id="upload-btn-AIPR" onclick="openAddLinkModal('AIPR')" style="display:none;margin-top:8px;width:100%;background:rgba(255,107,53,.08);border:1.5px dashed rgba(255,107,53,.4);border-radius:10px;padding:12px;color:#d98a3d;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;font-family:inherit">
           🔗 Ajouter un lien
         </button>
       </div>
@@ -2117,7 +2128,7 @@ body::before{
     <!-- Autres documents -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#94a3b8;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Autres documents</span><span id="badge-AUTRE" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#94a3b8;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Autres documents</span><span id="badge-AUTRE" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron">▼</span>
       </button>
       <div class="acc-body">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Tout autre document partagé ne relevant pas des rubriques ci-dessus.</div>
@@ -2139,12 +2150,12 @@ body::before{
     <!-- Documents (local) -->
     <div class="acc-section">
       <button class="acc-toggle" onclick="toggleAcc(this)">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#00b4ff;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Documents</span><span id="badge-LOCAL" style="background:rgba(0,180,255,.15);color:#00b4ff;border:1px solid rgba(0,180,255,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron open">▼</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:4px;height:18px;border-radius:4px;background:#33d4c6;display:inline-block;opacity:.85;flex-shrink:0"></span>📄 Documents</span><span id="badge-LOCAL" style="background:rgba(22,168,154,.15);color:#33d4c6;border:1px solid rgba(22,168,154,.3);padding:1px 7px;border-radius:20px;font-size:10px;margin-left:6px;font-weight:700">0</span><span class="acc-chevron open">▼</span>
       </button>
       <div class="acc-body open">
         <div class="info-box" style="margin-bottom:8px;font-size:11px">Vos documents personnels (AIPR, habilitations, DT/DICT, etc.) — stockés uniquement sur cet appareil.</div>
         <div id="docs-LOCAL" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button onclick="uploadDocument('LOCAL')" style="margin-top:8px;width:100%;background:rgba(0,180,255,.06);border:1.5px dashed rgba(0,180,255,.3);border-radius:10px;padding:12px;color:#00b4ff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
+        <button onclick="uploadDocument('LOCAL')" style="margin-top:8px;width:100%;background:rgba(22,168,154,.06);border:1.5px dashed rgba(22,168,154,.3);border-radius:10px;padding:12px;color:#33d4c6;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s">
           ➕ Insérer un document
         </button>
       </div>
@@ -2553,14 +2564,14 @@ body::before{
 
   <!-- ══════════════════ SCREEN ADMIN ══════════════════ -->
   <div class="screen" id="s-admin">
-    <div style="background:linear-gradient(135deg,#050d20,#0a1e3a);padding:22px 16px 18px;border-bottom:1px solid rgba(0,180,255,.2)">
-      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">NCVRD Detect</div>
-      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:2px">🛠️ Base de contrôle</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.65)" id="admin-subtitle">Contrôle de l'application</div>
+    <div style="background:#0c1113;padding:20px 16px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--font-mono);font-size:9.5px;font-weight:600;color:var(--accent-v);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:22px;height:2px;background:var(--accent);border-radius:2px"></span>NCVRD Detect · Administration</div>
+      <div style="font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-bottom:2px">🛠️ Base de contrôle</div>
+      <div style="font-size:12px;color:var(--muted)" id="admin-subtitle">Contrôle de l'application</div>
     </div>
     <!-- Onglets -->
-    <div style="display:flex;overflow-x:auto;border-bottom:1px solid rgba(0,180,255,.15);background:rgba(0,0,0,.3);-webkit-overflow-scrolling:touch">
-      <button onclick="adminTab('collab')" id="atab-collab" style="flex:1 0 auto;min-width:78px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--blue);border-bottom:3px solid var(--blue);font-family:inherit;white-space:nowrap">👥 Équipe</button>
+    <div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--card3);-webkit-overflow-scrolling:touch">
+      <button onclick="adminTab('collab')" id="atab-collab" style="flex:1 0 auto;min-width:78px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--accent-v);border-bottom:3px solid var(--accent);font-family:inherit;white-space:nowrap">👥 Équipe</button>
       <button onclick="adminTab('chantiers')" id="atab-chantiers" style="flex:1 0 auto;min-width:84px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">🏗️ Chantiers</button>
       <button onclick="adminTab('documents')" id="atab-documents" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📄 Docs</button>
       <button onclick="adminTab('stats')" id="atab-stats" style="flex:1 0 auto;min-width:68px;padding:11px 6px;font-size:11.5px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap">📊 Stats</button>
@@ -5636,32 +5647,13 @@ let _virtualObserver = null; // IntersectionObserver pour virtual scroll
 
 function switchTab(tab){
   activeTab = tab;
-  const enc = document.getElementById('tab-encours');
-  const ter = document.getElementById('tab-termine');
-  const par = document.getElementById('tab-partage');
-  const cor = document.getElementById('tab-corbeille');
-  const benc = document.getElementById('badge-encours');
-  const bter = document.getElementById('badge-termine');
-  const bpar = document.getElementById('badge-partage');
-  const bcor = document.getElementById('badge-corbeille');
-  const BASE = 'flex:1;padding:10px 6px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,inherit;transition:all .2s;';
-  // Mode terrain (fond clair) : onglets inactifs et compteurs en sombre lisible
-  const terrain = document.documentElement.getAttribute('data-terrain') === '1';
-  const OFF  = BASE + (terrain ? 'background:transparent;color:#334155' : 'background:transparent;color:rgba(160,176,204,.6)');
-  const BADGE_OFF = terrain
-    ? 'background:#cbd5e1;color:#0f172a;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px'
-    : 'background:var(--border);color:var(--muted);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px';
-  const BADGE_ON  = 'background:rgba(255,255,255,.25);color:#fff;padding:1px 6px;border-radius:10px;font-size:10px;margin-left:3px';
-
-  if(enc) enc.style.cssText = tab==='encours' ? BASE+'background:linear-gradient(135deg,#005fa3,#0099cc);color:#fff;box-shadow:0 2px 8px rgba(0,180,255,.3)' : OFF;
-  if(ter) ter.style.cssText = tab==='termine' ? BASE+'background:#15803d;color:#fff;box-shadow:0 2px 8px rgba(21,128,61,.3)' : OFF;
-  if(par) par.style.cssText = tab==='partage' ? BASE+'background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.3)' : OFF;
-  if(cor) cor.style.cssText = tab==='corbeille' ? BASE+'background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.3)' : OFF;
-  if(benc) benc.style.cssText = tab==='encours' ? BADGE_ON : BADGE_OFF;
-  if(bter) bter.style.cssText = tab==='termine' ? BADGE_ON : BADGE_OFF;
-  if(bpar) bpar.style.cssText = tab==='partage' ? BADGE_ON : BADGE_OFF;
-  if(bcor) bcor.style.cssText = tab==='corbeille' ? BADGE_ON : BADGE_OFF;
-
+  // Segmented control moderne : la classe .active fait tout (styles .ctab dans le CSS,
+  // y compris le mode terrain via [data-terrain="1"]).
+  [['encours','tab-encours'],['termine','tab-termine'],['partage','tab-partage'],['corbeille','tab-corbeille']]
+    .forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if(el) el.classList.toggle('active', tab === key);
+    });
   renderChantiers(S.chantiers);
 }
 
@@ -8837,7 +8829,7 @@ function renderSharedDocs(){
       const isLink = doc.fileType==='lien' || !doc.fileType;
       const isNote = doc.fileType==='note' || !doc.url;
       const tgt = (doc.kind==='assigned' && !doc.targetAll) ? '<span style="color:#f59e0b;font-weight:700"> · 🎯 ciblé</span>' : '';
-      const meta = (isLink && doc.url) ? `<div style="font-size:10px;color:#00b4ff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☁️ ${escHtml(doc.url)}</div>` : '';
+      const meta = (isLink && doc.url) ? `<div style="font-size:10px;color:#33d4c6;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☁️ ${escHtml(doc.url)}</div>` : '';
       return `<div style="background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
         <div style="font-size:28px;flex-shrink:0">${_admDocIcon(doc)}</div>
         <div style="flex:1;min-width:0">
@@ -12204,8 +12196,8 @@ function adminTab(tab){
     const btn = document.getElementById(cfg.btn);
     if(btn){
       const on = (k===tab);
-      btn.style.color = on?'var(--blue)':'var(--muted)';
-      btn.style.borderBottomColor = on?'var(--blue)':'transparent';
+      btn.style.color = on?'var(--accent-v)':'var(--muted)';
+      btn.style.borderBottomColor = on?'var(--accent)':'transparent';
     }
   });
   const searchBar = document.getElementById('admin-search-bar');
@@ -13238,14 +13230,14 @@ function renderAdminDocuments(filter=''){
     <div id="admin-flash-list"><div style="font-size:12px;color:var(--muted);font-style:italic">Chargement…</div></div>
     <div style="border-top:1px solid var(--border);margin:16px 0 14px"></div>`;
   if(typeof _loadAdminFlashes === 'function') _loadAdminFlashes();
-  const addBtn = flashSection + `<button onclick="openAdminDocModal()" style="width:100%;background:linear-gradient(135deg,#0B769F,#0e6088);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px">➕ Déposer un document</button>`;
-  const info = `<div style="font-size:11px;color:var(--muted);background:rgba(11,118,159,.07);border:1px solid rgba(11,118,159,.18);border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5">📄 Les documents déposés ici apparaissent dans la rubrique choisie de l'écran « Documents » des collaborateurs ciblés.</div>`;
+  const addBtn = flashSection + `<button onclick="openAdminDocModal()" style="width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px;box-shadow:0 2px 12px rgba(22,168,154,.25)">➕ Déposer un document</button>`;
+  const info = `<div style="font-size:11px;color:var(--muted);background:rgba(22,168,154,.07);border:1px solid rgba(22,168,154,.18);border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5">📄 Les documents déposés ici apparaissent dans la rubrique choisie de l'écran « Documents » des collaborateurs ciblés.</div>`;
   if(!docs.length){ el.innerHTML = addBtn + info + '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Aucun document déposé.</div>'; return; }
   el.innerHTML = addBtn + info + docs.map(d=>{
     const target = d.targetAll ? `Toute la région ${escHtml(d._teamName||'')}` : `${(d.targetUids||[]).length} collaborateur(s)`;
     const RUB={NORME:'📐 Normes',FASC:'📘 Fascicules',REGL:'⚖️ Réglementation',CTST:'🏗️ CTST',HABIL:'🎓 Habilitations',AIPR:'🟠 AIPR',AUTRE:'📄 Autres documents'};
     const isHab = d.category==='HABIL';
-    const catBadge = `<span style="font-size:9px;font-weight:700;background:${isHab?'rgba(16,185,129,.14)':'rgba(11,118,159,.14)'};color:${isHab?'#10b981':'#0B769F'};border-radius:6px;padding:2px 7px">${RUB[d.category]||'📄 Document'}</span>`;
+    const catBadge = `<span style="font-size:9px;font-weight:700;background:${isHab?'rgba(16,185,129,.14)':'rgba(22,168,154,.14)'};color:${isHab?'#10b981':'#33d4c6'};border-radius:6px;padding:2px 7px">${RUB[d.category]||'📄 Document'}</span>`;
     const hasContent = d.fileType!=='note' && d.url;
     return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">
       <div style="font-size:26px;flex-shrink:0">${_admDocIcon(d)}</div>
@@ -14322,7 +14314,7 @@ function _showInstallButton(){
   btn.id = 'btn-install-pwa';
   btn.setAttribute('aria-label','Installer NCVRD Detect en tant qu\'application');
   btn.textContent = '⬇️  Installer l\'app';
-  btn.style.cssText = 'position:fixed;bottom:90px;right:16px;background:#0B769F;color:#fff;border:none;padding:10px 16px;border-radius:24px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;box-shadow:0 6px 16px rgba(11,118,159,.4);z-index:1500;transition:transform .15s';
+  btn.style.cssText = 'position:fixed;bottom:90px;right:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:10px 16px;border-radius:24px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;box-shadow:0 6px 16px rgba(22,168,154,.4);z-index:1500;transition:transform .15s';
   btn.addEventListener('mouseenter', () => btn.style.transform = 'translateY(-2px)');
   btn.addEventListener('mouseleave', () => btn.style.transform = 'translateY(0)');
   btn.addEventListener('click', promptInstallPWA);
@@ -14384,12 +14376,12 @@ function _promptAppUpdate(){
   // Réutilise le système de toast s'il existe, sinon crée un bandeau ad hoc
   const bar = document.createElement('div');
   bar.setAttribute('role','status');
-  bar.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0E2841;color:#fff;padding:12px 18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:10000;font-size:14px;display:flex;gap:12px;align-items:center;max-width:90vw';
+  bar.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--card2);color:var(--text);border:1px solid rgba(22,168,154,.35);padding:12px 18px;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:10000;font-size:14px;display:flex;gap:12px;align-items:center;max-width:90vw';
   bar.innerHTML = '<span>🔄 Nouvelle version disponible</span>';
   const btn = document.createElement('button');
   btn.textContent = 'Recharger';
   btn.setAttribute('aria-label','Recharger pour appliquer la mise à jour');
-  btn.style.cssText = 'background:#E8620A;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit';
+  btn.style.cssText = 'background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:6px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-family:inherit';
   btn.addEventListener('click', () => location.reload());
   const dismiss = document.createElement('button');
   dismiss.textContent = '✕';
@@ -14891,7 +14883,7 @@ function _openDocViewer(doc){
   // Gros bouton de téléchargement au centre
   const bigBtn = document.createElement('button');
   bigBtn.textContent = '⬇️  Télécharger le document';
-  bigBtn.style.cssText = 'margin-top:18px;background:#0B769F;color:#fff;border:none;padding:12px 22px;border-radius:24px;font-weight:700;cursor:pointer;font-family:var(--font);font-size:14px';
+  bigBtn.style.cssText = 'margin-top:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:12px 22px;border-radius:24px;font-weight:700;cursor:pointer;font-family:var(--font);font-size:14px';
   bigBtn.addEventListener('click', () => _docDirectDownload(doc));
   content.querySelector('div')?.appendChild(bigBtn);
 }
