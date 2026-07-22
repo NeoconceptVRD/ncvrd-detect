@@ -4883,7 +4883,10 @@ function getRegionData(teamName){
   const tn = teamName.toLowerCase().replace(/[-_]/g,' ').replace(/\s+/g,' ').trim();
   if(tn.includes('grand est') || tn.includes('grandest')) return REGION_DATA['Grand EST'];
   if(tn.includes('paris est') || tn.includes('parisest') || tn.includes('noisy'))    return REGION_DATA['Paris EST'];
-  if(tn.includes('paris ouest') || tn.includes('parisoues') || tn.includes('courbevoie') || tn.includes('idf')) return REGION_DATA['Paris OUEST'];
+  // ⚠️ 'neoconcept vrd' (sans suffixe) = siège Courbevoie / Paris Ouest.
+  //    Ce test DOIT rester le dernier : "Neoconcept VRD Paris EST" et
+  //    "Neoconcept VRD Grand EST" matchent leurs régions ci-dessus AVANT.
+  if(tn.includes('paris ouest') || tn.includes('parisoues') || tn.includes('courbevoie') || tn.includes('idf') || tn.includes('neoconcept vrd')) return REGION_DATA['Paris OUEST'];
   return null;
 }
 
